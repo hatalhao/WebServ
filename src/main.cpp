@@ -9,5 +9,6 @@ int main(int argc, char **argv) {
 
 	std::string configFile = argv[1];
 	Config server1(configFile);
+	server1.printParams();
 	return 0;
 }

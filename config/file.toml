@@ -2,3 +2,15 @@
 server_name = "sekhar"
 host = "127.0.0.1"
 listen = "8080"
+
+[server]
+server_name = "hatalhao"
+host = "127.0.0.1"
+listen = "8081"
+
+[server]
+server_name = "another"
+host = "127.0.0.1"
+listen = "8082"
+location = "/another"
+
