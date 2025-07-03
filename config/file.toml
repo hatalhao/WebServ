@@ -2,15 +2,28 @@
 server_name = "sekhar"
 host = "127.0.0.1"
 listen = "8080"
+[server.error_pages]
+403 = "403.html"
+404 = "404.html"
+413 = "413.html"
+[server.locations]
+root = "/home"
+images = "/home/hatalhao/images"
+[server.cgi]
+extension = ".py"
+handler = "/usr/bin/python3"
 
-[server]
-server_name = "hatalhao"
-host = "127.0.0.1"
-listen = "8081"
 
-[server]
-server_name = "another"
-host = "127.0.0.1"
-listen = "8082"
-location = "/another"
+
+
+# [server]
+# server_name = "hatalhao"
+# host = "127.0.0.1"
+# listen = "8081"
+
+# [server]
+# server_name = "another"
+# host = "127.0.0.1"
+# listen = "8082"
+# location = "/another"
 

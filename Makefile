@@ -8,7 +8,7 @@ CXXFLAGS += -MMD -MP
 
 CXXFLAGS += -g3
 
-MAKEFLAGS = -j
+MAKEFLAGS = -j --no-print-directory -silent
 
 SRCS = $(wildcard src/*.cpp)
 
@@ -22,7 +22,7 @@ $(NAME): $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $(NAME) $(OBJS)
 
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	@$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
 	rm -f $(OBJS) $(DEPS)

@@ -2,6 +2,7 @@
 #define WEBSERV_HPP
 
 #include "origin.hpp"
+#include "Config.hpp"
 
 class Webserv {
 	private:
@@ -15,11 +16,9 @@ class Webserv {
 		Webserv();
 
 	public:
-		Webserv(const std::string &configFile);
+		Webserv(const Config& config);
 		~Webserv();
-
-
-		
+		void checkAttributes() const;
 };
 
 #endif
