@@ -15,6 +15,13 @@ void	Webserv::checkAttributes() const  {
 
 }
 
+Webserv::Webserv() : port(80), host("localhost"), root("/var/www/html"), serverName("default_server"), index("index.html") {
+	// Default constructor initializes with some default values
+	this->locations["/"] = this->root;
+	this->errorPageMap[404] = "404.html";
+	this->errorPageMap[500] = "500.html";
+}
+
 Webserv::Webserv(const Config& config) {
 	this->port = config.getPort();
 	this->host = config.getHost();

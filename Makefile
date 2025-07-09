@@ -2,13 +2,15 @@ NAME = webserv
 
 CXX = c++
 
-CXXFLAGS = -Wall -Wextra -Werror -std=c++98
+CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -g3
 
 CXXFLAGS += -MMD -MP
 
-CXXFLAGS += -g3
+CXXFLAGS += -fsanitize=address
 
-MAKEFLAGS = -j --no-print-directory -silent
+MAKEFLAGS = -j --no-print-directory 
+
+# MAKEFLAGS += -silent
 
 SRCS = $(wildcard src/*.cpp)
 

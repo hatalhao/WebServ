@@ -33,7 +33,8 @@ class Config {
 			while (it != it1) {
 				_pair = *it;
 				std::cout << _pair.first << "=" << _pair.second << std::endl;
-				++it;
+				std::cout << "------------------------" << std::endl;
+				it++;
 			}
 		}
 

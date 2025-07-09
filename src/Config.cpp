@@ -2,6 +2,21 @@
 #include "../includes/Config.hpp"
 #include "../includes/Webserv.hpp"
 
+bool notValidChar(char c) {
+	return (c == '\"' || c == '\'' || c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '[' || c == ']');
+}
+
+bool isValidBlock(const std::string& line) {
+	if (line.find("=") != std::string::npos || std::count(line.begin(), line.end(), '[') != 2 || \
+	std::count(line.begin(), line.end(), ']') != 2 || line.find("[[") == std::string::npos \
+	|| line.find("]]") == std::string::npos || line.find("[[") >= line.find("]]")) {
+		return false;
+	}
+	std::string directive = line;
+	directive.erase(std::remove_if(directive.begin(), directive.end(), notValidChar), directive.end());
+	return (directive == "error_pages" || directive == "server" || directive == "location" || directive == "cgi");
+}
+
 Config::Config(const std::string& configFilePath) : _configFilePath(configFilePath) {
 	std::ifstream configFile(_configFilePath.c_str());
 	if (!configFile.is_open()) {
@@ -9,23 +24,24 @@ Config::Config(const std::string& configFilePath) : _configFilePath(configFilePa
 	}
 
 	std::string line;
-	int i = 0;
-	std::string serie;
+	size_t pos = std::string::npos;
+	std::string key;
+	std::string value;
 	while (std::getline(configFile, line)) {
-		if (line.empty() || line[0] == '#')
+		if (line.empty() || line[0] == '#' || line.find_first_not_of(" \t\n\r") == std::string::npos)
 			continue;
-		if (line == "[server]") {
-			serie = i + 48;
-			Webserv("server " + serie);
-			i++;
-		}
-		size_t pos = line.find('=');
+		if (isValidBlock(line) == false && line.find('=') == std::string::npos)
+			throw std::runtime_error("Invalid configuration block: " + line);
+		pos = line.find('=');
 		if (pos != std::string::npos) {
-			std::string key = line.substr(0, pos - (line[pos - 1] == ' '));
-			std::string value = line.substr(pos + 1 + (line[pos + 1] == ' '));
+			key = line.substr(0, pos - (line[pos - 1] == ' '));
+			key.erase(std::remove_if(key.begin(), key.end(), notValidChar), key.end());
+			value = line.substr(pos + 1 + (line[pos + 1] == ' '));
+			value.erase(std::remove_if(value.begin(), value.end(), notValidChar), value.end());
 			_settings[key] = value;
 		}
 	}
+	this->printParams();
 }
 
 u_int16_t Config::getPort() const {
@@ -73,7 +89,7 @@ std::map<std::string, std::string> Config::getLocations() const {
 	return locations;
 }
 
-std::map<int, std::string>			Config::getErrorPageMap() const {
+std::map<int, std::string>	Config::getErrorPageMap() const {
 	std::map<int, std::string> errorPageMap;
 	for (std::map<std::string, std::string>::const_iterator it = _settings.begin(); it != _settings.end(); ++it) {
 		if (it->first.find("error_page") != std::string::npos) {

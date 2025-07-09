@@ -13,9 +13,16 @@ class Webserv {
 		std::string	index;
 		std::map<std::string, std::string> locations;
 		std::map<int, std::string> errorPageMap;
-		Webserv();
-
+		typedef struct	cgi
+		{
+			std::string extension;
+			std::string path;
+		}				cgi_t;
+		
+		std::vector<cgi_t> cgiList;
+		
 	public:
+		Webserv();
 		Webserv(const Config& config);
 		~Webserv();
 		void checkAttributes() const;
