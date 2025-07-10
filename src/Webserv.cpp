@@ -23,12 +23,6 @@ void	fillServer(server &serv, const Config &config) {
 	serv.serverName = config.getServerName();
 
 	std::map<std::string, std::string> locations = config.getLocations();
-	for (const auto &loc : locations) {
-		location_b loc_b;
-		loc_b.path = loc.first;
-		loc_b.root = loc.second; // Assuming the value is the root for the location
-		serv.locations.push_back(loc_b);
-	}
 
 	// Fill errorPageMap and cgiList if needed
 

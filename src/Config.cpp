@@ -72,11 +72,17 @@ std::string Config::getIndex() const {
 	return it->second;
 }
 
-std::string Config::getServerName() const {
+std::vector<std::string> Config::getServerName() const {
 	std::map<std::string, std::string>::const_iterator it = _settings.find("server_name");
-	if (it != _settings.end())
-		return it->second;
-	return "default_server";
+	if (it == _settings.end())
+		throw std::runtime_error("Server name not found in configuration");
+	std::vector<std::string> serverNames;
+	std::istringstream ss(it->second);
+	std::string name;
+	while (ss >> name) {
+		serverNames.push_back(name);
+	}
+	return serverNames;
 }
 
 std::map<std::string, std::string> Config::getLocations() const {

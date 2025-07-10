@@ -10,7 +10,11 @@ root = "/home/"
 [[location]]
 # root = "/home"
 "/images/insd/" = "/home/hatalhao/images"
+index = ["index.html", "index.php", "indexFile.html"]
+autoindex = "on"
 [[location]]
+
+
 
 [[cgi]]
 extension = ".py"

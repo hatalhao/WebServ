@@ -14,7 +14,6 @@ typedef struct	location {
 	std::vector<std::string> methods;
 	std::string root;
 	std::vector<std::string> index;
-	std::vector<std::string> autoIndex;
 	std::map<int, std::string> errorPageMap;
 	std::vector<cgi_t> cgiList;
 	

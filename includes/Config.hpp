@@ -18,8 +18,8 @@ class Config {
 		u_int16_t							getPort() const;
 		std::string							getHost() const;
 		std::string							getRoot() const;
-		std:: <std::string>							getIndex() const;
-		std::string							getServerName() const;
+		std::vector<std::string>			getIndex() const;
+		std::vector<std::string>							getServerName() const;
 		std::map<std::string, std::string>	getLocations() const;
 		std::map<int, std::string>			getErrorPageMap() const;
 	
