@@ -8,7 +8,7 @@ class Config {
 	private:
 		std::string _configFilePath;
 		std::map<std::string, std::string> _settings;
-		std::vector<Webserv> _servers;
+		std::vector<server> _servers;
 
 	public:
 		Config(const std::string &configFilePath);
@@ -18,7 +18,7 @@ class Config {
 		u_int16_t							getPort() const;
 		std::string							getHost() const;
 		std::string							getRoot() const;
-		std::string							getIndex() const;
+		std:: <std::string>							getIndex() const;
 		std::string							getServerName() const;
 		std::map<std::string, std::string>	getLocations() const;
 		std::map<int, std::string>			getErrorPageMap() const;
