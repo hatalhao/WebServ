@@ -19,7 +19,7 @@ void	fillServer(server &serv, const Config &config) {
 	serv.port = config.getPort();
 	serv.host = config.getHost();
 	serv.root = config.getRoot();
-	serv.index = config.getIndex();
+	serv.index = *config.getIndex();
 	serv.serverName = config.getServerName();
 
 	std::map<std::string, std::string> locations = config.getLocations();

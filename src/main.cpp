@@ -3,7 +3,7 @@
 
 int main(int argc, char **argv) {
 	if (argc < 1 || argc > 2) {
-		std::cerr << "Usage: ./webserv <config_file>" << std::endl;
+		std::cerr << "Usage: ./" << argv[0] << " <config_file>" << std::endl;
 		return 1;
 	}
 	std::string configFile = (argv[1]) ? argv[1] : "config/default.toml";

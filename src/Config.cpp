@@ -65,11 +65,17 @@ std::string Config::getRoot() const {
 	return it->second;
 }
 
-std::string Config::getIndex() const {
+std::vector<std::string>* Config::getIndex() const {
 	std::map<std::string, std::string>::const_iterator it = _settings.find("index");
 	if (it == _settings.end())
 		throw std::runtime_error("Index not found in configuration");
-	return it->second;
+	std::vector<std::string> *indexFiles = new std::vector<std::string>;
+	std::istringstream ss(it->second);
+	std::string file;
+	while (ss >> file) {
+		indexFiles->push_back(file);
+	}
+	return indexFiles;
 }
 
 std::vector<std::string> Config::getServerName() const {
