@@ -1,43 +1,53 @@
+ERASE		:=  \033[2K\r
+BLUE		:=	\033[34m
+YELLOW		:=	\033[33m
+GREEN		:=	\033[32m
+MAGENTA		:=	\033[35m
+CYAN		:=	\033[36m
+BOLD		:=	\033[1m
+END			:=	\033[0m
+
 NAME = webserv
 
 CXX = c++
 
-CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -g3
+CXXFLAGS = -Wall -Werror -Wextra -std=c++98
 
 CXXFLAGS += -MMD -MP
 
-CXXFLAGS += -fsanitize=address
+# CXXFLAGS += -g3
+# CXXFLAGS += -fsanitize=address
 
-MAKEFLAGS = -j --no-print-directory 
-
-# MAKEFLAGS += -silent
+OBJS_DIR = tmp/objs
+DEPS_DIR = tmp/deps
 
 SRCS = $(wildcard src/*.cpp)
 
-OBJS = $(SRCS:.cpp=.o)
+OBJS = $(patsubst src/%.cpp, $(OBJS_DIR)/%.o, $(SRCS))
+DEPS = $(patsubst src/%.cpp, $(DEPS_DIR)/%.d, $(SRCS))
 
-DEPS = $(SRCS:.cpp=.d)
+all : $(NAME)
 
-all: $(NAME)
+$(NAME) : $(OBJS)
+	@$(CXX) $(CXXFLAGS) $(OBJS) -o $@
+	@printf "$(ERASE)$(GREEN)--> $@ made <--$(END)\n"
 
-$(NAME): $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $(NAME) $(OBJS)
-
-%.o: %.cpp
-	@$(CXX) $(CXXFLAGS) -c $< -o $@
-
-clean:
-	rm -f $(OBJS) $(DEPS)
-
-fclean: clean
-	rm -f $(NAME)
-
-re:
-	make fclean
-	make all
-
-.PHONY: all clean fclean re
-
-.SECONDARY: $(OBJS)
+$(OBJS_DIR)/%.o: src/%.cpp Makefile
+	@mkdir -p $(OBJS_DIR) $(DEPS_DIR)
+	@$(CXX) $(CXXFLAGS) $(DEPS_DIR)/$*.d -c $< -o $@
+	@printf "$(BLUE) > Compilation :$(END) $<\r"
 
 -include $(DEPS)
+
+clean :
+	@rm -rdf tmp
+	@printf "$(MAGENTA)-->	tmp directory removed$(END)\n"
+
+fclean : clean
+	@rm -f $(NAME)
+	@printf "$(MAGENTA)-->	$(NAME) removed$(END)\n"
+
+re : fclean all
+
+.PHONY: all clean fclean re
+.SECONDARY:	$(OBJS)

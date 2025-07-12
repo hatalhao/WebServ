@@ -1,8 +1,17 @@
 #ifndef WEBSERV_HPP
 #define WEBSERV_HPP
 
-#include "origin.hpp"
-#include "Config.hpp"
+#include <iostream>
+#include <string>
+#include <vector>
+#include <map>
+#include <fstream>
+#include <sstream>
+#include <algorithm>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <cstdlib>
+
 typedef struct	cgi
 {
 	std::string extension;
@@ -17,7 +26,6 @@ typedef struct	location {
 	std::map<int, std::string> errorPageMap;
 	std::vector<cgi_t> cgiList;
 	
-	// Additional attributes for location
 	bool isAutoIndexEnabled;
 	bool isCgiEnabled;
 
@@ -35,9 +43,6 @@ typedef struct	server {
 	std::vector<cgi_t> cgiList;
 
 }			 server;
-void	checkAttributes(server &serv);
-void	printServer(const server &serv);
-void	fillServer(server &serv, const Config &config);
 
 
 #endif
