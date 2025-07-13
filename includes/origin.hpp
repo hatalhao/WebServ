@@ -21,5 +21,6 @@
 
 #define DEBUG std::cout << "DEBUG: " << __FILE__ << ":" << __LINE__ << std::endl;
 #define NPOS std::string::npos
+#define print std::cout <<
 
 #endif

@@ -2,6 +2,7 @@
 #include "../includes/Config.hpp"
 #include "../includes/Webserv.hpp"
 
+
 bool notValidChar(char c) {
 	return (c == '\"' || c == '\'' || c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '[' || c == ']');
 }
@@ -70,9 +71,9 @@ Config::Config(const std::string& configFilePath) : _configFilePath(configFilePa
 			continue;
 			
 		pos = line.find('=');
-		if (pos == NPOS && isValidBlock(line) == false)
+		if (pos == NPOS && !isValidBlock(line))
 			throw std::runtime_error("Invalid configuration block: " + line);
-		if (pos != NPOS && isKeyValue(line) == false)
+		if (pos != NPOS && !isKeyValue(line))
 			throw std::runtime_error("Invalid key-value pair: " + line);
 		
 		if (pos != NPOS && pos > 0) {
@@ -85,16 +86,16 @@ Config::Config(const std::string& configFilePath) : _configFilePath(configFilePa
 	}
 }
 
-std::set<u_int16_t> Config::extractPorts() const {
+std::set<int> Config::extractPorts() const {
 	std::map<std::string, std::string>::const_iterator it = _settings.find("listen");
 	if (it == _settings.end())
 		throw std::runtime_error("Port not found in configuration");
-	std::set<u_int16_t> ports;
+	std::set<int> ports;
 	std::istringstream ss(it->second);
 	std::string portStr;
-	while (ss >> portStr) {
-		u_int16_t port = static_cast<u_int16_t>(std::atoi(portStr.c_str()));
-		if (port == 0 || port > 65535) {
+	while (std::getline(ss, portStr, ',')) {
+		int port = std::atoi(portStr.c_str());
+		if (port < 1 || port > 65535) {
 			throw std::runtime_error("Invalid port number: " + portStr);
 		}
 		ports.insert(port);
@@ -102,29 +103,53 @@ std::set<u_int16_t> Config::extractPorts() const {
 	return ports;
 }
 
-std::string Config::extractHost() const {
+bool	isValidHost(const std::string& host) {
+	std::stringstream ss(host);
+	int16_t octet;
+	int count = 0;
+	while (ss >> octet) {
+		if (octet > 255 || octet < 0) {
+			return false;
+		}
+		count++;
+		if (ss.peek() == '.') {
+			ss.ignore();
+		} else if (ss.peek() != EOF) {
+			return false;
+		}
+	}
+	return (count == 4 && ss.eof());
+}
+
+std::string	Config::extractHost() const {
 	std::map<std::string, std::string>::const_iterator it = _settings.find("host");
 	if (it == _settings.end())
 		throw std::runtime_error("Host not found in configuration");
+	if (!isValidHost(it->second)) {
+		throw std::runtime_error("Invalid host format: " + it->second);
+	}
 	return it->second;
 }
 
-std::string Config::extractRoot() const {
+std::string	Config::extractRoot() const {
 	std::map<std::string, std::string>::const_iterator it = _settings.find("root");
 	if (it == _settings.end())
 		throw std::runtime_error("Root not found in configuration");
 	return it->second;
 }
 
-std::vector<std::string> Config::extractIndex() const {
+std::vector<std::string>	Config::extractIndex() const {
 	std::map<std::string, std::string>::const_iterator it = _settings.find("index");
 	if (it == _settings.end())
 		throw std::runtime_error("Index not found in configuration");
 	std::vector<std::string> indexFiles;
 	std::istringstream ss(it->second);
 	std::string file;
-	while (ss >> file) {
+	while (std::getline(ss, file, ',')) {
 		indexFiles.push_back(file);
+	}
+	for (size_t i = 0; i < indexFiles.size(); ++i) {
+
 	}
 	return indexFiles;
 }
@@ -137,8 +162,11 @@ std::vector<std::string> Config::extractServerName() const {
 		name = "nameless";
 	std::vector<std::string> serverNames;
 	std::istringstream ss(it->second);
-	while (ss >> name) {
+	while (std::getline(ss, name, ',')) {
 		serverNames.push_back(name);
+	}
+	for (size_t i = 0; i < serverNames.size(); ++i) {
+		print serverNames[i] << std::endl;
 	}
 	return serverNames;
 }

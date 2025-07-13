@@ -24,7 +24,7 @@ typedef struct	location {
 }				location_b;
 
 typedef struct	server {
-	std::set<u_int16_t>			port;
+	std::set<int>				port;
 	std::string					host;
 	std::string					root;
 	std::vector<std::string>	serverName;

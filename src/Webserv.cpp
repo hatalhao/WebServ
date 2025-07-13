@@ -10,7 +10,7 @@ const std::string	to_string(const T& port) {
 void	checkAttributes(server &serv) {
 	if (serv.port.size() == 0)
 		throw std::invalid_argument("Port cannot be empty");
-	for (std::set<u_int16_t>::iterator it = serv.port.begin(); it != serv.port.end(); ++it) {
+	for (std::set<int>::iterator it = serv.port.begin(); it != serv.port.end(); ++it) {
 		if (*it < 1 || *it > 65535)
 			throw std::invalid_argument("Invalid port number: " + to_string(*it));
 	}

@@ -1,10 +1,9 @@
 	# [[server]]
-			[[server]]
-server_name = "sekhar"
+[[server]]
+server_name = ["sekhar", "awd", "aawdawd"]
 host = "127.0.0.1"
 listen = ["8989", "8080", "8081"]
 root = "/home/"
-s = s
 [[error_pages]]
 403 = "403.html"
 404 = "404.html"
