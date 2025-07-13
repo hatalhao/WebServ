@@ -2,7 +2,7 @@
 #define CONFIG_HPP
 
 #include "origin.hpp"
-class Webserv;
+struct server;
 
 class Config {
 	private:
@@ -15,13 +15,13 @@ class Config {
 		~Config();
 
 		//getters
-		u_int16_t							getPort() const;
-		std::string							getHost() const;
-		std::string							getRoot() const;
-		std::vector<std::string>			*getIndex() const;
-		std::vector<std::string>							getServerName() const;
-		std::map<std::string, std::string>	getLocations() const;
-		std::map<int, std::string>			getErrorPageMap() const;
+		std::set<u_int16_t>					extractPorts() const;
+		std::string							extractHost() const;
+		std::string							extractRoot() const;
+		std::vector<std::string>			extractIndex() const;
+		std::vector<std::string>			extractServerName() const;
+		std::map<std::string, std::string>	extractLocations() const;
+		std::map<int, std::string>			extractErrorPageMap() const;
 	
 
 		void printParams() {
@@ -38,6 +38,6 @@ class Config {
 			}
 		}
 
-};
+}; 
 
 #endif

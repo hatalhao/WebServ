@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <set>
 #include <fstream>
 #include <sstream>
 #include <algorithm>
@@ -17,5 +18,8 @@
 #define POST = 0x2
 #define DELETE = 0x4
 // #define GET = 0x8
+
+#define DEBUG std::cout << "DEBUG: " << __FILE__ << ":" << __LINE__ << std::endl;
+#define NPOS std::string::npos
 
 #endif

@@ -9,6 +9,8 @@ int main(int argc, char **argv) {
 	std::string configFile = (argv[1]) ? argv[1] : "config/default.toml";
 	try {
 		Config conf(configFile);
+		server serv;
+		fillServer(serv, conf);
 	} catch (const std::runtime_error &e) {
 		std::cerr << "Error: " << e.what() << std::endl;
 		return 1;
