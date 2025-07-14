@@ -2,11 +2,12 @@
 #define CONFIG_HPP
 
 #include "webserv.hpp"
+#include "client.hpp"
 
 class config {
     private:
-        std::vector<server> servers;
-    
+        std::vector<Server> servers;
+        std::vector<Client> clients;
 };
 
 #endif

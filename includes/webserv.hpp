@@ -12,6 +12,7 @@
 #include <sys/types.h>
 #include <cstdlib>
 
+#define CRLF "\r\n"
 typedef struct	cgi
 {
 	std::string extension;
@@ -42,7 +43,7 @@ typedef struct	server {
 	
 	std::vector<cgi_t> cgiList;
 
-}			 server;
+}			 Server;
 
 
 #endif
