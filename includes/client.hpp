@@ -21,12 +21,11 @@ typedef enum methods {
 class Client {
 	private:
 		int             socketFd;
-		std::string     requestBuf;
-		std::string     responseBuf;
+		string			requestBuf;
+		string			responseBuf;
 		size_t          contentLen;
 		ClientState     state;
 		Request			Request;
-
 	public:
 		void	processRequest();
 

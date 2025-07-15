@@ -13,19 +13,21 @@
 #include <cstdlib>
 
 #define CRLF "\r\n"
+using namespace std;
+
 typedef struct	cgi
 {
-	std::string extension;
-	std::string path;
+	string extension;
+	string path;
 }				cgi_t;
 
 typedef struct	location {
-	std::string path;
-	std::vector<std::string> methods;
-	std::string root;
-	std::vector<std::string> index;
-	std::map<int, std::string> errorPageMap;
-	std::vector<cgi_t> cgiList;
+	string path;
+	vector<string> methods;
+	string root;
+	vector<string> index;
+	map<int, string> errorPageMap;
+	vector<cgi_t> cgiList;
 	
 	bool isAutoIndexEnabled;
 	bool isCgiEnabled;
@@ -34,14 +36,14 @@ typedef struct	location {
 
 typedef struct	server {
 	int			port;
-	std::string	host;
-	std::string	root;
-	std::vector<std::string>	serverName;
-	std::vector<std::string>	index;
-	std::vector<location_b> locations;
-	std::map<int, std::string> errorPageMap;
+	string	host;
+	string	root;
+	vector<string>	serverName;
+	vector<string>	index;
+	vector<location_b> locations;
+	map<int, string> errorPageMap;
 	
-	std::vector<cgi_t> cgiList;
+	vector<cgi_t> cgiList;
 
 }			 Server;
 

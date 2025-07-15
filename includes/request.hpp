@@ -12,15 +12,19 @@ typedef enum RequestState {
 };
 
 
-typedef struct Request {
-	std::vector<u_int8_t>               buffer;
-	methods                             method;
-	std::string                         uri;
-	float                               version;
-	std::map<std::string, std::string>  headers;
-	std::vector<char>                   body;
-	const std::vector<server>*          servers;
-	RequestState                        state;
-} Request;
+class Request {
+	private:
+		methods							method;
+		string							uri;
+		string							version;
+		map<string, string>				headers;
+		vector<char>					body;
+		const vector<server>*			servers;
+		RequestState					state;
+		bool	parseRequestLine(string& line);
+
+	public:
+		int		processRequestLine(string& buffer);
+};
 
 #endif

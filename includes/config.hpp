@@ -6,8 +6,8 @@
 
 class config {
     private:
-        std::vector<Server> servers;
-        std::vector<Client> clients;
+        vector<Server> servers;
+        vector<Client> clients;
 };
 
 #endif
