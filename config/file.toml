@@ -1,42 +1,54 @@
+	# [[server]]
 [[server]]
-server_name = "sekhar"
+server_name = ["sekhar", "awd", "awdaw", "aawdawd"]
 host = "127.0.0.1"
-listen = "8989"
-root = "/home/"
+listen = ["8989", "8080", "8081"]
+root = "/home/hatalhao"
 [[error_pages]]
 403 = "403.html"
 404 = "404.html"
 413 = "413.html"
 [[location]]
-# root = "/home"
-"/images/insd/" = "/home/hatalhao/images"
+name = "/images"
+path = "/home/hatalhao/images"
 index = ["index.html", "index.php", "indexFile.html"]
 autoindex = "on"
-[[location]]
+allow = ["GET", "POST", "DELETE"]
+rewrite = ["/home/hatalhao/photos", "/home/hatalhao/pictures"] #Signifies redirection (from /images to $(ROOT)/photos or /pictures)
+	# [[location]]
+# root = "/home"
+# index = ["index.html", "index.php", "indexFile.html"]
+# autoindex = "on"
+# [[location]]
+# "/images/" = "/home/hatalhao/images"
+# index = ["index.html", "index.php", "indexFile.html"]
+# autoindex = "off"
+# [[location]]
+# trash = "/home/hatalhao/trash"
+# index = ["index.html", "index.php", "indexFile.html"]
+# autoindex = "off"
 
-
-
-[[cgi]]
-extension = ".py"
-handler = "/usr/bin/python3"
-[[cgi]]
-extension = ".php"
-handler = "/usr/bin/php"
+# [[cgi]]
+# extension = ".py"
+# handler = "/usr/bin/python3"
+# [[cgi]]
+# extension = ".php"
+# handler = "/usr/bin/php"
 
 
 # [[server]]
 # server_name = "hatalhao"
 # host = "127.0.0.1"
 # listen = "8081"
+# [[location]]
+# name = "/images"
+# path = "/home/hatalhao/images"
+# index = ["index.html", "index.php", "indexFile.html"]
+# autoindex = "on"
+# allow = ["GET", "POST", "DELETE"]
 
 # [[server]]
 # server_name = "another"
 # host = "127.0.0.1"
 # listen = "8082"
 # location = "/another"
-
-
-
-# mandatory directives: [server] + [locations]
-# mandatory in server: -host -port
-# mandatory in locations: root

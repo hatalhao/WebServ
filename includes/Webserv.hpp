@@ -22,30 +22,33 @@ typedef struct	cgi
 }				cgi_t;
 
 typedef struct	location {
-	string path;
-	vector<string> methods;
-	string root;
-	vector<string> index;
-	map<int, string> errorPageMap;
-	vector<cgi_t> cgiList;
-	
-	bool isAutoIndexEnabled;
-	bool isCgiEnabled;
+	std::string								path;
+	std::string								root;
+	std::vector<std::string>				index;
+	std::map<int, std::string>				errorPageMap;
+	std::vector<std::string>				methods;
+	std::map<bool, std::set<std::string> >	redirection;
+
+	bool									isAutoIndexEnabled;
+	bool									isCgiEnabled;
+
+	std::vector<cgi_t> cgiList;
 
 }				location_b;
 
 typedef struct	server {
-	int			port;
-	string	host;
-	string	root;
-	vector<string>	serverName;
-	vector<string>	index;
-	vector<location_b> locations;
-	map<int, string> errorPageMap;
+	std::set<int>				port;
+	std::string					host;
+	std::string					root;
+	std::vector<std::string>	serverName;
+	std::vector<std::string>	index;
+	std::vector<location_b>		locations;
+	std::map<int, std::string>	errorPageMap;
 	
-	vector<cgi_t> cgiList;
-
-}			 Server;
+}			 server;
+void	checkAttributes(server &serv);
+void	printServer(const server &serv);
+void	fillServer(server &serv, const Config &config);
 
 
 #endif
