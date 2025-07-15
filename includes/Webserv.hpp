@@ -1,12 +1,24 @@
 #ifndef WEBSERV_HPP
 #define WEBSERV_HPP
 
-#include "origin.hpp"
-#include "Config.hpp"
+#include <iostream>
+#include <string>
+#include <vector>
+#include <map>
+#include <fstream>
+#include <sstream>
+#include <algorithm>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <cstdlib>
+
+#define CRLF "\r\n"
+using namespace std;
+
 typedef struct	cgi
 {
-	std::string extension;
-	std::string path;
+	string extension;
+	string path;
 }				cgi_t;
 
 typedef struct	location {
