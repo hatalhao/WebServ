@@ -1,5 +1,4 @@
-#ifndef ORIGIN_HPP
-#define ORIGIN_HPP
+# pragma once
 
 #include <iostream>
 #include <string>
@@ -15,8 +14,10 @@
 #include <unistd.h>
 #include <cstdlib>
 
-// Forward declarations
+class Config;
+class Request;
 class Client;
+struct server;
 
 typedef enum methods {
     GET,
@@ -33,4 +34,3 @@ using namespace std;
 #define NPOS std::string::npos
 #define print std::cout <<
 
-#endif

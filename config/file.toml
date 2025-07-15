@@ -3,7 +3,7 @@
 server_name = ["sekhar", "awd", "awdaw", "aawdawd"]
 host = "127.0.0.1"
 listen = ["8989", "8080", "8081"]
-root = "/home/hatalhao"
+root = "/home/Ali"
 [[error_pages]]
 403 = "403.html"
 404 = "404.html"

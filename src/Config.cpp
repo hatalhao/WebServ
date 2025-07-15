@@ -1,10 +1,6 @@
-#include "../includes/origin.hpp"
 #include "../includes/Config.hpp"
-#include "../includes/Webserv.hpp"
 #include "../includes/identifiers.hpp"
 #include "../includes/manipulators.hpp"
-
-
 
 Config::Config(const std::string& configFilePath) : _configFilePath(configFilePath) {
 	std::ifstream configFile(_configFilePath.c_str());

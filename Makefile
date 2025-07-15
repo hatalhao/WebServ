@@ -15,7 +15,7 @@ CXXFLAGS = -Wall -Werror -Wextra -std=c++98
 
 CXXFLAGS += -MMD -MP
 
-MAKEFLAGS = -j3
+MAKEFLAGS = -j --no-print-directory
 
 # CXXFLAGS += -g3
 # CXXFLAGS += -fsanitize=address
@@ -49,7 +49,9 @@ fclean : clean
 	@rm -f $(NAME)
 	@printf "$(MAGENTA)-->	$(NAME) removed$(END)\n"
 
-re : fclean all
+re :
+	@make fclean
+	@make all
 
 .PHONY: all clean fclean re
 .SECONDARY:	$(OBJS)

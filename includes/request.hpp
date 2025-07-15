@@ -1,5 +1,4 @@
-#ifndef REQUEST_HPP
-#define REQUEST_HPP
+# pragma once
 
 #include "Webserv.hpp"
 
@@ -24,7 +23,7 @@ class Request {
 		bool	parseRequestLine(string& line);
 
 	public:
+		Request();
+		Request(const vector<server>* servers);
 		int		processRequestLine(string& buffer);
 };
-
-#endif
