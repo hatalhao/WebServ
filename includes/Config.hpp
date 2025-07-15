@@ -1,9 +1,7 @@
-#ifndef CONFIG_HPP
-#define CONFIG_HPP
+# pragma once
 
 #include "origin.hpp"
-
-struct server;
+#include "client.hpp"
 
 enum serverTokens {
 	listen,
@@ -62,15 +60,6 @@ class Config {
 		std::vector<std::string>			extractServerName() const;
 		std::map<std::string, std::string>	extractLocations() const;
 		std::map<int, std::string>			extractErrorPageMap() const;
-		//extracting methods
-		std::set<int>						extractPorts() const;
-		std::string							extractHost() const;
-		std::string							extractRoot() const;
-		std::vector<std::string>			extractIndex() const;
-		std::vector<std::string>			extractServerName() const;
-		std::map<std::string, std::string>	extractLocations() const;
-		std::map<int, std::string>			extractErrorPageMap() const;
-	
 
 
 		void printParams() {
@@ -86,9 +75,4 @@ class Config {
 				it++;
 			}
 	}
-	}
-
-}; 
-}; 
-
-#endif
+};

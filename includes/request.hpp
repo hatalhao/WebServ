@@ -1,5 +1,4 @@
-#ifndef REQUEST_HPP
-#define REQUEST_HPP
+# pragma once
 
 #include "Webserv.hpp"
 
@@ -26,5 +25,3 @@ class Request {
 	public:
 		int		processRequestLine(string& buffer);
 };
-
-#endif

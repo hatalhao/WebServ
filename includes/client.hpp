@@ -1,6 +1,6 @@
-#ifndef CLIENT_HPP
-#define CLIENT_HPP
+# pragma once
 
+#include "origin.hpp"
 #include "request.hpp"
 
 enum ClientState {
@@ -24,4 +24,3 @@ class Client {
 
 };
 
-#endif

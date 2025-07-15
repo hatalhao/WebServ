@@ -1,8 +1,7 @@
-#ifndef WEBSERV_HPP
-#define WEBSERV_HPP
+# pragma once
 
+// #include "Config.hpp"
 #include "origin.hpp"
-#include "Config.hpp"
 
 typedef struct	cgi
 {
@@ -39,5 +38,3 @@ void	checkAttributes(server &serv);
 void	printServer(const server &serv);
 void	fillServer(server &serv, const Config &config);
 
-
-#endif
