@@ -1,9 +1,9 @@
 	# [[server]]
 [[server]]
-server_name = ["sekhar", "awd", "aawdawd"]
+server_name = ["sekhar", "awd", "awdaw", "aawdawd"]
 host = "127.0.0.1"
 listen = ["8989", "8080", "8081"]
-root = "/home/"
+root = "/home/hatalhao"
 [[error_pages]]
 403 = "403.html"
 404 = "404.html"
@@ -14,6 +14,7 @@ path = "/home/hatalhao/images"
 index = ["index.html", "index.php", "indexFile.html"]
 autoindex = "on"
 allow = ["GET", "POST", "DELETE"]
+rewrite = ["/home/hatalhao/photos", "/home/hatalhao/pictures"] #Signifies redirection (from /images to $(ROOT)/photos or /pictures)
 	# [[location]]
 # root = "/home"
 # index = ["index.html", "index.php", "indexFile.html"]
@@ -51,9 +52,3 @@ allow = ["GET", "POST", "DELETE"]
 # host = "127.0.0.1"
 # listen = "8082"
 # location = "/another"
-
-
-
-# mandatory directives: [server] + [locations]
-# mandatory in server: -host -port
-# mandatory in locations: root

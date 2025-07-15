@@ -21,12 +21,7 @@ void	checkAttributes(server &serv) {
 	if (serv.root.empty())
 		throw std::invalid_argument("Root cannot be empty");
 
-	if (serv.index.size() == 0)
-		throw std::invalid_argument("Index cannot be empty");
-	for (std::vector<std::string>::iterator it = serv.index.begin(); it != serv.index.end(); ++it) {
-		if (it->empty())
-			throw std::invalid_argument("Index file cannot be empty");
-	}
+	
 }
 
 void	fillServer(server &serv, const Config &config) {

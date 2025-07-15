@@ -4,11 +4,33 @@
 #include "origin.hpp"
 struct server;
 
-enum tokens {
-	server_name = 0,
-	host,
+enum serverTokens {
 	listen,
+	host,
 	root,
+	server_name,
+};
+
+enum cgiTokens {
+	extension,
+	handler,
+};
+
+enum errorPages {
+	e400 = 400,
+	e403 = 403,
+	e404 = 404,
+	e405 = 405,
+	e408 = 408,
+	e500 = 500,
+	e501,
+	e502,
+	e503,
+	e504,
+	e505
+};
+
+enum locationTokens {
 	index,
 	path,
 	name,
@@ -18,26 +40,6 @@ enum tokens {
 	redirection,
 	upload_path,
 	upload_max_size,
-	e300,
-	e301,
-	e302,
-	e303,
-	e304,
-	e305,
-	e306,
-	e307,
-	e308,
-	e400,
-	e403,
-	e404,
-	e408,	
-	e405,
-	e500,
-	e501,
-	e502,
-	e503,
-	e504,
-	e505,
 };
 
 class Config {

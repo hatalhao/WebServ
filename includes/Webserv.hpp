@@ -10,16 +10,17 @@ typedef struct	cgi
 }				cgi_t;
 
 typedef struct	location {
-	std::string path;
-	std::vector<std::string> methods;
-	std::string root;
-	std::vector<std::string> index;
-	std::map<int, std::string> errorPageMap;
+	std::string								path;
+	std::string								root;
+	std::vector<std::string>				index;
+	std::map<int, std::string>				errorPageMap;
+	std::vector<std::string>				methods;
+	std::map<bool, std::set<std::string> >	redirection;
+
+	bool									isAutoIndexEnabled;
+	bool									isCgiEnabled;
+
 	std::vector<cgi_t> cgiList;
-	
-	// Additional attributes for location
-	bool isAutoIndexEnabled;
-	bool isCgiEnabled;
 
 }				location_b;
 
@@ -32,8 +33,6 @@ typedef struct	server {
 	std::vector<location_b>		locations;
 	std::map<int, std::string>	errorPageMap;
 	
-	std::vector<cgi_t> cgiList;
-
 }			 server;
 void	checkAttributes(server &serv);
 void	printServer(const server &serv);

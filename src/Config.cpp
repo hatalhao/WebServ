@@ -1,55 +1,10 @@
 #include "../includes/origin.hpp"
 #include "../includes/Config.hpp"
 #include "../includes/Webserv.hpp"
+#include "../includes/identifiers.hpp"
+#include "../includes/manipulators.hpp"
 
 
-bool notValidChar(char c) {
-	return (c == '\"' || c == '\'' || c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '[' || c == ']');
-}
-
-bool trimmableChar(char c) {
-	return (c == ' ' || c == '\t' || c == '[' || c == ']');
-}
-
-void removeInvalidChars(std::string &str) {
-	str.erase(std::remove_if(str.begin(), str.end(), notValidChar), str.end());
-}
-
-bool isValidBlock(const std::string& line) {
-	if (line.find("=") != NPOS || std::count(line.begin(), line.end(), '[') != 2 || \
-	std::count(line.begin(), line.end(), ']') != 2 || line.find("[[") == NPOS \
-	|| line.find("]]") == NPOS || line.find("[[") >= line.find("]]")) {
-		return false;
-	}
-	std::string directive = line;
-	directive.erase(std::remove_if(directive.begin(), directive.end(), trimmableChar), directive.end());
-	return (directive == "error_pages" || directive == "server" || directive == "location" || directive == "cgi");
-}
-
-bool skipLine(const std::string& line) {
-	size_t pos = line.find_first_not_of(" \t\n\r");
-	return (pos == NPOS || line[pos] == '#');
-}
-
-bool	isKeyValue(const std::string& line) {
-	std::string trimmedLine = line;
-	removeInvalidChars(trimmedLine);
-	size_t pos = trimmedLine.find('=');
-	return (pos != NPOS && pos > 0 && pos < trimmedLine.length() - 1);
-}
-
-void	minimumRequirement(std::string &line, std::ifstream& configFile) {
-	while (std::getline(configFile, line)) {
-		if (skipLine(line))
-			continue;
-		if (!isValidBlock(line))
-			throw std::runtime_error("Invalid configuration file");
-		removeInvalidChars(line);
-		if (line != "server")
-			throw std::runtime_error("Invalid configuration file");
-		break ;
-	}
-}
 
 Config::Config(const std::string& configFilePath) : _configFilePath(configFilePath) {
 	std::ifstream configFile(_configFilePath.c_str());
@@ -80,6 +35,11 @@ Config::Config(const std::string& configFilePath) : _configFilePath(configFilePa
 			key = line.substr(0, pos - (line[pos - 1] == ' '));
 			removeInvalidChars(key);
 			value = line.substr(pos + 1 + (line[pos + 1] == ' '));
+			if (isArray(value)){
+				_settings[key] = saveArray(value);
+				print _settings[key] << std::endl;
+				continue;
+			}
 			removeInvalidChars(value);
 			_settings[key] = value;
 		}
@@ -93,11 +53,9 @@ std::set<int> Config::extractPorts() const {
 	std::set<int> ports;
 	std::istringstream ss(it->second);
 	std::string portStr;
+	int port = 0;
 	while (std::getline(ss, portStr, ',')) {
-		int port = std::atoi(portStr.c_str());
-		if (port < 1 || port > 65535) {
-			throw std::runtime_error("Invalid port number: " + portStr);
-		}
+		port = std::atoi(portStr.c_str());
 		ports.insert(port);
 	}
 	return ports;
@@ -135,6 +93,9 @@ std::string	Config::extractRoot() const {
 	std::map<std::string, std::string>::const_iterator it = _settings.find("root");
 	if (it == _settings.end())
 		throw std::runtime_error("Root not found in configuration");
+	if (access(it->second.c_str(), F_OK & X_OK & W_OK & R_OK) == -1) {
+		throw std::runtime_error("Root directory does not exist: " + it->second);
+	}
 	return it->second;
 }
 
@@ -143,14 +104,13 @@ std::vector<std::string>	Config::extractIndex() const {
 	if (it == _settings.end())
 		throw std::runtime_error("Index not found in configuration");
 	std::vector<std::string> indexFiles;
+	print "Extracting index files: " << it->second << std::endl;
 	std::istringstream ss(it->second);
 	std::string file;
 	while (std::getline(ss, file, ',')) {
 		indexFiles.push_back(file);
 	}
-	for (size_t i = 0; i < indexFiles.size(); ++i) {
-
-	}
+	print indexFiles.size() << " index files found." << std::endl;
 	return indexFiles;
 }
 
@@ -162,11 +122,13 @@ std::vector<std::string> Config::extractServerName() const {
 		name = "nameless";
 	std::vector<std::string> serverNames;
 	std::istringstream ss(it->second);
+	print it->second << std::endl;
 	while (std::getline(ss, name, ',')) {
 		serverNames.push_back(name);
 	}
+
 	for (size_t i = 0; i < serverNames.size(); ++i) {
-		print serverNames[i] << std::endl;
+		print serverNames[i];
 	}
 	return serverNames;
 }
@@ -183,11 +145,13 @@ std::map<std::string, std::string> Config::extractLocations() const {
 
 std::map<int, std::string>	Config::extractErrorPageMap() const {
 	std::map<int, std::string> errorPageMap;
+	int errorCode = 0;
+	size_t pos = NPOS;
 	for (std::map<std::string, std::string>::const_iterator it = _settings.begin(); it != _settings.end(); ++it) {
 		if (it->first.find("error_page") != NPOS) {
-			size_t pos = it->first.find('_');
+			pos = it->first.find('_');
 			if (pos != NPOS) {
-				int errorCode = atoi(it->first.substr(pos + 1).c_str());
+				errorCode = atoi(it->first.substr(pos + 1).c_str());
 				errorPageMap[errorCode] = it->second;
 			}
 		}
