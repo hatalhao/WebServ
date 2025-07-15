@@ -7,13 +7,8 @@ bool    Request::parseRequestLine(string& line) {
     stringstream    ss(line);
     string          _method;
 
-<<<<<<< HEAD
     (void)this->state;
     (void)this->servers;
-=======
-    (void)state;
-    (void)servers;
->>>>>>> 95bdc1d0f298259215278c441a98e6249177deee
     ss >> _method >> this->uri >> this->version;
     if (ss.fail() || !ss.eof())
         return false;
