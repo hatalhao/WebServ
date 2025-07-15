@@ -1,5 +1,10 @@
 #include "../../includes/request.hpp"
 
+
+Request::Request(const vector<server>* servers) 
+    : servers(servers), state(PARSINGREQUESTLINE) {
+}
+
 bool    Request::parseRequestLine(string& line) {
     stringstream    ss(line);
     string          _method;

@@ -20,6 +20,7 @@ class Client {
 		ClientState     state;
 		Request			request;
 	public:
+		Client(int fd);
 		void	processRequest();
 
 };
