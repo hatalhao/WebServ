@@ -1,6 +1,5 @@
 # pragma once
 
-// #include "Config.hpp"
 #include "origin.hpp"
 
 typedef struct	cgi
