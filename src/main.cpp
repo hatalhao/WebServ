@@ -1,6 +1,7 @@
-#include "../includes/config.hpp"
-#include "../includes/webserv.hpp"
+#include "../includes/Webserv.hpp"
 
 int main(int argc, char **argv) {
+	(void)argc;
+	(void)argv;
 	return 0;
 }

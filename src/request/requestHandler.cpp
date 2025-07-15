@@ -1,11 +1,10 @@
-#include "../../includes/request.hpp"
-
+#include "../../includes/client.hpp"
 
 void    Client::processRequest() {
     switch (this->state)
     {
     case READING_REQUEST_LINE:
-        if (!this->Request.processRequestLine(this->requestBuf))
+        if (!this->request.processRequestLine(this->requestBuf))
             return ;
         break;
     case READING_HEADERS:

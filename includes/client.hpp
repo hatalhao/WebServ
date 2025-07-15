@@ -1,7 +1,7 @@
 #ifndef CLIENT_HPP
 #define CLIENT_HPP
 
-#include "config.hpp"
+#include "request.hpp"
 
 enum ClientState {
 	READING_REQUEST_LINE,
@@ -11,13 +11,6 @@ enum ClientState {
 	SENDING_RESPONSE
 };
 
-typedef enum methods {
-    GET,
-    POST,
-    DELETE,
-    UNKOWN
-};
-
 class Client {
 	private:
 		int             socketFd;
@@ -25,7 +18,7 @@ class Client {
 		string			responseBuf;
 		size_t          contentLen;
 		ClientState     state;
-		Request			Request;
+		Request			request;
 	public:
 		void	processRequest();
 
