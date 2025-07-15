@@ -1,7 +1,7 @@
-#ifndef HTTP_HPP
-#define HTTP_HPP
+#ifndef REQUEST_HPP
+#define REQUEST_HPP
 
-#include "client.hpp"
+#include "Webserv.hpp"
 
 typedef enum RequestState {
 	PARSINGREQUESTLINE,
@@ -9,7 +9,7 @@ typedef enum RequestState {
 	PARSINGBODY,
 	PARSINGCOMPLETE,
 	PARSINGERROR
-};
+} RequestState;
 
 
 class Request {

@@ -2,10 +2,12 @@
 *.d
 
 # Compiled Object files
-*.obj
+*.o
 
 # vscode config files
 *.vscode
 
+# tldraw
+.tldr
 # Executable
 webserv

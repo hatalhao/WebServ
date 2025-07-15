@@ -2,6 +2,7 @@
 #define CONFIG_HPP
 
 #include "origin.hpp"
+
 struct server;
 
 enum serverTokens {
@@ -47,6 +48,7 @@ class Config {
 		std::string _configFilePath;
 		std::map<std::string, std::string> _settings;
 		std::vector<server> _servers;
+		vector<Client> _clients;
 
 	public:
 		Config(const std::string &configFilePath);
@@ -60,7 +62,16 @@ class Config {
 		std::vector<std::string>			extractServerName() const;
 		std::map<std::string, std::string>	extractLocations() const;
 		std::map<int, std::string>			extractErrorPageMap() const;
+		//extracting methods
+		std::set<int>						extractPorts() const;
+		std::string							extractHost() const;
+		std::string							extractRoot() const;
+		std::vector<std::string>			extractIndex() const;
+		std::vector<std::string>			extractServerName() const;
+		std::map<std::string, std::string>	extractLocations() const;
+		std::map<int, std::string>			extractErrorPageMap() const;
 	
+
 
 		void printParams() {
 			std::map<std::string, std::string>::iterator it = _settings.begin();
@@ -75,7 +86,9 @@ class Config {
 				it++;
 			}
 	}
+	}
 
+}; 
 }; 
 
 #endif

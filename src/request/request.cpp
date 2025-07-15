@@ -28,5 +28,5 @@ int Request::processRequestLine(string& buffer) {
     string line = buffer.substr(0, pos);
     if (parseRequestLine(line) == false)
         return -1; // we should return a status code here
-
+    return 1;
 }

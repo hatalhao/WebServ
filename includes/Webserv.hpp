@@ -1,19 +1,8 @@
 #ifndef WEBSERV_HPP
 #define WEBSERV_HPP
 
-#include <iostream>
-#include <string>
-#include <vector>
-#include <map>
-#include <fstream>
-#include <sstream>
-#include <algorithm>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <cstdlib>
-
-#define CRLF "\r\n"
-using namespace std;
+#include "origin.hpp"
+#include "Config.hpp"
 
 typedef struct	cgi
 {

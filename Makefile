@@ -15,7 +15,7 @@ CXXFLAGS = -Wall -Werror -Wextra -std=c++98
 
 CXXFLAGS += -MMD -MP
 
-CXXFLAGS += -j3
+MAKEFLAGS = -j3
 
 # CXXFLAGS += -g3
 # CXXFLAGS += -fsanitize=address
@@ -23,7 +23,7 @@ CXXFLAGS += -j3
 OBJS_DIR = tmp/objs
 DEPS_DIR = tmp/deps
 
-SRCS = $(wildcard src/*.cpp)
+SRCS = $(shell find src -name "*.cpp")
 
 OBJS = $(patsubst src/%.cpp, $(OBJS_DIR)/%.o, $(SRCS))
 DEPS = $(patsubst src/%.cpp, $(DEPS_DIR)/%.d, $(SRCS))
@@ -35,8 +35,8 @@ $(NAME) : $(OBJS)
 	@printf "$(ERASE)$(GREEN)--> $@ made <--$(END)\n"
 
 $(OBJS_DIR)/%.o: src/%.cpp Makefile
-	@mkdir -p $(OBJS_DIR) $(DEPS_DIR)
-	@$(CXX) $(CXXFLAGS) $(DEPS_DIR)/$*.d -c $< -o $@
+	@mkdir -p $(dir $@) $(dir $(DEPS_DIR)/$*.d)
+	@$(CXX) $(CXXFLAGS) -MF $(DEPS_DIR)/$*.d -c $< -o $@
 	@printf "$(BLUE) > Compilation :$(END) $<\r"
 
 -include $(DEPS)

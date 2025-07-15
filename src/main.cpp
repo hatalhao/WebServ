@@ -1,5 +1,4 @@
-#include "../includes/config.hpp"
-#include "../includes/webserv.hpp"
+#include "../includes/Webserv.hpp"
 
 int main(int argc, char **argv) {
 	if (argc < 1 || argc > 2) {
