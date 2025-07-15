@@ -23,6 +23,7 @@ class Request {
 		bool	parseRequestLine(string& line);
 
 	public:
+		Request();
 		Request(const vector<server>* servers);
 		int		processRequestLine(string& buffer);
 };

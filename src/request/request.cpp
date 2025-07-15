@@ -1,5 +1,8 @@
 #include "../../includes/request.hpp"
 
+Request::Request() 
+    : method(UNKOWN), uri(""), version("HTTP/1.1"), servers(NULL), state(PARSINGREQUESTLINE) {
+}
 
 Request::Request(const vector<server>* servers) 
     : servers(servers), state(PARSINGREQUESTLINE) {
