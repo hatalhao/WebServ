@@ -1,3 +1,4 @@
+
 #include "../../includes/client.hpp"
 
 void    Client::processRequest() {
