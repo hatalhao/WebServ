@@ -5,8 +5,8 @@
 
 typedef struct	cgi
 {
-	std::string extension;
-	std::string path;
+	string extension;
+	string path;
 }				cgi_t;
 
 typedef struct	location {
