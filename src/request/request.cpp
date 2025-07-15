@@ -6,7 +6,7 @@ Request::Request()
 
 Request::Request(const vector<server>* servers) 
     : servers(servers), state(PARSINGREQUESTLINE) {
-        servers = servers;
+        (void)servers;
 }
 
 bool    Request::parseRequestLine(string& line) {
