@@ -25,5 +25,11 @@ class Request {
 	public:
 		Request();
 		Request(const vector<server>* servers);
+		methods	getMethod() const { return method; }
+		string	getUri() const { return uri; }
+		string	getVersion() const { return version; }
+		const map<string, string>&	getHeaders() const { return headers; }
 		int		processRequestLine(string& buffer);
+		int		processHeaders(string& buffer);
+		RequestState	getState() const { return state; }
 };
