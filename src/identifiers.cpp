@@ -51,3 +51,7 @@ bool	isArray(const std::string& line) {
 	size_t pos = line.find_first_not_of(" \t\n\r");
 	return (pos != NPOS && line[pos] == '[' && line.find(']') != NPOS);
 }
+
+bool	isArrayKey(const std::string& key) {
+	return (key == "server_name" || key == "listen" || key == "index" || key == "allow" || key == "rewrite");
+}

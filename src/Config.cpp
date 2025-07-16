@@ -31,7 +31,7 @@ Config::Config(const std::string& configFilePath) : _configFilePath(configFilePa
 			key = line.substr(0, pos - (line[pos - 1] == ' '));
 			removeInvalidChars(key);
 			value = line.substr(pos + 1 + (line[pos + 1] == ' '));
-			if (isArray(value)){
+			if (isArrayKey(key) && isArray(value)){
 				_settings[key] = saveArray(value);
 				print _settings[key] << std::endl;
 				continue;
@@ -89,7 +89,7 @@ std::string	Config::extractRoot() const {
 	std::map<std::string, std::string>::const_iterator it = _settings.find("root");
 	if (it == _settings.end())
 		throw std::runtime_error("Root not found in configuration");
-	if (access(it->second.c_str(), F_OK & X_OK & W_OK & R_OK) == -1) {
+	if (access(it->second.c_str(), F_OK | X_OK | W_OK | R_OK) == -1) {
 		throw std::runtime_error("Root directory does not exist: " + it->second);
 	}
 	return it->second;
@@ -124,7 +124,7 @@ std::vector<std::string> Config::extractServerName() const {
 	}
 
 	for (size_t i = 0; i < serverNames.size(); ++i) {
-		print serverNames[i];
+		print serverNames[i] << std::endl;
 	}
 	return serverNames;
 }

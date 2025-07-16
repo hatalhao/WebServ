@@ -3,7 +3,7 @@
 server_name = ["sekhar", "awd", "awdaw", "aawdawd"]
 host = "127.0.0.1"
 listen = ["8989", "8080", "8081"]
-root = "/home/Ali"
+root = "/home/hatalhao/Ti"
 [[error_pages]]
 403 = "403.html"
 404 = "404.html"
@@ -12,7 +12,7 @@ root = "/home/Ali"
 name = "/images"
 path = "/home/hatalhao/images"
 index = ["index.html", "index.php", "indexFile.html"]
-autoindex = "on"
+autoindex = ["on"]
 allow = ["GET", "POST", "DELETE"]
 rewrite = ["/home/hatalhao/photos", "/home/hatalhao/pictures"] #Signifies redirection (from /images to $(ROOT)/photos or /pictures)
 	# [[location]]
