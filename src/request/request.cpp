@@ -4,6 +4,7 @@ Request::Request() : method(UNKOWN), uri(""), version(""), servers(NULL), state(
 
 Request::Request(const vector<server>* servers) : servers(servers), state(PARSINGREQUESTLINE) {}
 
+
 bool    Request::parseRequestLine(string& line) {
     stringstream    ss(line);
     string          _method;
@@ -25,16 +26,16 @@ bool    Request::parseRequestLine(string& line) {
     return true;
 }
 
-int Request::processRequestLine(string& buffer) {
+void    Request::processRequestLine(string& buffer) {
     size_t  pos = buffer.find(CRLF);
     if (pos == string::npos)
-        return 0;
+        return ;
     string line = buffer.substr(0, pos);
-    if (parseRequestLine(line) == false)
-        return -1; // we should return a status code here
-    this->state = PARSINGHEADERS;
+    if (parseRequestLine(line) == false) {
+        this->state = PARSINGERROR; return ; // we should return a status code here
+    }
     buffer.erase(0, pos + CRLF_LENGTH);
-    return 1;
+    this->state = REQUESTLINE_READY;
 }
 
 int Request::processHeaders(string& buffer) {
@@ -46,12 +47,14 @@ int Request::processHeaders(string& buffer) {
             return 1; // headers parsing complete
         }
         size_t colonPos = line.find(':');
-        if (colonPos == string::npos)
-            return -1; // invalid header format
+        if (colonPos == string::npos) {
+            this->state = PARSINGERROR; return -1; // invalid headerformat
+        }
         string key = line.substr(0, colonPos);
         string value = line.substr(colonPos + 1);
-        if (key.empty() || value.empty())
-            return -1; // invalid header format
+        if (key.empty() || value.empty()) {
+            this->state = PARSINGERROR; return -1; // invalid headerformat
+        }
         headers[key] = value;
         buffer.erase(0, pos + CRLF_LENGTH);
     }

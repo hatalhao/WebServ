@@ -4,7 +4,9 @@
 
 typedef enum RequestState {
 	PARSINGREQUESTLINE,
+	REQUESTLINE_READY,
 	PARSINGHEADERS,
+	REQUESTHEADERS_READY,
 	PARSINGBODY,
 	PARSINGCOMPLETE,
 	PARSINGERROR
@@ -29,7 +31,8 @@ class Request {
 		string	getUri() const { return uri; }
 		string	getVersion() const { return version; }
 		const map<string, string>&	getHeaders() const { return headers; }
-		int		processRequestLine(string& buffer);
+		void	processRequestLine(string& buffer);
 		int		processHeaders(string& buffer);
 		RequestState	getState() const { return state; }
+		void	printMethod() const;
 };

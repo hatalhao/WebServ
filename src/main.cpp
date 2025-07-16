@@ -2,9 +2,20 @@
 #include "../includes/Config.hpp"
 #include "../includes/request.hpp"
 
-int main() {
+int main(int ac, char **av) {
+	
+	if (ac != 2)
+		return (cerr << "invalid args!" << endl, 1);
+	fstream	raw(av[1]);
+	string line;
+	string fileContent;
+	
+	while (getline(raw, line)) {
+		fileContent += line + "\n";
+	}
+	raw.close(); 
 	Client obj(-1);
-	obj.setRequestBuf("GET /index.html HTTP/1.1\r\nHost: localhost\nContent-len: 334\r\n\r");
+	obj.setRequestBuf(fileContent);
 	obj.processRequest();
 	obj.printState();
 	obj.processRequest();

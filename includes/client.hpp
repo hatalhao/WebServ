@@ -7,6 +7,8 @@ enum ClientState {
 	READING_REQUEST_LINE,
 	READING_HEADERS,
 	READING_BODY,
+	READING_DONE,
+	READING_BAD_REQUEST,
 	GENERATING_RESPONSE,
 	SENDING_RESPONSE
 };
@@ -26,6 +28,7 @@ class Client {
 		void	setRequestBuf(const string& buf) { requestBuf = buf; }
 		void	printRequest() const;
 		void	printBuffer() const { cout << "Request Buffer: " << requestBuf << endl; }
+		void	updateState();
 		void	printState() const;
 };
 
