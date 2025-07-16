@@ -1,6 +1,6 @@
 #include "../../includes/request.hpp"
 
-Request::Request() : method(UNKOWN), uri(""), version("HTTP/1.1"), servers(NULL), state(PARSINGREQUESTLINE) {}
+Request::Request() : method(UNKOWN), uri(""), version(""), servers(NULL), state(PARSINGREQUESTLINE) {}
 
 Request::Request(const vector<server>* servers) : servers(servers), state(PARSINGREQUESTLINE) {}
 
@@ -8,8 +8,6 @@ bool    Request::parseRequestLine(string& line) {
     stringstream    ss(line);
     string          _method;
 
-    (void)this->state;
-    (void)this->servers;
     ss >> _method >> this->uri >> this->version;
     if (ss.fail() || !ss.eof())
         return false;
