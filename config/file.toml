@@ -1,13 +1,13 @@
-	# [[server]]
 [[server]]
 server_name = ["sekhar", "awd", "awdaw", "aawdawd"]
 host = "127.0.0.1"
 listen = ["8989", "8080", "8081"]
 root = "/home/hatalhao/Ti"
 [[error_pages]]
-403 = "403.html"
-404 = "404.html"
-413 = "413.html"
+403 = "./pages/403.html"
+404 = "./pages/404.html"
+413 = "./pages/413.html"
+
 [[location]]
 name = "/images"
 path = "/home/hatalhao/images"
@@ -15,8 +15,8 @@ index = ["index.html", "index.php", "indexFile.html"]
 autoindex = ["on"]
 allow = ["GET", "POST", "DELETE"]
 rewrite = ["/home/hatalhao/photos", "/home/hatalhao/pictures"] #Signifies redirection (from /images to $(ROOT)/photos or /pictures)
-	# [[location]]
-# root = "/home"
+# [[location]]
+# name = "/home"
 # index = ["index.html", "index.php", "indexFile.html"]
 # autoindex = "on"
 # [[location]]
@@ -34,7 +34,6 @@ rewrite = ["/home/hatalhao/photos", "/home/hatalhao/pictures"] #Signifies redire
 # [[cgi]]
 # extension = ".php"
 # handler = "/usr/bin/php"
-
 
 # [[server]]
 # server_name = "hatalhao"

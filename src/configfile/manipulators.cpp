@@ -1,6 +1,6 @@
-#include "../includes/Config.hpp"
-#include "../includes/Webserv.hpp"
-#include "../includes/identifiers.hpp"
+#include "../../includes/Config.hpp"
+#include "../../includes/Webserv.hpp"
+#include "../../includes/identifiers.hpp"
 
 void removeInvalidChars(std::string &str) {
 	if (str.empty())

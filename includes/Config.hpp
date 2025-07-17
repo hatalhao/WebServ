@@ -43,15 +43,15 @@ enum locationTokens {
 
 class Config {
 	private:
-		std::string _configFilePath;
-		std::map<std::string, std::string> _settings;
-		std::vector<server> _servers;
-		vector<Client> _clients;
-
+		std::string							_configFilePath;
+		std::map<std::string, std::string>	_settings;
+		std::vector<Client>					_clients;
+		
 	public:
 		Config(const std::string &configFilePath);
 		~Config();
-
+		
+		std::vector<server>					_servers;
 		//extracting methods
 		std::set<int>						extractPorts() const;
 		std::string							extractHost() const;

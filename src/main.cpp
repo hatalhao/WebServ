@@ -9,13 +9,13 @@ int main(int argc, char **argv) {
 	std::string configFile = (argv[1]) ? argv[1] : "config/default.toml";
 	std::map<std::string, std::string> settings;
 	settings.clear();
-
+	
 	try {
 		Config conf(configFile);
-		server serv;
-		fillServer(serv, conf);
+		// server serv;
+		// fillServer(serv, conf);
 		try {
-			checkAttributes(serv);
+			checkAttributes(conf._servers[1]);
 		} catch (const std::invalid_argument &e) {
 			std::cerr << "Invalid server configuration: " << e.what() << std::endl;
 			return 1;
