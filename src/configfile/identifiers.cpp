@@ -1,5 +1,6 @@
-#include "../includes/identifiers.hpp"
-#include "../includes/manipulators.hpp"
+#include "../../includes/identifiers.hpp"
+#include "../../includes/manipulators.hpp"
+#include "../../includes/tokenizer.hpp"
 
 bool notValidChar(char c) {
 	return (c == '\"' || c == '\'' || c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '[' || c == ']');
@@ -9,7 +10,7 @@ bool trimmableChar(char c) {
 	return (c == ' ' || c == '\t' || c == '[' || c == ']');
 }
 
-bool isValidBlock(const std::string& line) {
+int isValidBlock(const std::string& line) {
 	if (line.find("=") != NPOS || std::count(line.begin(), line.end(), '[') != 2 || \
 	std::count(line.begin(), line.end(), ']') != 2 || line.find("[[") == NPOS \
 	|| line.find("]]") == NPOS || line.find("[[") >= line.find("]]")) {
@@ -17,7 +18,10 @@ bool isValidBlock(const std::string& line) {
 	}
 	std::string directive = line;
 	directive.erase(std::remove_if(directive.begin(), directive.end(), trimmableChar), directive.end());
-	return (directive == "error_pages" || directive == "server" || directive == "location" || directive == "cgi");
+	std::string	directiveArr[] = {"invalid", "server", "location", "cgi", "error_pages"};
+	size_t i = 4;
+	for (; i > 0 && directiveArr[i] != directive; --i);
+	return (i);
 }
 
 bool skipLine(const std::string& line) {
@@ -29,18 +33,18 @@ bool	isKeyValue(const std::string& line) {
 	std::string trimmedLine = line;
 	removeInvalidChars(trimmedLine);
 	size_t pos = trimmedLine.find('=');
-	return (pos != NPOS && pos > 0 && pos < trimmedLine.length() - 1);
+	return (pos != NPOS && pos > 0 && pos < trimmedLine.length() - 1 && std::count(trimmedLine.begin(), trimmedLine.end(), '=') == 1);
 }
 
 void	minimumRequirement(std::string &line, std::ifstream& configFile) {
+	int	token = START;
 	while (std::getline(configFile, line)) {
 		if (skipLine(line))
 			continue;
-		if (!isValidBlock(line))
+		token = isValidBlock(line);
+		if (token != 1){
 			throw std::runtime_error("Invalid configuration file");
-		removeInvalidChars(line);
-		if (line != "server")
-			throw std::runtime_error("Invalid configuration file");
+		}
 		break ;
 	}
 }
@@ -50,4 +54,8 @@ bool	isArray(const std::string& line) {
 		return false;
 	size_t pos = line.find_first_not_of(" \t\n\r");
 	return (pos != NPOS && line[pos] == '[' && line.find(']') != NPOS);
+}
+
+bool	isArrayKey(const std::string& key) {
+	return (key == "server_name" || key == "listen" || key == "index" || key == "allow" || key == "rewrite");
 }

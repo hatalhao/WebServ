@@ -1,6 +1,32 @@
-#include "../includes/Config.hpp"
-#include "../includes/identifiers.hpp"
-#include "../includes/manipulators.hpp"
+#include "../../includes/Config.hpp"
+#include "../../includes/identifiers.hpp"
+#include "../../includes/manipulators.hpp"
+#include "../../includes/tokenizer.hpp"
+
+std::map<int, std::string> getPages(std::ifstream& configFile) {
+	std::map<int, std::string> errorPageMap;
+	std::string line;
+	while (std::getline(configFile, line)) {
+		if (skipLine(line))
+			continue;
+		size_t pos = line.find('=');
+
+		if (pos == NPOS && isValidBlock(line)) {
+			break ;
+		}
+
+		if (pos == NPOS && !isValidBlock(line)) {
+			configFile.close();
+			throw std::runtime_error("Invalid error page line: " + line);
+		}
+
+		int statusCode = std::atoi(line.substr(0, pos).c_str());
+		std::string filePath = line.substr(pos + 1);
+		removeInvalidChars(filePath);
+		errorPageMap[statusCode] = filePath;
+	}
+	return errorPageMap;
+}
 
 Config::Config(const std::string& configFilePath) : _configFilePath(configFilePath) {
 	std::ifstream configFile(_configFilePath.c_str());
@@ -8,38 +34,61 @@ Config::Config(const std::string& configFilePath) : _configFilePath(configFilePa
 		throw std::runtime_error("Could not open configuration file: " + _configFilePath);
 	}
 
-	std::string line;
+	std::string	line;
 	size_t pos = NPOS;
-	std::string key;
-	std::string value;
+	std::string	key;
+	std::string	value;
 	try {
 		minimumRequirement(line, configFile);
 	} catch (const std::runtime_error &e) {
-		std::cout << "Error: " << e.what() << std::endl;
+		configFile.close();
+		throw std::runtime_error("Invalid configuration file: " + line);
 	}
-	while (std::getline(configFile, line)) {
-		if (skipLine(line))
-			continue;
-			
-		pos = line.find('=');
-		if (pos == NPOS && !isValidBlock(line))
-			throw std::runtime_error("Invalid configuration block: " + line);
-		if (pos != NPOS && !isKeyValue(line))
-			throw std::runtime_error("Invalid key-value pair: " + line);
-		
-		if (pos != NPOS && pos > 0) {
-			key = line.substr(0, pos - (line[pos - 1] == ' '));
-			removeInvalidChars(key);
-			value = line.substr(pos + 1 + (line[pos + 1] == ' '));
-			if (isArray(value)){
-				_settings[key] = saveArray(value);
-				print _settings[key] << std::endl;
+	static int	token = TOKEN_SERVER;
+	static std::string	lastLine = line;
+
+	while (lastLine == "[[server]]") {
+		server serv;
+		do {
+			if (skipLine(line))
 				continue;
+	
+			pos = line.find('=');
+			token = (pos == NPOS) ? isValidBlock(line) : token;
+			if (pos == NPOS && token == 0) {
+				configFile.close();
+				throw std::runtime_error("Invalid configuration block: " + line);
 			}
-			removeInvalidChars(value);
-			_settings[key] = value;
-		}
+			if (pos == NPOS && token == 4) {
+				serv.errorPageMap = getPages(configFile);
+			}
+			if (pos != NPOS && !isKeyValue(line)) {
+				configFile.close();
+				throw std::runtime_error("Invalid key-value pair: " + line);
+			}
+			lastLine = line;
+			if (pos != NPOS && pos > 0) {
+				key = line.substr(0, pos - (line[pos - 1] == ' '));
+				removeInvalidChars(key);
+				if (_settings.find(key) != _settings.end()) {
+					configFile.close();
+					throw std::runtime_error("Duplicate key found: " + key);
+				}
+				value = line.substr(pos + 1 + (line[pos + 1] == ' '));
+				if (isArrayKey(key) && isArray(value)) {
+					_settings[key] = saveArray(value);
+					continue;
+				}
+				removeInvalidChars(value);
+				_settings[key] = value;
+			}
+		} while (std::getline(configFile, line) && isValidBlock(line) != 1);
+		this->_servers.push_back(serv);
+		fillServer(serv, *this);
+		
+		this->_settings.clear();
 	}
+	configFile.close();
 }
 
 std::set<int> Config::extractPorts() const {
@@ -89,8 +138,8 @@ std::string	Config::extractRoot() const {
 	std::map<std::string, std::string>::const_iterator it = _settings.find("root");
 	if (it == _settings.end())
 		throw std::runtime_error("Root not found in configuration");
-	if (access(it->second.c_str(), F_OK & X_OK & W_OK & R_OK) == -1) {
-		throw std::runtime_error("Root directory does not exist: " + it->second);
+	if (access(it->second.c_str(), F_OK | X_OK) == -1) {
+		throw std::runtime_error("Root Directory is inaccessible/not found: " + it->second);
 	}
 	return it->second;
 }
@@ -100,13 +149,11 @@ std::vector<std::string>	Config::extractIndex() const {
 	if (it == _settings.end())
 		throw std::runtime_error("Index not found in configuration");
 	std::vector<std::string> indexFiles;
-	print "Extracting index files: " << it->second << std::endl;
 	std::istringstream ss(it->second);
 	std::string file;
 	while (std::getline(ss, file, ',')) {
 		indexFiles.push_back(file);
 	}
-	print indexFiles.size() << " index files found." << std::endl;
 	return indexFiles;
 }
 
@@ -118,14 +165,10 @@ std::vector<std::string> Config::extractServerName() const {
 		name = "nameless";
 	std::vector<std::string> serverNames;
 	std::istringstream ss(it->second);
-	print it->second << std::endl;
 	while (std::getline(ss, name, ',')) {
 		serverNames.push_back(name);
 	}
 
-	for (size_t i = 0; i < serverNames.size(); ++i) {
-		print serverNames[i];
-	}
 	return serverNames;
 }
 
