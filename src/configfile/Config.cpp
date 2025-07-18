@@ -3,6 +3,67 @@
 #include "../../includes/manipulators.hpp"
 #include "../../includes/tokenizer.hpp"
 
+cgi_t	getCgi(std::ifstream& configFile, std::string& line) {
+	cgi_t cgi;
+	while (std::getline(configFile, line)) {
+		if (skipLine(line))
+			continue;
+		if (isValidBlock(line) == CGI_TOKEN)
+			break;
+		if (!isKeyValue(line)) {
+			throw std::runtime_error("Invalid CGI directive: " + line);
+		}
+	}
+	size_t pos = line.find('=');
+	if (pos == NPOS) {
+		throw std::runtime_error("Invalid CGI directive: " + line);
+	}
+	cgi.extension = line.substr(0, pos);
+	removeInvalidChars(cgi.extension);
+	cgi.path = line.substr(pos + 1);
+	removeInvalidChars(cgi.path);
+	return cgi;
+}
+
+location_b	getLocation(std::ifstream& configFile, std::string& line) {
+	location_b location;
+	while (std::getline(configFile, line)) {
+		if (skipLine(line))
+			continue ;
+		size_t pos = line.find('=');
+		if (pos == NPOS && isValidBlock(line) == UNKNOWN_TOKEN) {
+			throw std::runtime_error("Invalid location line: " + line);
+		}
+
+		if (pos == NPOS && isValidBlock(line) == LOCATION_TOKEN) {
+			break ;
+		}
+
+		if (pos == NPOS && isValidBlock(line) == CGI_TOKEN) {
+			location.cgiList.push_back(getCgi(configFile, line));
+			continue ;
+		}
+		if (!isKeyValue(line)) {
+			throw std::runtime_error("Invalid location directive: " + line);
+		}
+		if (pos != NPOS && pos > 0) {
+			std::string key = line.substr(0, pos - (line[pos - 1] == ' '));
+			removeInvalidChars(key);
+			std::string value = line.substr(pos + 1 + (line[pos + 1] == ' '));
+			if (isArrayKey(key) && isArray(value)) {
+				if (key == "methods") {
+					std::vector<std::string> method;
+					size_t arrayPos = value.find(',');
+					while (arrayPos != NPOS) {
+						method.push_back(value.substr(arrayPos * (method.size() > 0), arrayPos));
+					}
+				}
+			}
+		}
+	}
+	return location;
+}
+
 std::map<int, std::string> getPages(std::ifstream& configFile) {
 	std::map<int, std::string> errorPageMap;
 	std::string line;
@@ -11,12 +72,11 @@ std::map<int, std::string> getPages(std::ifstream& configFile) {
 			continue;
 		size_t pos = line.find('=');
 
-		if (pos == NPOS && isValidBlock(line)) {
+		if (pos == NPOS && isValidBlock(line) == ERROR_TOKEN) {
 			break ;
 		}
 
-		if (pos == NPOS && !isValidBlock(line)) {
-			configFile.close();
+		if (pos == NPOS && isValidBlock(line) == UNKNOWN_TOKEN) {
 			throw std::runtime_error("Invalid error page line: " + line);
 		}
 
@@ -44,24 +104,39 @@ Config::Config(const std::string& configFilePath) : _configFilePath(configFilePa
 		configFile.close();
 		throw std::runtime_error("Invalid configuration file: " + line);
 	}
-	static int	token = TOKEN_SERVER;
+	static int	token = SERVER_TOKEN;
 	static std::string	lastLine = line;
 
 	while (lastLine == "[[server]]") {
 		server serv;
+
 		do {
 			if (skipLine(line))
 				continue;
 	
 			pos = line.find('=');
 			token = (pos == NPOS) ? isValidBlock(line) : token;
-			if (pos == NPOS && token == 0) {
+			if (pos == NPOS && token == UNKNOWN_TOKEN) {
 				configFile.close();
-				throw std::runtime_error("Invalid configuration block: " + line);
+				throw std::runtime_error("Invalid configuration directive: " + line);
 			}
-			if (pos == NPOS && token == 4) {
-				serv.errorPageMap = getPages(configFile);
+			if (pos == NPOS && token == ERROR_TOKEN) {
+				try {
+					serv.errorPageMap = getPages(configFile);
+				} catch (const std::runtime_error& e) {
+					configFile.close();
+					throw std::runtime_error(std::string(e.what()));
+				}
 			}
+			if (NPOS == pos && token == LOCATION_TOKEN) {
+				try {
+					serv.locations.push_back(getLocation(configFile, line));
+				} catch (const std::runtime_error& e) {
+					configFile.close();
+					throw std::runtime_error(std::string(e.what()));
+				}
+			}
+
 			if (pos != NPOS && !isKeyValue(line)) {
 				configFile.close();
 				throw std::runtime_error("Invalid key-value pair: " + line);
@@ -83,9 +158,8 @@ Config::Config(const std::string& configFilePath) : _configFilePath(configFilePa
 				_settings[key] = value;
 			}
 		} while (std::getline(configFile, line) && isValidBlock(line) != 1);
-		this->_servers.push_back(serv);
 		fillServer(serv, *this);
-		
+		this->_servers.insert(this->_servers.end(), serv);
 		this->_settings.clear();
 	}
 	configFile.close();

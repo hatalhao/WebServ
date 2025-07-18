@@ -37,16 +37,12 @@ bool	isKeyValue(const std::string& line) {
 }
 
 void	minimumRequirement(std::string &line, std::ifstream& configFile) {
-	int	token = START;
 	while (std::getline(configFile, line)) {
-		if (skipLine(line))
-			continue;
-		token = isValidBlock(line);
-		if (token != 1){
-			throw std::runtime_error("Invalid configuration file");
+		if (!skipLine(line))
+			break ;
 		}
-		break ;
-	}
+	if (isValidBlock(line) != 1)
+		throw std::runtime_error("Invalid configuration file");
 }
 
 bool	isArray(const std::string& line) {

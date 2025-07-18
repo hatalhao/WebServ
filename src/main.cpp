@@ -12,10 +12,12 @@ int main(int argc, char **argv) {
 	
 	try {
 		Config conf(configFile);
-		// server serv;
-		// fillServer(serv, conf);
 		try {
-			checkAttributes(conf._servers[1]);
+			for (size_t i = 0; i < conf._servers.size(); ++i){
+				checkAttributes(conf._servers[i]);
+				printServer(conf._servers[i]);
+			}
+
 		} catch (const std::invalid_argument &e) {
 			std::cerr << "Invalid server configuration: " << e.what() << std::endl;
 			return 1;

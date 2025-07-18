@@ -28,9 +28,9 @@ typedef struct	server {
 	std::string					host;
 	std::string					root;
 	std::vector<std::string>	serverName;
-	std::vector<std::string>	index;
 	std::vector<location_b>		locations;
 	std::map<int, std::string>	errorPageMap;
+	
 	
 }			 server;
 void	checkAttributes(server &serv);

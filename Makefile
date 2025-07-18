@@ -15,7 +15,7 @@ CXXFLAGS = -Wall -Werror -Wextra -std=c++98 -g3
 
 CXXFLAGS += -MMD -MP
 
-# CXXFLAGS += -fsanitize=address
+CXXFLAGS += -fsanitize=address
 
 MAKEFLAGS = -j --no-print-directory
 
@@ -23,7 +23,7 @@ MAKEFLAGS = -j --no-print-directory
 OBJS_DIR = tmp/objs
 DEPS_DIR = tmp/deps
 
-SRCS = $(shell find src -name "*.cpp")
+SRCS = src/main.cpp $(shell find src/configfile -name "*.cpp")
 
 OBJS = $(patsubst src/%.cpp, $(OBJS_DIR)/%.o, $(SRCS))
 DEPS = $(patsubst src/%.cpp, $(DEPS_DIR)/%.d, $(SRCS))

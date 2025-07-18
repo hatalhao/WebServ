@@ -14,7 +14,8 @@ path = "/home/hatalhao/images"
 index = ["index.html", "index.php", "indexFile.html"]
 autoindex = ["on"]
 allow = ["GET", "POST", "DELETE"]
-rewrite = ["/home/hatalhao/photos", "/home/hatalhao/pictures"] #Signifies redirection (from /images to $(ROOT)/photos or /pictures)
+rewrite = ["/home/hatalhao/photos", "/home/hatalhao/pictures"]
+#Signifies redirection (from /images to $(ROOT)/photos or /pictures)
 # [[location]]
 # name = "/home"
 # index = ["index.html", "index.php", "indexFile.html"]
