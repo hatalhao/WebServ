@@ -22,7 +22,8 @@ class Request {
 		vector<char>					body;
 		const vector<server>*			servers;
 		RequestState					state;
-		bool	parseRequestLine(string& line);
+		bool	validateURI();
+		bool	validateVersion();
 
 	public:
 		Request();
