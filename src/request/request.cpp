@@ -5,26 +5,39 @@ Request::Request() : method(UNKOWN), uri(""), version(""), servers(NULL), state(
 Request::Request(const vector<server>* servers) : servers(servers), state(PARSINGREQUESTLINE) {}
 
 bool    Request::validateURI() {
-    if (uri.empty() || uri[0] != '/' || uri.find(' ') != string::npos)
+    if (uri.empty() || uri[0] != '/' || uri.find(' ') != NPOS)
         return false;
     for (size_t i = 0; i < uri.length(); ++i) {
-        if (iscntrl(uri[i]) || isspace(uri[i]))
+        unsigned char c = uri[i];
+        if (iscntrl(c) || isspace(c))
             return false;
     }
     return true;
 }
 
 bool    Request::validateVersion () {
-    // here 5 is the length of the 3rd param
-    if (version.compare(0, 5, "HTTP/"))
+    if (version.compare(0, HTTP_VERSION_STR_LEN, "HTTP/"))
         return false;
     
+    string  versionNum = version.substr(HTTP_VERSION_STR_LEN);
+    size_t dotPos = versionNum.find('.');
+
+    if (dotPos == NPOS || dotPos == 0 || dotPos == versionNum.length())
+        return false;
+    
+    if (versionNum.substr(0, dotPos).find_first_not_of("012345679") != NPOS
+        || versionNum.substr(dotPos + 1).find_first_not_of("0123456789") != NPOS)
+    { 
+        cerr << "BAD REQUEST LINE" << endl;
+        return false;
+    }
+
     return true;
 }
 
 void    Request::processRequestLine(string& buffer) {
     size_t  pos = buffer.find(CRLF);
-    if (pos == string::npos) return ;
+    if (pos == NPOS) return ;
 
     string line = buffer.substr(0, pos);
     buffer.erase(0, pos + CRLF_LENGTH);
@@ -47,25 +60,66 @@ void    Request::processRequestLine(string& buffer) {
     this->state = REQUESTLINE_READY;
 }
 
-int Request::processHeaders(string& buffer) {
-    for (size_t pos; (pos = buffer.find(CRLF)) != string::npos;) {
-        string line = buffer.substr(0, pos);
-        if (line.empty()) {
-            this->state = PARSINGCOMPLETE;
-            buffer.erase(0, pos + CRLF_LENGTH);
-            return 1; // headers parsing complete
-        }
-        size_t colonPos = line.find(':');
-        if (colonPos == string::npos) {
-            this->state = PARSINGERROR; return -1; // invalid headerformat
-        }
-        string key = line.substr(0, colonPos);
-        string value = line.substr(colonPos + 1);
-        if (key.empty() || value.empty()) {
-            this->state = PARSINGERROR; return -1; // invalid headerformat
-        }
-        headers[key] = value;
-        buffer.erase(0, pos + CRLF_LENGTH);
+int toLower(int c) { return tolower(static_cast<unsigned char>(c)); }
+
+bool    Request::validateHeaderKey(string& key) {
+    if (key.empty())
+        return false;
+    for (size_t i = 0; i < key.length(); i++) {
+        unsigned char c = key[i];
+        if (!isalnum(c) && string(REQUEST_HEADER_EXTRA_CHARS).find(c) == string::npos)
+            return false;
     }
-    return 0; // need more data to parse headers
+    transform(key.begin(), key.end(), key.begin(), toLower);
+    return true;
+}
+
+bool    Request::validateHeaderVal(const string& key, string& val) {
+    size_t  i = val.find_first_not_of(" \t");
+    if (i != string::npos) {
+        size_t  j = val.find_first_not_of(" \t");
+        val = val.substr(i, (j - 1) + 1);
+    }
+    else
+        val = "";
+    if (key == "host") {
+        for (size_t i = 0; i < val.length(); i++) {
+            unsigned char c = val[i];
+            if (!isalnum(c) && c != '-' && c != '.')
+                return false;
+        }
+        if (val == "" || val[i] == '-' || val[i] == '.'
+            || val[val.length() - 1] == '-')
+            return false;
+    }
+    return true;
+}
+
+void    Request::processHeaders(string& buffer) {
+    if (buffer.find(CRLF CRLF) == NPOS)
+        return ;
+    while (true) {
+        size_t pos = buffer.find(CRLF);
+        if (pos == NPOS) {this->state = PARSINGERROR; return;}
+
+        string  line = buffer.substr(0, pos);
+        buffer.erase(0, pos + CRLF_LENGTH);
+
+        if (line.empty()) {
+            if (this->headers.find("host") == this->headers.end())
+                { this->state = PARSINGERROR; return; }
+            this->state = REQUESTHEADERS_READY; return;
+        }
+
+        size_t  colPos = line.find(':');
+        if (colPos == NPOS) {this->state = PARSINGERROR; return;}
+
+        string  key = line.substr(0, colPos);
+        if (!validateHeaderKey(key)) {this->state = PARSINGERROR; return;}
+        
+        string  val = line.substr(colPos + 1);
+        if (!validateHeaderVal(key, val)) {this->state = PARSINGERROR; return;}
+
+        this->headers[key] = val;
+    }
 }

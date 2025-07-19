@@ -2,6 +2,10 @@
 
 #include "Webserv.hpp"
 
+#define REQUEST_HEADER_EXTRA_CHARS "!#$%&'*+-.^_`|~"
+#define HTTP_VERSION_STR_LEN 5
+
+
 typedef enum RequestState {
 	PARSINGREQUESTLINE,
 	REQUESTLINE_READY,
@@ -24,6 +28,8 @@ class Request {
 		RequestState					state;
 		bool	validateURI();
 		bool	validateVersion();
+		bool    validateHeaderKey(string& key);
+		bool	validateHeaderVal(const string& key, string& val);
 
 	public:
 		Request();
@@ -33,7 +39,8 @@ class Request {
 		string	getVersion() const { return version; }
 		const map<string, string>&	getHeaders() const { return headers; }
 		void	processRequestLine(string& buffer);
-		int		processHeaders(string& buffer);
+		void	processHeaders(string& buffer);
+
 		RequestState	getState() const { return state; }
 		void	printMethod() const;
 };
