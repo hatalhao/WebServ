@@ -23,6 +23,7 @@ typedef enum methods {
     GET,
     POST,
     DELETE,
+    UNSUPPORTED,
     UNKOWN
 } methods;
 

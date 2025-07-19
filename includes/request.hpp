@@ -26,6 +26,7 @@ class Request {
 		vector<char>					body;
 		const vector<server>*			servers;
 		RequestState					state;
+		bool	validateMethod(const string& _method);
 		bool	validateURI();
 		bool	validateVersion();
 		bool    validateHeaderKey(string& key);
@@ -40,7 +41,7 @@ class Request {
 		const map<string, string>&	getHeaders() const { return headers; }
 		void	processRequestLine(string& buffer);
 		void	processHeaders(string& buffer);
-
+		void	processBody(string& buffer);
 		RequestState	getState() const { return state; }
 		void	printMethod() const;
 };

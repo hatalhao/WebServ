@@ -4,6 +4,20 @@ Request::Request() : method(UNKOWN), uri(""), version(""), servers(NULL), state(
 
 Request::Request(const vector<server>* servers) : servers(servers), state(PARSINGREQUESTLINE) {}
 
+
+bool    Request::validateMethod(const string& _method) {
+    if (_method == "GET") this->method = GET;
+    else if (_method == "POST") this->method = POST;
+    else if (_method == "DELETE") this->method = DELETE;
+    else if (_method == "PUT" || _method == "HEAD"
+        || _method == "OPTIONS" || _method == "PATCH"
+        || _method == "TRACE" || _method == "CONNECT")
+                this-> method = UNSUPPORTED;
+    else { this->method = UNKOWN; return false;}
+
+    return true;
+}
+
 bool    Request::validateURI() {
     if (uri.empty() || uri[0] != '/' || uri.find(' ') != NPOS)
         return false;
@@ -40,22 +54,23 @@ void    Request::processRequestLine(string& buffer) {
     if (pos == NPOS) return ;
 
     string line = buffer.substr(0, pos);
-    buffer.erase(0, pos + CRLF_LENGTH);
+    
+    size_t  methodEndPos = line.find(' ');
+    if (methodEndPos == NPOS) { this->state = PARSINGERROR; return; }
+    
+    size_t uriEndPos = line.find(' ', methodEndPos + 1);
+    if (uriEndPos == NPOS ) { this->state = PARSINGERROR; return; }
+    
+    if (line.find(' ', uriEndPos + 1) != NPOS)
+        { this->state = PARSINGERROR; return; }
 
-    stringstream    ss(line);
-    string          _method;
-
-    ss >> _method >> this->uri >> this->version;
-    if (ss.fail() || !ss.eof()) { this->state = PARSINGERROR; return; }
-
-    if (_method == "GET") this->method = GET;
-    else if (_method == "POST") this->method = POST;
-    else if (_method == "DELETE") this->method = DELETE;
-    else { this->method = UNKOWN; this->state = PARSINGERROR; return;}
-
-    if (!validateURI() || !validateVersion())
+    this->uri = line.substr(methodEndPos + 1, uriEndPos - (methodEndPos + 1));
+    this->version = line.substr(uriEndPos + 1);
+    if (!validateMethod(line.substr(0, methodEndPos))
+    || !validateURI() || !validateVersion())
         {this->state = PARSINGERROR; return;}
-
+    
+    buffer.erase(0, pos + CRLF_LENGTH);
     this->state = REQUESTLINE_READY;
 }
 
@@ -121,4 +136,8 @@ void    Request::processHeaders(string& buffer) {
 
         this->headers[key] = val;
     }
+}
+
+void	Request::processBody(string& buffer) {
+    (void)buffer;
 }
