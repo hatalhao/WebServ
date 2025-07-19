@@ -77,7 +77,7 @@ bool    Request::validateHeaderVal(const string& key, string& val) {
     size_t  i = val.find_first_not_of(" \t");
     if (i != string::npos) {
         size_t  j = val.find_last_not_of(" \t");
-        val = val.substr(i, (j - 1) + 1);
+        val = val.substr(i, (j - i) + 1);
     }
     else
         val = "";
@@ -115,7 +115,7 @@ void    Request::processHeaders(string& buffer) {
 
         string  key = line.substr(0, colPos);
         if (!validateHeaderKey(key)) {this->state = PARSINGERROR; return;}
-        
+
         string  val = line.substr(colPos + 1);
         if (!validateHeaderVal(key, val)) {this->state = PARSINGERROR; return;}
 
