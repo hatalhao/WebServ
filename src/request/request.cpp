@@ -25,7 +25,7 @@ bool    Request::validateVersion () {
     if (dotPos == NPOS || dotPos == 0 || dotPos == versionNum.length())
         return false;
     
-    if (versionNum.substr(0, dotPos).find_first_not_of("012345679") != NPOS
+    if (versionNum.substr(0, dotPos).find_first_not_of("0123456789") != NPOS
         || versionNum.substr(dotPos + 1).find_first_not_of("0123456789") != NPOS)
     { 
         cerr << "BAD REQUEST LINE" << endl;
@@ -56,7 +56,6 @@ void    Request::processRequestLine(string& buffer) {
     if (!validateURI() || !validateVersion())
         {this->state = PARSINGERROR; return;}
 
-    buffer.erase(0, pos + CRLF_LENGTH);
     this->state = REQUESTLINE_READY;
 }
 
@@ -77,7 +76,7 @@ bool    Request::validateHeaderKey(string& key) {
 bool    Request::validateHeaderVal(const string& key, string& val) {
     size_t  i = val.find_first_not_of(" \t");
     if (i != string::npos) {
-        size_t  j = val.find_first_not_of(" \t");
+        size_t  j = val.find_last_not_of(" \t");
         val = val.substr(i, (j - 1) + 1);
     }
     else
@@ -88,7 +87,7 @@ bool    Request::validateHeaderVal(const string& key, string& val) {
             if (!isalnum(c) && c != '-' && c != '.')
                 return false;
         }
-        if (val == "" || val[i] == '-' || val[i] == '.'
+        if (val == "" || val[0] == '-' || val[0] == '.'
             || val[val.length() - 1] == '-')
             return false;
     }
