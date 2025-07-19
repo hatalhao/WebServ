@@ -37,7 +37,7 @@ void	printLocation(const std::vector<location_b> &location) {
 	for (size_t i = 0; i < location.size(); ++i) {
 		std::cout << "Location " << i + 1 << ":" << std::endl;
 		std::cout << "Path: " << location[i].path << std::endl;
-		std::cout << "Root: " << location[i].root << std::endl;
+		std::cout << "Name: " << location[i].name << std::endl;
 		std::cout << "Index: ";
 		for (size_t j = 0; j < location[i].index.size(); ++j) {
 			std::cout << location[i].index[j] << " ";

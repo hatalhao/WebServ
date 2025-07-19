@@ -15,6 +15,12 @@ index = ["index.html", "index.php", "indexFile.html"]
 autoindex = ["on"]
 allow = ["GET", "POST", "DELETE"]
 rewrite = ["/home/hatalhao/photos", "/home/hatalhao/pictures"]
+[[cgi]]
+extension = ".py"
+handler = "/usr/bin/python3"
+[[cgi]]
+extension = ".php"
+handler = "/usr/bin/php"
 #Signifies redirection (from /images to $(ROOT)/photos or /pictures)
 # [[location]]
 # name = "/home"

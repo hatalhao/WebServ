@@ -9,8 +9,8 @@ typedef struct	cgi
 }				cgi_t;
 
 typedef struct	location {
+	std::string								name;
 	std::string								path;
-	std::string								root;
 	std::vector<std::string>				index;
 	std::map<int, std::string>				errorPageMap;
 	std::vector<std::string>				methods;
