@@ -31,7 +31,8 @@ using namespace std;
 
 #define CRLF "\r\n"
 #define CRLF_LENGTH 2
-
+#define BRIGHT_GREEN "\x1b[92m"
+#define RESET "\x1b[0m"
 
 #define DEBUG std::cout << "DEBUG: " << __FILE__ << ":" << __LINE__ << std::endl;
 #define NPOS std::string::npos

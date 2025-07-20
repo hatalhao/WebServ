@@ -35,6 +35,7 @@ void	Client::printState() const {
             cout << "State: SENDING_RESPONSE" << endl;
             break;
     }
+    cout << BRIGHT_GREEN << this->httpStatusCode << RESET << endl;
 }
 
 void	Request::printMethod() const{

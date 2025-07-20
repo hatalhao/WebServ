@@ -5,7 +5,9 @@
 int main(int ac, char **av) {
 	
 	if (ac != 2)
-		return (cerr << "invalid args!" << endl, 1);
+	return (cerr << "invalid args!" << endl, 1);
+	Config	webservConfig(string("config/file.toml"));
+	cout << BRIGHT_GREEN "===============" RESET << endl;
 	fstream	raw(av[1]);
 	string line;
 	string fileContent;
@@ -14,7 +16,7 @@ int main(int ac, char **av) {
 		fileContent += line + "\n";
 	}
 	raw.close(); 
-	Client obj(-1);
+	Client obj(-1, &webservConfig);
 	obj.setRequestBuf(fileContent);
 	obj.processRequest();
 	obj.printState();

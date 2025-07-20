@@ -13,6 +13,7 @@ enum ClientState {
 	SENDING_RESPONSE
 };
 
+
 class Client {
 	private:
 		int             socketFd;
@@ -21,9 +22,11 @@ class Client {
 		size_t          contentLen;
 		ClientState     state;
 		Request			request;
+		const Config	*_config;
+		unsigned short	httpStatusCode;
 
 	public:
-		Client(int fd);
+		Client(int fd, const Config* configuration);
 		void	processRequest();
 		void	setRequestBuf(const string& buf) { requestBuf = buf; }
 		void	printRequest() const;
