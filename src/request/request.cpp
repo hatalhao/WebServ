@@ -150,6 +150,13 @@ int Request::processHeaders(string& buffer) {
 }
 
 int Request::processBody(string& buffer) {
+    size_t  contentLen;
+    if (headers.find("content-length") != headers.end()) {
+        contentLen = atoll(headers["content-length"].c_str());
+        if (contentLen > 0) {
+            
+        }
+    }
     (void)buffer;
     return (0);
 }
