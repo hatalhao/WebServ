@@ -1,6 +1,7 @@
 #include "../../includes/identifiers.hpp"
 #include "../../includes/manipulators.hpp"
 #include "../../includes/tokenizer.hpp"
+#include "../../includes/Webserv.hpp"
 
 bool notValidChar(char c) {
 	return (c == '\"' || c == '\'' || c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '[' || c == ']');
@@ -54,4 +55,16 @@ bool	isArray(const std::string& line) {
 
 bool	isArrayKey(const std::string& key) {
 	return (key == "server_name" || key == "listen" || key == "index" || key == "allow" || key == "rewrite");
+}
+
+bool	isValidLocation(location_b& location) {
+	if (location.name.empty() || location.path.empty())
+		return false;
+	if (location.methods.empty()){
+		stringstream ss("GET POST DELETE");
+		for (string method; ss >> method;) {
+			location.methods.push_back(method);
+		}
+	}
+	return true;
 }

@@ -6,7 +6,6 @@
 bool isValidCgi(std::pair<std::string, std::string> cgi) {
 	if (cgi.first.empty() || cgi.second.empty())
 		return false;
-	
 	if (cgi.first == ".php" && cgi.second != "/usr/bin/php")
 		return false;
 	if (cgi.first == ".py" && cgi.second != "/usr/bin/python3"){
@@ -25,7 +24,7 @@ cgi_t	getCgi(std::ifstream& configFile, std::string& line) {
 	while (std::getline(configFile, line)) {
 		if (skipLine(line))
 			continue;
-		if (isValidBlock(line) == CGI_TOKEN)
+		if (isValidBlock(line) == CGI_TOKEN || isValidBlock(line) == LOCATION_TOKEN)
 			break;
 		if (!isKeyValue(line)) {
 			throw std::runtime_error("Invalid CGI directive: " + line);
@@ -71,9 +70,12 @@ location_b	getLocation(std::ifstream& configFile, std::string& line) {
 		if (pos == NPOS && token == LOCATION_TOKEN) {
 			break ;
 		}
-
+		
 		if (pos == NPOS && token == CGI_TOKEN) {
-			location.cgiList.push_back(getCgi(configFile, line));
+			while (line == "[[cgi]]"){
+				cgi_t cgi = getCgi(configFile, line);
+ 				location.cgiList.push_back(cgi);
+			}
 			continue ;
 		}
 		if (!isKeyValue(line)) {
@@ -93,6 +95,7 @@ location_b	getLocation(std::ifstream& configFile, std::string& line) {
 						removeInvalidChars(methodStr);
 						method.push_back(methodStr);
 					}
+					location.methods = method;
 				}
 				if (key == "rewrite") {
 					string rewriteStr = saveArray(value);
@@ -103,6 +106,15 @@ location_b	getLocation(std::ifstream& configFile, std::string& line) {
 						location.redirection[true].insert(rewriteStr);
 					}
 				}
+				if (key == "index") {
+					std::string index = saveArray(value);
+					stringstream ss(index);
+					std::string indexFile;
+					while (std::getline(ss, indexFile, ',')) {
+						removeInvalidChars(indexFile);
+						location.index.push_back(indexFile);
+					}
+				}
 			}
 			else {
 				removeInvalidChars(value);
@@ -110,13 +122,6 @@ location_b	getLocation(std::ifstream& configFile, std::string& line) {
 					location.path = value;
 				} else if (key == "name") {
 					location.name = value;
-				} else if (key == "index") {
-					stringstream ss(value);
-					std::string indexFile;
-					while (std::getline(ss, indexFile, ',')) {
-						removeInvalidChars(indexFile);
-						location.index.push_back(indexFile);
-					}
 				} else if (key == "error_page") {
 					size_t errorPos = value.find('=');
 					if (errorPos != NPOS) {
@@ -141,9 +146,11 @@ location_b	getLocation(std::ifstream& configFile, std::string& line) {
 			}
 		}
 	}
+	if (!isValidLocation(location)) {
+		throw std::runtime_error("Invalid location configuration: " + location.name + " -> " + location.path);
+	}
 	return location;
 }
-
 std::map<int, std::string> getPages(std::ifstream& configFile, std::string& line) {
 	std::map<int, std::string> errorPageMap;
 	while (std::getline(configFile, line)) {
@@ -166,13 +173,14 @@ std::map<int, std::string> getPages(std::ifstream& configFile, std::string& line
 	}
 	return errorPageMap;
 }
+// #include "../../includes/Webserv.hpp"
 
 Config::Config(const std::string& configFilePath) : _configFilePath(configFilePath) {
 	std::ifstream configFile(_configFilePath.c_str());
 	if (!configFile.is_open()) {
 		throw std::runtime_error("Could not open configuration file: " + _configFilePath);
 	}
-
+	(void) this->_maxBodySize ;
 	std::string	line;
 	size_t pos = NPOS;
 	std::string	key;
@@ -211,7 +219,10 @@ Config::Config(const std::string& configFilePath) : _configFilePath(configFilePa
 			
 			if (pos == NPOS && token == LOCATION_TOKEN) {
 				try {
-					serv.locations.push_back(getLocation(configFile, line));
+					while (line == "[[location]]") {
+						location_b location = getLocation(configFile, line);
+						serv.locations.push_back(location);
+					}
 				} catch (const std::runtime_error& e) {
 					configFile.close();
 					throw std::runtime_error(std::string(e.what()));

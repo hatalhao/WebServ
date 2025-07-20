@@ -15,7 +15,7 @@ int main(int argc, char **argv) {
 		try {
 			for (size_t i = 0; i < conf._servers.size(); ++i){
 				checkAttributes(conf._servers[i]);
-				// printServer(conf._servers[i]);
+				printServer(conf._servers[i]);
 			}
 
 		} catch (const std::invalid_argument &e) {

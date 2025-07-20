@@ -46,6 +46,7 @@ class Config {
 		std::string							_configFilePath;
 		std::map<std::string, std::string>	_settings;
 		std::vector<Client>					_clients;
+		size_t								_maxBodySize;
 		
 	public:
 		Config(const std::string &configFilePath);

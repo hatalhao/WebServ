@@ -13,7 +13,7 @@ name = "/images"
 path = "/home/hatalhao/images"
 index = ["index.html", "index.php", "indexFile.html"]
 autoindex = ["on"]
-allow = ["GET", "POST", "DELETE"]
+allow = ["GET", "DELETE"]
 rewrite = ["/home/hatalhao/photos", "/home/hatalhao/pictures"]
 [[cgi]]
 extension = ".py"
@@ -22,18 +22,15 @@ handler = "/usr/bin/python3"
 extension = ".php"
 handler = "/usr/bin/php"
 #Signifies redirection (from /images to $(ROOT)/photos or /pictures)
-# [[location]]
-# name = "/home"
-# index = ["index.html", "index.php", "indexFile.html"]
-# autoindex = "on"
-# [[location]]
-# "/images/" = "/home/hatalhao/images"
-# index = ["index.html", "index.php", "indexFile.html"]
-# autoindex = "off"
-# [[location]]
-# trash = "/home/hatalhao/trash"
-# index = ["index.html", "index.php", "indexFile.html"]
-# autoindex = "off"
+[[location]]
+name = "/home"
+index = ["index.html", "index.php", "indexFile.html"]
+autoindex = "on"
+[[location]]
+name = "/trash"
+path = "/home/hatalhao/trash"
+index = ["index.html", "index.php", "indexFile.html"]
+autoindex = "off"
 
 # [[cgi]]
 # extension = ".py"
