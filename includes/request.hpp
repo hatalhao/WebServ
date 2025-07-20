@@ -31,6 +31,7 @@ class Request {
 		bool	validateVersion(int &code);
 		bool    validateHeaderKey(string& key);
 		bool	validateHeaderVal(const string& key, string& val);
+		bool    validateHostHeader(string& val);
 
 	public:
 		Request(const Config* configuration);

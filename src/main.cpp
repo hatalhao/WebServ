@@ -18,6 +18,7 @@ int main(int ac, char **av) {
 	raw.close(); 
 	Client obj(-1, &webservConfig);
 	obj.setRequestBuf(fileContent);
+
 	obj.processRequest();
 	obj.printState();
 	obj.processRequest();

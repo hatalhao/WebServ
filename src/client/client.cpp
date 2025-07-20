@@ -32,6 +32,7 @@ void    Client::processRequest() {
     case READING_HEADERS:
         this->httpStatusCode = this->request.processHeaders(this->requestBuf); break;
     case READING_BODY:
+        this->httpStatusCode = this->request.processBody(this->requestBuf); break;
         break;
     default:
         break;

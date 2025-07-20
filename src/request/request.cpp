@@ -76,14 +76,52 @@ int Request::processRequestLine(string& buffer) {
 int toLower(int c) { return tolower(static_cast<unsigned char>(c)); }
 
 bool    Request::validateHeaderKey(string& key) {
-    if (key.empty())
-        return false;
+    if (key.empty()) return false;
+
     for (size_t i = 0; i < key.length(); i++) {
         unsigned char c = key[i];
         if (!isalnum(c) && string(REQUEST_HEADER_EXTRA_CHARS).find(c) == string::npos)
             return false;
     }
     transform(key.begin(), key.end(), key.begin(), toLower);
+    if (key == "content-length" && ((headers.find(key) != headers.end())
+                    || headers.find("transfer-encoding") != headers.end()))
+        return false;
+    if (key == "transfer-encoding" && ((headers.find(key) != headers.end())
+                    || headers.find("content-length") != headers.end()))
+        return false;
+
+    if (key == "host" && this->headers.find(key) != this->headers.end())
+        return false;
+    return true;
+}
+
+bool    Request::validateHostHeader(string& val) {
+    if (val.empty() || val[0] == '.') return false;
+    
+    size_t hostname_end = val.length();
+    size_t colonPos = val.find(':');
+    if (colonPos != NPOS) {
+        if (colonPos == val.length() - 1) return false;
+        for (size_t i = colonPos + 1; i < val.length(); ++i)
+            if (!isdigit(val[i])) return false;
+        hostname_end = colonPos;
+    }
+    if (!hostname_end) return false;
+
+    if (hostname_end > 0 && val[hostname_end - 1] == '.')
+        hostname_end--;
+
+    if (!hostname_end) return false;
+
+    if (val[0] == '-' || val[hostname_end - 1] == '-') return false;
+
+    for (size_t i = 0; i < hostname_end; ++i) {
+        unsigned char c = val[i];
+        if (!isalnum(c) && c != '-' && c != '.') return false;
+        if (c == '.' && i > 0 && (val[i-1] == '.' || val[i-1] == '-')) return false;
+        if (c == '-' && i > 0 && val[i-1] == '.') return false;
+    }
     return true;
 }
 
@@ -99,23 +137,14 @@ bool    Request::validateHeaderVal(const string& key, string& val) {
     for (size_t k = 0; k < val.length(); k++)
         if (iscntrl(val[k])) return false;
 
-    if (key == "host") {
-        if (val.empty() || val == "" || val[0] == '-'
-            || val[0] == '.' || val[val.length() - 1] == '-')
-            return false;
-        for (size_t l = 0; l < val.length(); l++) {
-            unsigned char c = val[l];
-            if (!isalnum(c) && c != '-' && c != '.') return false;
-        }
-        if (val[val.length() - 1] == '.')
-            val.erase(val.length() - 1);
-    }
+    if (key == "host" && !validateHostHeader(val))
+        return false;
     else if (key == "content-length") {
-        if (val.empty() || val == "")
-            return false;
+        if (val.empty()) return false;
         for (size_t x = 0; x < val.length(); x++)
-            if (!isalnum(val[x])) return false;
+            if (!isdigit(val[x])) return false;
     }
+
     return true;
 }
 
@@ -142,7 +171,9 @@ int Request::processHeaders(string& buffer) {
         
         string  val = line.substr(colPos + 1);
         if (!validateHeaderVal(key, val)) {this->state = PARSINGERROR; return 400;}
-        
+
+        if (key == "transfer-encoding" && (val.empty() || val != "chunked")) return 501;
+    
         buffer.erase(0, pos + CRLF_LENGTH);
         this->headers[key] = val;
     }
@@ -153,10 +184,13 @@ int Request::processBody(string& buffer) {
     size_t  contentLen;
     if (headers.find("content-length") != headers.end()) {
         contentLen = atoll(headers["content-length"].c_str());
-        if (contentLen > 0) {
-            
-        }
+        // if (contentLen > this->_config->getMaxBodySize())
+        //     return (this->state = PARSINGERROR, 413);
+        if (buffer.length() < contentLen)
+            return 0;
+        this->body.assign(buffer.begin(), buffer.begin() + contentLen);
+        buffer.erase(0, contentLen);
+        this->state = PARSINGCOMPLETE;
     }
-    (void)buffer;
     return (0);
 }

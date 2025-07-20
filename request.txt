@@ -1,4 +1,6 @@
-GET / HTTP/1.1
-Host:   hello
+POST /submit HTTP/1.1
+Host: localhost.com:8080
+Content-Type: application/x-www-form-urlencoded
+Transfer-Encoding: chunked
 
-
+name=John&age=30
