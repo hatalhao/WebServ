@@ -25,5 +25,8 @@ int main(int ac, char **av) {
 	obj.printRequest();
 	obj.printState();
 	obj.printBuffer();
+	obj.processRequest();
+	obj.printState();
+	obj.printBuffer();
 	return 0;
 }

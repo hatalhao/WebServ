@@ -182,6 +182,7 @@ int Request::processHeaders(string& buffer) {
 
 int Request::processBody(string& buffer) {
     size_t  contentLen;
+
     if (headers.find("content-length") != headers.end()) {
         contentLen = atoll(headers["content-length"].c_str());
         // if (contentLen > this->_config->getMaxBodySize())
@@ -192,5 +193,12 @@ int Request::processBody(string& buffer) {
         buffer.erase(0, contentLen);
         this->state = PARSINGCOMPLETE;
     }
+    // else if (headers.find("transfer-encoding") != headers.end()) {
+    //     while (true) {
+    //         size_t  crlfPos = buffer.find()
+    //     }
+    // }
+    else
+        return 400;
     return (0);
 }
