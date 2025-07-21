@@ -31,6 +31,7 @@ void	fillServer(server &serv, const Config &config) {
 	serv.host = config.extractHost();
 	serv.root = config.extractRoot();
 	serv.serverName = config.extractServerName();
+	serv.maxBodySize = config.extractMaxBodySize();
 	// printServer(serv);
 }
 
@@ -44,15 +45,17 @@ void	printLocation(const std::vector<location_b> &location) {
 			std::cout << location[i].index[j] << " ";
 		}
 		std::cout << std::endl;
-		// std::cout << "Methods: ";
-		// print location[0].methods.size() << " methods found" << endl;
-		// print "location == " << location.size() << endl;
 		std::cout << "Methods: ";
 		for (size_t j = 0; j < location[i].methods.size(); ++j) {
 			std::cout << location[i].methods[j] << " ";
 		}
 		std::cout << std::endl;
-		std::cout << "Redirection: ";
+		std::cout << (location[i].cgiList.size() ? "CGI: \n" : "");
+		for (size_t j = 0; j < location[i].cgiList.size(); ++j) {
+			std::cout << "Extension: " << location[i].cgiList[j].extension
+					  << ", Handler: " << location[i].cgiList[j].path << endl;
+		}
+		std::cout << ((location[i].redirection.size() != 0) ? "Redirection: " : "");
 		for (std::map<bool, std::set<std::string> >::const_iterator it = location[i].redirection.begin(); it != location[i].redirection.end(); ++it)
 		{
 			if (it->first) {
@@ -61,6 +64,7 @@ void	printLocation(const std::vector<location_b> &location) {
 				}
 			}
 		}
+		print endl;
 	}
 }
 
@@ -76,12 +80,10 @@ void	printServer(const server &serv) {
 	// 	std::cout << serv.serverName[i] << " ";
 	// }
 	// std::cout << std::endl;
+	// std::cout << "Max Body Size: " << serv.maxBodySize << " bytes" << std::endl;
 	// std::cout << "Error Pages:" << std::endl;
 	// for (std::map<int, std::string>::const_iterator it = serv.errorPageMap.begin(); it != serv.errorPageMap.end(); ++it) {
 	// 	std::cout << "  " << it->first << ": " << it->second << std::endl;
 	// }
-	std::cout << serv.locations.size() << " locations found" << std::endl;
-	for (size_t i = 0; i < serv.locations.size(); ++i) {
-		printLocation(serv.locations);
-	}
+	printLocation(serv.locations);
 }

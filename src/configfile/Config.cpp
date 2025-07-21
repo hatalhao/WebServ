@@ -76,6 +76,9 @@ location_b	getLocation(std::ifstream& configFile, std::string& line) {
 				cgi_t cgi = getCgi(configFile, line);
  				location.cgiList.push_back(cgi);
 			}
+			if (isValidBlock(line) == LOCATION_TOKEN) {
+				break ;
+			}
 			continue ;
 		}
 		if (!isKeyValue(line)) {
@@ -89,30 +92,31 @@ location_b	getLocation(std::ifstream& configFile, std::string& line) {
 				std::vector<std::string> method;
 				std::vector<std::string> redirection;
 				if (key == "allow") {
+					value = saveArray(value);
 					stringstream ss(value);
-					std::string methodStr;
-					while (std::getline(ss, methodStr, ',')) {
-						removeInvalidChars(methodStr);
-						method.push_back(methodStr);
+					value.clear();
+					while (std::getline(ss, value, ',')) {
+						removeInvalidChars(value);
+						method.push_back(value);
 					}
 					location.methods = method;
 				}
 				if (key == "rewrite") {
-					string rewriteStr = saveArray(value);
-					stringstream ss(rewriteStr);
-					rewriteStr.clear();
-					while (std::getline(ss, rewriteStr, ',')) {
-						removeInvalidChars(rewriteStr);
-						location.redirection[true].insert(rewriteStr);
+					value = saveArray(value);
+					stringstream ss(value);
+					value.clear();
+					while (std::getline(ss, value, ',')) {
+						removeInvalidChars(value);
+						location.redirection[true].insert(value);
 					}
 				}
 				if (key == "index") {
-					std::string index = saveArray(value);
-					stringstream ss(index);
-					std::string indexFile;
-					while (std::getline(ss, indexFile, ',')) {
-						removeInvalidChars(indexFile);
-						location.index.push_back(indexFile);
+					value = saveArray(value);
+					stringstream ss(value);
+					value.clear();
+					while (std::getline(ss, value, ',')) {
+						removeInvalidChars(value);
+						location.index.push_back(value);
 					}
 				}
 			}
@@ -135,7 +139,6 @@ location_b	getLocation(std::ifstream& configFile, std::string& line) {
 				} else if (isValidBlock(line) == CGI_TOKEN) {
 					location.isCgiEnabled = (value == "on");
 					try {
-						token = CGI_TOKEN;
 						location.cgiList.push_back(getCgi(configFile, line));
 					} catch (const std::runtime_error& e) {
 						throw std::runtime_error("Failed to parse CGI configuration: " + std::string(e.what()));
@@ -300,6 +303,41 @@ std::string	Config::extractHost() const {
 	}
 	return it->second;
 }
+
+size_t parseSize(const std::string& sizeStr) {
+	if (sizeStr.empty()) {
+		throw std::runtime_error("Size string is empty");
+	}
+	size_t size = 0;
+	size_t pos = sizeStr.find_first_not_of("0123456789");
+	std::string numberStr = sizeStr.substr(0, pos);
+	if (pos != NPOS) {
+		std::string unitStr = sizeStr.substr(pos);
+		std::transform(unitStr.begin(), unitStr.end(), unitStr.begin(), ::toupper);
+		if (unitStr == "B") {
+			size = std::atoll(numberStr.c_str());
+		} else if (unitStr == "KB") {
+			size = std::atoll(numberStr.c_str()) * KB;
+		} else if (unitStr == "MB") {
+			size = std::atoll(numberStr.c_str()) * MB;
+		} else if (unitStr == "GB") {
+			size = std::atoll(numberStr.c_str()) * GB;
+		} else {
+			throw std::runtime_error("Invalid size unit: " + unitStr);
+		}
+	} else {
+		size = std::atoll(sizeStr.c_str());
+	}
+	return size;
+}
+
+size_t	Config::extractMaxBodySize() const {
+	std::map<std::string, std::string>::const_iterator it = _settings.find("max_body_size");
+	if (it == _settings.end())
+		throw std::runtime_error("Max body size not found in configuration");
+	return parseSize(it->second);
+}
+	
 
 std::string	Config::extractRoot() const {
 	std::map<std::string, std::string>::const_iterator it = _settings.find("root");

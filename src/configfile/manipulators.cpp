@@ -1,6 +1,7 @@
 #include "../../includes/Config.hpp"
 #include "../../includes/Webserv.hpp"
 #include "../../includes/identifiers.hpp"
+#include "../../includes/manipulators.hpp"
 
 void removeInvalidChars(std::string &str) {
 	if (str.empty())
@@ -33,4 +34,3 @@ std::string	saveArray(const std::string& line) {
 	}
 	return merged;
 }
-
