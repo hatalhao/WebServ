@@ -69,21 +69,21 @@ void	printLocation(const std::vector<location_b> &location) {
 }
 
 void	printServer(const server &serv) {
-	// std::cout << "Server Configuration:" << std::endl;
-	// std::cout << "Host: " << serv.host << std::endl;
-	// for (set<int>::const_iterator it = serv.port.begin(); it != serv.port.end(); ++it) {
-	// 	std::cout << "Port: " << *it << std::endl;
-	// }
-	// std::cout << "Root: " << serv.root << std::endl;
-	// std::cout << "Server Name: ";
-	// for (size_t i = 0; i < serv.serverName.size(); ++i) {
-	// 	std::cout << serv.serverName[i] << " ";
-	// }
-	// std::cout << std::endl;
-	// std::cout << "Max Body Size: " << serv.maxBodySize << " bytes" << std::endl;
-	// std::cout << "Error Pages:" << std::endl;
-	// for (std::map<int, std::string>::const_iterator it = serv.errorPageMap.begin(); it != serv.errorPageMap.end(); ++it) {
-	// 	std::cout << "  " << it->first << ": " << it->second << std::endl;
-	// }
+	std::cout << "Server Configuration:" << std::endl;
+	std::cout << "Host: " << serv.host << std::endl;
+	for (set<int>::const_iterator it = serv.port.begin(); it != serv.port.end(); ++it) {
+		std::cout << "Port: " << *it << std::endl;
+	}
+	std::cout << "Root: " << serv.root << std::endl;
+	std::cout << "Server Name: ";
+	for (size_t i = 0; i < serv.serverName.size(); ++i) {
+		std::cout << serv.serverName[i] << " ";
+	}
+	std::cout << std::endl;
+	std::cout << "Max Body Size: " << serv.maxBodySize << " bytes" << std::endl;
+	std::cout << "Error Pages:" << std::endl;
+	for (std::map<int, std::string>::const_iterator it = serv.errorPageMap.begin(); it != serv.errorPageMap.end(); ++it) {
+		std::cout << "  " << it->first << ": " << it->second << std::endl;
+	}
 	printLocation(serv.locations);
 }

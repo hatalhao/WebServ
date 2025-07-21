@@ -33,23 +33,25 @@ path = "/home/hatalhao/trash"
 index = ["trash.html", "trash.php", "trashFile.html"]
 autoindex = "off"
 
-# [[cgi]]
-# extension = ".py"
-# handler = "/usr/bin/python3"
-# [[cgi]]
-# extension = ".php"
-# handler = "/usr/bin/php"
+[[cgi]]
+extension = ".py"
+handler = "/usr/bin/python3"
+[[cgi]]
+extension = ".php"
+handler = "/usr/bin/php"
 
-# [[server]]
-# server_name = "hatalhao"
-# host = "127.0.0.1"
-# listen = "8081"
-# [[location]]
-# name = "/images"
-# path = "/home/hatalhao/images"
-# index = ["index.html", "index.php", "indexFile.html"]
-# autoindex = "on"
-# allow = ["GET", "POST", "DELETE"]
+[[server]]
+server_name = "hatalhao"
+host = "127.0.0.1"
+listen = "8081"
+root = "/home/hatalhao/WebServ"
+max_body_size = "10GB"
+[[location]]
+name = "/images"
+path = "/home/hatalhao/images"
+index = ["index.html", "index.php", "indexFile.html"]
+autoindex = "on"
+allow = ["GET", "POST", "DELETE"]
 
 # [[server]]
 # server_name = "another"

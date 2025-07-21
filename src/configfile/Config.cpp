@@ -24,7 +24,7 @@ cgi_t	getCgi(std::ifstream& configFile, std::string& line) {
 	while (std::getline(configFile, line)) {
 		if (skipLine(line))
 			continue;
-		if (isValidBlock(line) == CGI_TOKEN || isValidBlock(line) == LOCATION_TOKEN)
+		if (isValidBlock(line) == CGI_TOKEN || isValidBlock(line) == LOCATION_TOKEN || isValidBlock(line) == SERVER_TOKEN)
 			break;
 		if (!isKeyValue(line)) {
 			throw std::runtime_error("Invalid CGI directive: " + line);
@@ -67,7 +67,7 @@ location_b	getLocation(std::ifstream& configFile, std::string& line) {
 			throw std::runtime_error("Invalid location line: " + line);
 		}
 
-		if (pos == NPOS && token == LOCATION_TOKEN) {
+		if (pos == NPOS && (token == LOCATION_TOKEN || token == SERVER_TOKEN)) {
 			break ;
 		}
 		
@@ -76,7 +76,8 @@ location_b	getLocation(std::ifstream& configFile, std::string& line) {
 				cgi_t cgi = getCgi(configFile, line);
  				location.cgiList.push_back(cgi);
 			}
-			if (isValidBlock(line) == LOCATION_TOKEN) {
+			if (isValidBlock(line) == LOCATION_TOKEN \
+			|| isValidBlock(line) == SERVER_TOKEN) {
 				break ;
 			}
 			continue ;
@@ -229,6 +230,10 @@ Config::Config(const std::string& configFilePath) : _configFilePath(configFilePa
 				} catch (const std::runtime_error& e) {
 					configFile.close();
 					throw std::runtime_error(std::string(e.what()));
+				}
+				if (isValidBlock(line) == SERVER_TOKEN) {
+					lastLine = line;
+					break;
 				}
 			}
 
