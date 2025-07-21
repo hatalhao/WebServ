@@ -98,30 +98,30 @@ bool    Request::validateHeaderKey(string& key) {
 
 bool    Request::validateHostHeader(string& val) {
     if (val.empty() || val[0] == '.') return false;
-    
-    size_t hostname_end = val.length();
+
     size_t colonPos = val.find(':');
-    if (colonPos != NPOS) {
+    size_t hostname_end = (colonPos != std::string::npos) ? colonPos : val.length();
+
+    // validating the port
+    if (colonPos != std::string::npos) {
         if (colonPos == val.length() - 1) return false;
         for (size_t i = colonPos + 1; i < val.length(); ++i)
             if (!isdigit(val[i])) return false;
-        hostname_end = colonPos;
     }
-    if (!hostname_end) return false;
 
     if (hostname_end > 0 && val[hostname_end - 1] == '.')
-        hostname_end--;
+        --hostname_end;
 
-    if (!hostname_end) return false;
-
-    if (val[0] == '-' || val[hostname_end - 1] == '-') return false;
+    if (hostname_end == 0 || val[0] == '-' || val[hostname_end - 1] == '-')
+        return false;
 
     for (size_t i = 0; i < hostname_end; ++i) {
-        unsigned char c = val[i];
-        if (!isalnum(c) && c != '-' && c != '.') return false;
-        if (c == '.' && i > 0 && (val[i-1] == '.' || val[i-1] == '-')) return false;
-        if (c == '-' && i > 0 && val[i-1] == '.') return false;
+        if (!isalnum(val[i]) && val[i] != '-' && val[i] != '.') return false;
+        if (val[i] == '.' && (i == 0 || val[i - 1] == '.' || val[i - 1] == '-'))
+            return false;
+        else if (val[i] == '-' && i > 0 && val[i - 1] == '.') return false;
     }
+
     return true;
 }
 
