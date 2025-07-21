@@ -29,6 +29,7 @@ class Client {
 		Client(int fd, const Config* configuration);
 		void	processRequest();
 		void	setRequestBuf(const string& buf) { requestBuf = buf; }
+		string	getRequestBuf() const { return requestBuf; }
 		void	printRequest() const;
 		void	printBuffer() const { cout << "Request Buffer: " << requestBuf << endl; }
 		void	updateState();

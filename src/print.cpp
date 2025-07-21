@@ -4,10 +4,10 @@ void	Client::printRequest() const {
     cout << "Request Method: ";
     request.printMethod();
     cout << endl;
-    cout << "Request URI: " << request.getUri() << endl;
-    cout << "Request Version: " << request.getVersion() << endl;
+    cout << "Request URI: [" << request.getUri() << "]" << endl;
+    cout << "Request Version: [" << request.getVersion() << "]" << endl;
     for (map<string, string>::const_iterator it = request.getHeaders().begin(); it != request.getHeaders().end(); ++it) {
-        cout << it->first << ": " << it->second << endl;
+        cout << it->first << ": [" << it->second << "]"<< endl;
     }
 }
 

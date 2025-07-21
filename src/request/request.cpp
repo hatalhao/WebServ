@@ -160,11 +160,12 @@ int Request::processHeaders(string& buffer) {
         if (line.empty()) {
             if (this->headers.find("host") == this->headers.end())
             { this->state = PARSINGERROR; return 400; }
+            buffer.erase(0, pos + CRLF_LENGTH);
             this->state = REQUESTHEADERS_READY; return 0;
         }
-        
+
         size_t  colPos = line.find(':');
-        if (colPos == NPOS) {this->state = PARSINGERROR; return 400;}
+        if (colPos == NPOS) {this->state = PARSINGERROR; DEBUG cout << "[" << line << "]\n"; return 400;}
         
         string  key = line.substr(0, colPos);
         if (!validateHeaderKey(key)) {this->state = PARSINGERROR; return 400;}
@@ -193,11 +194,33 @@ int Request::processBody(string& buffer) {
         buffer.erase(0, contentLen);
         this->state = PARSINGCOMPLETE;
     }
-    // else if (headers.find("transfer-encoding") != headers.end()) {
-    //     while (true) {
-    //         size_t  crlfPos = buffer.find()
-    //     }
-    // }
+    else if (headers.find("transfer-encoding") != headers.end()) {
+        while (true) {
+            size_t crlf_pos = buffer.find(CRLF);
+            if (crlf_pos == string::npos) return 0;
+
+            stringstream ss(buffer.substr(0, crlf_pos));
+            size_t chunkSize;
+            ss >> std::hex >> chunkSize;
+
+            if (ss.fail()) return(this->state = PARSINGERROR, 400);
+
+            // if (this->body.size() + chunkSize > this->config.getClientBodyLimit())
+            //     return (this->state = PARSINGERROR, 413);
+
+            size_t chunkDataStart = crlf_pos + CRLF_LENGTH;
+            size_t totalChunkBlockSize = chunkDataStart + chunkSize + CRLF_LENGTH;
+            if (buffer.length() < totalChunkBlockSize) return 0;
+
+            if (chunkSize == 0) {
+                buffer.erase(0, totalChunkBlockSize - chunkSize);
+                return (this->state = PARSINGCOMPLETE, 0);
+            }
+
+            body.insert(body.end(), buffer.begin() + chunkDataStart, buffer.begin() + chunkDataStart + chunkSize);
+            buffer.erase(0, totalChunkBlockSize);
+        }
+    }
     else
         return 400;
     return (0);
