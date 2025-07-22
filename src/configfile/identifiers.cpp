@@ -54,7 +54,8 @@ bool	isArray(const std::string& line) {
 }
 
 bool	isArrayKey(const std::string& key) {
-	return (key == "server_name" || key == "listen" || key == "index" || key == "allow" || key == "rewrite");
+	return (key == "server_name" || key == "listen" || key == "index" \
+		|| key == "allow" || key == "rewrite");
 }
 
 bool	isValidLocation(location_b& location) {
@@ -67,4 +68,13 @@ bool	isValidLocation(location_b& location) {
 		}
 	}
 	return true;
+}
+
+int isValidStatusCode(long statusCode) {
+	if (statusCode != BAD_REQUEST && statusCode != FORBIDDEN && statusCode != NOT_FOUND && \
+		statusCode != REQUEST_TIMEOUT && statusCode != REQUEST_ENTITY_TOO_LARGE && \
+		statusCode != REQUEST_URI_TOO_LONG && statusCode != INTERNAL_SERVER_ERROR && \
+		statusCode != NOT_IMPLEMENTED)
+		return -1;
+	return static_cast<int>(statusCode);
 }

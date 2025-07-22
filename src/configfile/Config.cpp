@@ -155,29 +155,44 @@ location_b	getLocation(std::ifstream& configFile, std::string& line) {
 	}
 	return location;
 }
+
+int	getStatusCode(const std::string& line) {
+	long statusCode = 0;
+	size_t pos = NPOS;
+
+	pos = line.find_first_not_of("0123456789");
+	if (pos != 3 && (line[pos] != '=' || line[pos] != ' ')) {
+		return -1;
+	}
+	statusCode = std::strtol(line.substr(0, pos).c_str(), 0, 10);
+	return (isValidStatusCode(statusCode));
+}
+
 std::map<int, std::string> getPages(std::ifstream& configFile, std::string& line) {
 	std::map<int, std::string> errorPageMap;
+	int token = 5;
 	while (std::getline(configFile, line)) {
 		if (skipLine(line))
 			continue;
 		size_t pos = line.find('=');
-
-		if (pos == NPOS && (isValidBlock(line) == ERROR_TOKEN || isValidBlock(line) == LOCATION_TOKEN)) {
+		token = isValidBlock(line);
+		if (pos == NPOS && (token == ERROR_TOKEN || token == LOCATION_TOKEN)) {
 			break ;
 		}
 
-		if (pos == NPOS && isValidBlock(line) == UNKNOWN_TOKEN) {
+		if (pos == NPOS && token == UNKNOWN_TOKEN) {
 			throw std::runtime_error("Invalid error page line: " + line);
 		}
-
-		int statusCode = std::atoi(line.substr(0, pos).c_str());
+		int statusCode = getStatusCode(line.substr(line.find_first_not_of(" \t"), pos));
+		if (statusCode == -1) {
+			throw std::runtime_error("Invalid status code in error page directive: " + line);
+		}
 		std::string filePath = line.substr(pos + 1);
 		removeInvalidChars(filePath);
 		errorPageMap[statusCode] = filePath;
 	}
 	return errorPageMap;
 }
-// #include "../../includes/Webserv.hpp"
 
 Config::Config(const std::string& configFilePath) : _configFilePath(configFilePath) {
 	std::ifstream configFile(_configFilePath.c_str());
@@ -398,9 +413,10 @@ std::map<int, std::string>	Config::extractErrorPageMap() const {
 	size_t pos = NPOS;
 	for (std::map<std::string, std::string>::const_iterator it = _settings.begin(); it != _settings.end(); ++it) {
 		if (it->first.find("error_page") != NPOS) {
-			pos = it->first.find('_');
+			pos = it->first.find('=');
 			if (pos != NPOS) {
-				errorCode = atoi(it->first.substr(pos + 1).c_str());
+				errorCode = atoi(it->first.substr(pos - 1).c_str());
+				print "Error Code == " << errorCode << endl;
 				errorPageMap[errorCode] = it->second;
 			}
 		}

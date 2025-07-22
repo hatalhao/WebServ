@@ -11,3 +11,4 @@ bool	skipLine(const std::string& line);
 bool	isKeyValue(const std::string& line);
 bool	isArray(const std::string& line);
 bool	isArrayKey(const std::string& key);
+int		isValidStatusCode(long statusCode);
