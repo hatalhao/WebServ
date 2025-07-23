@@ -11,19 +11,19 @@ NAME = webserv
 
 CXX = c++
 
-CXXFLAGS = -Wall -Werror -Wextra -std=c++98
+CXXFLAGS = -Wall -Werror -Wextra -std=c++98 -g3
 
 CXXFLAGS += -MMD -MP
 
+CXXFLAGS += -fsanitize=address
+
 MAKEFLAGS = -j --no-print-directory
 
-# CXXFLAGS += -g3
-# CXXFLAGS += -fsanitize=address
 
 OBJS_DIR = tmp/objs
 DEPS_DIR = tmp/deps
 
-SRCS = $(shell find src -name "*.cpp")
+SRCS =  $(shell find src -name "*.cpp")
 
 OBJS = $(patsubst src/%.cpp, $(OBJS_DIR)/%.o, $(SRCS))
 DEPS = $(patsubst src/%.cpp, $(DEPS_DIR)/%.d, $(SRCS))

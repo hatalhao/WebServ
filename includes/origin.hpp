@@ -18,6 +18,7 @@ class Config;
 class Request;
 class Client;
 struct server;
+typedef struct location location_b;
 
 typedef enum methods {
     GET,

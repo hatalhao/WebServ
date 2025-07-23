@@ -2,6 +2,7 @@
 
 #include "origin.hpp"
 #include "request.hpp"
+#include "Config.hpp"
 
 enum ClientState {
 	READING_REQUEST_LINE,
@@ -22,7 +23,7 @@ class Client {
 		size_t          contentLen;
 		ClientState     state;
 		Request			request;
-		const Config	*_config;
+		const server	*_config;
 		unsigned short	httpStatusCode;
 
 	public:

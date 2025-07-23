@@ -9,25 +9,24 @@ int main(int ac, char **av) {
     
     if (ac != 2)
         return (cerr << "invalid args!" << endl, 1);
-    Config	webservConfig(string("config/file.toml"));
-    cout << BRIGHT_GREEN "===============" RESET << endl;
-    fstream	raw(av[1]);
-    string line;
-    Client obj(-1, &webservConfig);
+    try {
+        Config	webservConfig(string("config/file.toml"));
+        Client obj(-1, &webservConfig);
+        fstream	raw(av[1]);
+        string line;
+        
+        while (getline(raw, line)) {
+            obj.setRequestBuf(obj.getRequestBuf() + line + "\n");
+            obj.processRequest();
+        }
+        raw.close(); 
     
-    while (getline(raw, line)) {
-        obj.setRequestBuf(obj.getRequestBuf() + line + "\n");
-        // cout << BRIGHT_BLUE "Processing line: " RESET << line << endl;
-        // cout << BRIGHT_YELLOW "Current buffer length: " RESET << obj.getRequestBuf().length() << endl;
-        obj.processRequest();
+        // cout << BRIGHT_GREEN "Final processing complete" RESET << endl;
         // obj.printState();
-        // cout << "---" << endl;
-    }
-    raw.close(); 
-
-    cout << BRIGHT_GREEN "Final processing complete" RESET << endl;
-	obj.printState();
-    obj.printRequest();
-    obj.printBuffer();
+        // obj.printRequest();
+        // obj.printBuffer();
+        } catch (exception& e) {
+            cout << e.what() << endl;
+        }
     return 0;
 }

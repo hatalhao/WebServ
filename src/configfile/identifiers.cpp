@@ -1,6 +1,7 @@
 #include "../../includes/identifiers.hpp"
 #include "../../includes/manipulators.hpp"
 #include "../../includes/tokenizer.hpp"
+#include "../../includes/Webserv.hpp"
 
 bool notValidChar(char c) {
 	return (c == '\"' || c == '\'' || c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '[' || c == ']');
@@ -37,16 +38,12 @@ bool	isKeyValue(const std::string& line) {
 }
 
 void	minimumRequirement(std::string &line, std::ifstream& configFile) {
-	int	token = START;
 	while (std::getline(configFile, line)) {
-		if (skipLine(line))
-			continue;
-		token = isValidBlock(line);
-		if (token != 1){
-			throw std::runtime_error("Invalid configuration file");
+		if (!skipLine(line))
+			break ;
 		}
-		break ;
-	}
+	if (isValidBlock(line) != 1)
+		throw std::runtime_error("Invalid configuration file");
 }
 
 bool	isArray(const std::string& line) {
@@ -57,5 +54,27 @@ bool	isArray(const std::string& line) {
 }
 
 bool	isArrayKey(const std::string& key) {
-	return (key == "server_name" || key == "listen" || key == "index" || key == "allow" || key == "rewrite");
+	return (key == "server_name" || key == "listen" || key == "index" \
+		|| key == "allow" || key == "rewrite");
+}
+
+bool	isValidLocation(location_b& location) {
+	if (location.name.empty() || location.path.empty())
+		return false;
+	if (location.methods.empty()){
+		stringstream ss("GET POST DELETE");
+		for (string method; ss >> method;) {
+			location.methods.push_back(method);
+		}
+	}
+	return true;
+}
+
+int isValidStatusCode(long statusCode) {
+	if (statusCode != BAD_REQUEST && statusCode != FORBIDDEN && statusCode != NOT_FOUND && \
+		statusCode != REQUEST_TIMEOUT && statusCode != REQUEST_ENTITY_TOO_LARGE && \
+		statusCode != REQUEST_URI_TOO_LONG && statusCode != INTERNAL_SERVER_ERROR && \
+		statusCode != NOT_IMPLEMENTED)
+		return -1;
+	return static_cast<int>(statusCode);
 }

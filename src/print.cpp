@@ -9,6 +9,11 @@ void	Client::printRequest() const {
     for (map<string, string>::const_iterator it = request.getHeaders().begin(); it != request.getHeaders().end(); ++it) {
         cout << it->first << ": [" << it->second << "]"<< endl;
     }
+    cout << "--Body:\n" << BRIGHT_GREEN "[" RESET; 
+    for (vector<char>::const_iterator it = request.getBody().begin(); it != request.getBody().end(); it++) {
+        cout << *it;
+    }
+    cout << BRIGHT_GREEN "]" RESET << endl;
 }
 
 void	Client::printState() const {

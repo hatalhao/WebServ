@@ -37,6 +37,7 @@ class Request {
 		Request(const Config* configuration);
 		methods	getMethod() const { return method; }
 		string	getUri() const { return uri; }
+		const vector<char>&	getBody() const { return body; }
 		string	getVersion() const { return version; }
 		const map<string, string>&	getHeaders() const { return headers; }
 		int	processRequestLine(string& buffer);

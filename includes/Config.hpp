@@ -3,55 +3,26 @@
 #include "origin.hpp"
 #include "client.hpp"
 
-enum serverTokens {
-	listen,
-	host,
-	root,
-	server_name,
-};
+typedef enum unit {
+	B = 1,
+	KB = 1024,
+	MB = 1024 * KB,
+	GB = 1024 * MB
+} unit;
 
-enum cgiTokens {
-	extension,
-	handler,
-};
-
-enum errorPages {
-	e400 = 400,
-	e403 = 403,
-	e404 = 404,
-	e405 = 405,
-	e408 = 408,
-	e500 = 500,
-	e501,
-	e502,
-	e503,
-	e504,
-	e505
-};
-
-enum locationTokens {
-	index,
-	path,
-	name,
-	autoindex,
-	allow_methods,
-	upload,
-	redirection,
-	upload_path,
-	upload_max_size,
-};
 
 class Config {
 	private:
-		std::string _configFilePath;
-		std::map<std::string, std::string> _settings;
-		std::vector<server> _servers;
-		vector<Client> _clients;
-
+		std::string							_configFilePath;
+		std::map<std::string, std::string>	_settings;
+		std::vector<Client>					_clients;
+		size_t								_maxBodySize;
+		
 	public:
 		Config(const std::string &configFilePath);
 		~Config();
-
+		
+		std::vector<server>					_servers;
 		//extracting methods
 		std::set<int>						extractPorts() const;
 		std::string							extractHost() const;
@@ -60,7 +31,7 @@ class Config {
 		std::vector<std::string>			extractServerName() const;
 		std::map<std::string, std::string>	extractLocations() const;
 		std::map<int, std::string>			extractErrorPageMap() const;
-
+		size_t								extractMaxBodySize() const;
 
 		void printParams() {
 			std::map<std::string, std::string>::iterator it = _settings.begin();

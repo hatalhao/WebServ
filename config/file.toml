@@ -1,51 +1,52 @@
-	# [[server]]
 [[server]]
 server_name = ["sekhar", "awd", "awdaw", "aawdawd"]
 host = "127.0.0.1"
 listen = ["8989", "8080", "8081"]
-root = "/home/Ali"
+root = "/home/bello/WebServ"
+max_body_size = "15GB"
 [[error_pages]]
-403 = "403.html"
-404 = "404.html"
-413 = "413.html"
+403 = "./pages/403.html"
+404 = "./pages/404.html"
+413 = "./pages/413.html"
+
+[[location]]
+name = "images"
+path = "/home/bello/WebServ"
+index = ["images.html", "images.php", "imagesFile.html"]
+autoindex = ["on"]
+allow = ["GET", "DELETE", "PUT", "POST"]
+rewrite = ["/home/hatalhao/photos", "/home/hatalhao/pictures"]
+[[cgi]]
+extension = ".py"
+handler = "/usr/bin/python3"
+
+[[location]]
+name = "home"
+path = "/home/"
+index = ["home.html", "home.php", "homeFile.html"]
+autoindex = "on"
+[[location]]
+name = "trash"
+path = "/home/hatalhao/trash"
+index = ["trash.html", "trash.php", "trashFile.html"]
+autoindex = "off"
+
+[[cgi]]
+extension = ".py"
+handler = "/usr/bin/python3"
+
+[[server]]
+server_name = "hatalhao"
+host = "127.0.0.1"
+listen = "8081"
+root = "/home/bello/WebServ"
+max_body_size = "10GB"
 [[location]]
 name = "/images"
-path = "/home/hatalhao/images"
+path = "/home/bello/WebServ"
 index = ["index.html", "index.php", "indexFile.html"]
 autoindex = "on"
 allow = ["GET", "POST", "DELETE"]
-rewrite = ["/home/hatalhao/photos", "/home/hatalhao/pictures"] #Signifies redirection (from /images to $(ROOT)/photos or /pictures)
-	# [[location]]
-# root = "/home"
-# index = ["index.html", "index.php", "indexFile.html"]
-# autoindex = "on"
-# [[location]]
-# "/images/" = "/home/hatalhao/images"
-# index = ["index.html", "index.php", "indexFile.html"]
-# autoindex = "off"
-# [[location]]
-# trash = "/home/hatalhao/trash"
-# index = ["index.html", "index.php", "indexFile.html"]
-# autoindex = "off"
-
-# [[cgi]]
-# extension = ".py"
-# handler = "/usr/bin/python3"
-# [[cgi]]
-# extension = ".php"
-# handler = "/usr/bin/php"
-
-
-# [[server]]
-# server_name = "hatalhao"
-# host = "127.0.0.1"
-# listen = "8081"
-# [[location]]
-# name = "/images"
-# path = "/home/hatalhao/images"
-# index = ["index.html", "index.php", "indexFile.html"]
-# autoindex = "on"
-# allow = ["GET", "POST", "DELETE"]
 
 # [[server]]
 # server_name = "another"
