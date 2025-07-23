@@ -1,30 +1,32 @@
 #include "../includes/Webserv.hpp"
 #include "../includes/Config.hpp"
+#include "../includes/request.hpp"
 
-int main(int argc, char **argv) {
-	if (argc < 1 || argc > 2) {
-		std::cerr << "Usage: ./" << argv[0] << " <config_file>" << std::endl;
-		return 1;
-	}
-	std::string configFile = (argv[1]) ? argv[1] : "config/default.toml";
-	std::map<std::string, std::string> settings;
-	settings.clear();
-	
-	try {
-		Config conf(configFile);
-		try {
-			for (size_t i = 0; i < conf._servers.size(); ++i){
-				checkAttributes(conf._servers[i]);
-				printServer(conf._servers[i]);
-			}
+# define BRIGHT_BLUE "\x1b[94m"
+# define BRIGHT_YELLOW "\x1b[93m"
 
-		} catch (const std::invalid_argument &e) {
-			std::cerr << "Invalid server configuration: " << e.what() << std::endl;
-			return 1;
-		}
-	} catch (const std::runtime_error &e) {
-		std::cerr << "Error: " << e.what() << std::endl;
-		return 1;
-	}
-	return 0;
+int main(int ac, char **av) {
+    
+    if (ac != 2)
+        return (cerr << "invalid args!" << endl, 1);
+    try {
+        Config	webservConfig(string("config/file.toml"));
+        Client obj(-1, &webservConfig);
+        fstream	raw(av[1]);
+        string line;
+        
+        while (getline(raw, line)) {
+            obj.setRequestBuf(obj.getRequestBuf() + line + "\n");
+            obj.processRequest();
+        }
+        raw.close(); 
+    
+        // cout << BRIGHT_GREEN "Final processing complete" RESET << endl;
+        // obj.printState();
+        // obj.printRequest();
+        // obj.printBuffer();
+        } catch (exception& e) {
+            cout << e.what() << endl;
+        }
+    return 0;
 }

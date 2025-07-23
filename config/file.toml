@@ -2,7 +2,7 @@
 server_name = ["sekhar", "awd", "awdaw", "aawdawd"]
 host = "127.0.0.1"
 listen = ["8989", "8080", "8081"]
-root = "/home/hatalhao/Ti"
+root = "/home/bello/WebServ"
 max_body_size = "15GB"
 [[error_pages]]
 403 = "./pages/403.html"
@@ -11,7 +11,7 @@ max_body_size = "15GB"
 
 [[location]]
 name = "images"
-path = "/home/hatalhao/images"
+path = "/home/bello/WebServ"
 index = ["images.html", "images.php", "imagesFile.html"]
 autoindex = ["on"]
 allow = ["GET", "DELETE", "PUT", "POST"]
@@ -19,9 +19,7 @@ rewrite = ["/home/hatalhao/photos", "/home/hatalhao/pictures"]
 [[cgi]]
 extension = ".py"
 handler = "/usr/bin/python3"
-[[cgi]]
-extension = ".php"
-handler = "/usr/bin/php"
+
 [[location]]
 name = "home"
 path = "/home/"
@@ -36,19 +34,16 @@ autoindex = "off"
 [[cgi]]
 extension = ".py"
 handler = "/usr/bin/python3"
-[[cgi]]
-extension = ".php"
-handler = "/usr/bin/php"
 
 [[server]]
 server_name = "hatalhao"
 host = "127.0.0.1"
 listen = "8081"
-root = "/home/hatalhao/WebServ"
+root = "/home/bello/WebServ"
 max_body_size = "10GB"
 [[location]]
 name = "/images"
-path = "/home/hatalhao/images"
+path = "/home/bello/WebServ"
 index = ["index.html", "index.php", "indexFile.html"]
 autoindex = "on"
 allow = ["GET", "POST", "DELETE"]

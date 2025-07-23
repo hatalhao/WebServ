@@ -1,34 +1,41 @@
 #include "../../includes/client.hpp"
 
-Client::Client(int fd) : socketFd(fd), contentLen(0), state(READING_REQUEST_LINE) {
-    // Initialize the client with the given socket file descriptor
-}
+Client::Client(int fd, const Config* configuration) :
+    socketFd(fd), contentLen(0), state(READING_REQUEST_LINE),
+    request(configuration) , httpStatusCode(0) {}
 
-void	Client::printRequest() const {
-    cout << "Request Method: " << request.getMethod() << endl;
-    cout << "Request URI: " << request.getUri() << endl;
-    cout << "Request Version: " << request.getVersion() << endl;
-    for (map<string, string>::const_iterator it = request.getHeaders().begin(); it != request.getHeaders().end(); ++it) {
-        cout << it->first << ": " << it->second << endl;
+void    Client::updateState() {
+    switch (this->request.getState()) {
+        case PARSINGREQUESTLINE:
+            this->state = READING_REQUEST_LINE; break;
+        case REQUESTLINE_READY:
+            this->state = READING_HEADERS; break;
+        case REQUESTHEADERS_READY:
+            this->state = (this->request.getMethod() == POST) ?
+                            READING_BODY : READING_DONE;
+            break;
+        case PARSINGCOMPLETE:
+            this->state = READING_DONE; break;
+        case PARSINGERROR:
+            this->state = READING_BAD_REQUEST; break;
+        default:
+            this->state = READING_DONE; break;
     }
 }
 
-void	Client::printState() const {
-    switch (this->state) {
-        case READING_REQUEST_LINE:
-            cout << "State: READING_REQUEST_LINE" << endl;
-            break;
-        case READING_HEADERS:
-            cout << "State: READING_HEADERS" << endl;
-            break;
-        case READING_BODY:
-            cout << "State: READING_BODY" << endl;
-            break;
-        case GENERATING_RESPONSE:
-            cout << "State: GENERATING_RESPONSE" << endl;
-            break;
-        case SENDING_RESPONSE:
-            cout << "State: SENDING_RESPONSE" << endl;
-            break;
+void    Client::processRequest() {
+
+    switch (this->state)
+    {
+    case READING_REQUEST_LINE: 
+        this->httpStatusCode = this->request.processRequestLine(this->requestBuf); break;
+    case READING_HEADERS:
+        this->httpStatusCode = this->request.processHeaders(this->requestBuf); break;
+    case READING_BODY:
+        this->httpStatusCode = this->request.processBody(this->requestBuf); break;
+        break;
+    default:
+        break;
     }
+    updateState();
 }

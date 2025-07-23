@@ -2,14 +2,18 @@
 
 #include "origin.hpp"
 #include "request.hpp"
+#include "Config.hpp"
 
 enum ClientState {
 	READING_REQUEST_LINE,
 	READING_HEADERS,
 	READING_BODY,
+	READING_DONE,
+	READING_BAD_REQUEST,
 	GENERATING_RESPONSE,
 	SENDING_RESPONSE
 };
+
 
 class Client {
 	private:
@@ -19,13 +23,17 @@ class Client {
 		size_t          contentLen;
 		ClientState     state;
 		Request			request;
+		const server	*_config;
+		unsigned short	httpStatusCode;
 
 	public:
-		Client(int fd);
+		Client(int fd, const Config* configuration);
 		void	processRequest();
 		void	setRequestBuf(const string& buf) { requestBuf = buf; }
+		string	getRequestBuf() const { return requestBuf; }
 		void	printRequest() const;
 		void	printBuffer() const { cout << "Request Buffer: " << requestBuf << endl; }
+		void	updateState();
 		void	printState() const;
 };
 

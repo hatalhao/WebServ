@@ -11,7 +11,6 @@ typedef enum unit {
 } unit;
 
 
-
 class Config {
 	private:
 		std::string							_configFilePath;

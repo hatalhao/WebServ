@@ -23,7 +23,7 @@ MAKEFLAGS = -j --no-print-directory
 OBJS_DIR = tmp/objs
 DEPS_DIR = tmp/deps
 
-SRCS = src/main.cpp $(shell find src/configfile -name "*.cpp")
+SRCS =  $(shell find src -name "*.cpp")
 
 OBJS = $(patsubst src/%.cpp, $(OBJS_DIR)/%.o, $(SRCS))
 DEPS = $(patsubst src/%.cpp, $(DEPS_DIR)/%.d, $(SRCS))
