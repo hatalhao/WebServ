@@ -18,6 +18,7 @@ class Config;
 class Request;
 class Client;
 struct server;
+typedef struct location location_b;
 
 typedef enum methods {
     GET,
@@ -29,6 +30,8 @@ typedef enum methods {
 using namespace std;
 
 #define CRLF "\r\n"
+#define CRLF_LENGTH 2
+
 
 #define DEBUG std::cout << "DEBUG: " << __FILE__ << ":" << __LINE__ << std::endl;
 #define NPOS std::string::npos

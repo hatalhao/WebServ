@@ -19,9 +19,13 @@ class Client {
 		size_t          contentLen;
 		ClientState     state;
 		Request			request;
+
 	public:
 		Client(int fd);
 		void	processRequest();
-
+		void	setRequestBuf(const string& buf) { requestBuf = buf; }
+		void	printRequest() const;
+		void	printBuffer() const { cout << "Request Buffer: " << requestBuf << endl; }
+		void	printState() const;
 };
 
