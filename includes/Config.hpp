@@ -15,13 +15,13 @@ class Config {
 	private:
 		std::string							_configFilePath;
 		std::map<std::string, std::string>	_settings;
-		std::vector<Client>					_clients;
 		size_t								_maxBodySize;
 		
-	public:
+		public:
 		Config(const std::string &configFilePath);
 		~Config();
 		
+		std::vector<Client>					_clients;
 		std::vector<server>					_servers;
 		//extracting methods
 		std::set<int>						extractPorts() const;

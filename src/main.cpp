@@ -6,27 +6,29 @@
 # define BRIGHT_YELLOW "\x1b[93m"
 
 int main(int ac, char **av) {
-    
-    if (ac != 2)
-        return (cerr << "invalid args!" << endl, 1);
-    try {
-        Config	webservConfig(string("config/file.toml"));
-        Client obj(-1, &webservConfig);
-        fstream	raw(av[1]);
-        string line;
-        
-        while (getline(raw, line)) {
-            obj.setRequestBuf(obj.getRequestBuf() + line + "\n");
-            obj.processRequest();
-        }
-        raw.close(); 
-    
-        // cout << BRIGHT_GREEN "Final processing complete" RESET << endl;
-        // obj.printState();
-        // obj.printRequest();
-        // obj.printBuffer();
-        } catch (exception& e) {
-            cout << e.what() << endl;
-        }
-    return 0;
+	
+	if (ac != 2)
+		return (cerr << "invalid args!" << endl, 1);
+	try {
+		Config	webservConfig(av[1]);
+		initialiseServer(webservConfig);
+		// initialiseServer(webservConfig);
+		// Client obj(-1, &webservConfig);
+		// fstream	raw(av[1]);
+		// string line;
+		
+		// while (getline(raw, line)) {
+		// 	obj.setRequestBuf(obj.getRequestBuf() + line + "\n");
+		// 	obj.processRequest();
+		// }
+		// raw.close(); 
+	
+		// cout << BRIGHT_GREEN "Final processing complete" RESET << endl;
+		// obj.printState();
+		// obj.printRequest();
+		// obj.printBuffer();
+		} catch (exception& e) {
+			cout << e.what() << endl;
+		}
+	return 0;
 }

@@ -27,6 +27,7 @@ class Client {
 		unsigned short	httpStatusCode;
 
 	public:
+		Client();
 		Client(int fd, const Config* configuration);
 		void	processRequest();
 		void	setRequestBuf(const string& buf) { requestBuf = buf; }
@@ -35,5 +36,7 @@ class Client {
 		void	printBuffer() const { cout << "Request Buffer: " << requestBuf << endl; }
 		void	updateState();
 		void	printState() const;
+		void	establishConnection(int port, const std::string& host);
+		void	makeConnection(int port, const std::string& host);
 };
 
