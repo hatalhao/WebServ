@@ -28,6 +28,7 @@ class Client {
 
 	public:
 		Client(int fd, const server* serverConfig);
+		Client();
 		void	processRequest();
 		void	setRequestBuf(const string& buf) { requestBuf = buf; }
 		string	getRequestBuf() const { return requestBuf; }
