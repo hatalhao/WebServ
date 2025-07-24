@@ -30,6 +30,7 @@ class Client {
 
 	public:
 		Client(int fd, const server* serverConfig);
+		Client();
 		void	processRequest();
 		void	generateResponse();
 		void	setRequestBuf(const string& buf) { requestBuf = buf; }
