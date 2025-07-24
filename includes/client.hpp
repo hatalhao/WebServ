@@ -38,5 +38,7 @@ class Client {
 		void	printBuffer() const { cout << "Request Buffer: " << requestBuf << endl; }
 		void	printRequest() const;
 		void	printState() const;
+		void	establishConnection(int port, const std::string& host);
+		void	makeConnection(int port, const std::string& host);
 };
 

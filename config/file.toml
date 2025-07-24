@@ -37,7 +37,7 @@ handler = "/usr/bin/python3"
 
 [[server]]
 server_name = "hatalhao"
-host = "127.0.0.1"
+host = "127.0.0.2"
 listen = "8081"
 root = "/home/Ali/Desktop/WebServ"
 max_body_size = "10GB"
@@ -48,8 +48,9 @@ index = ["index.html", "index.php", "indexFile.html"]
 autoindex = "on"
 allow = ["GET", "POST", "DELETE"]
 
-# [[server]]
-# server_name = "another"
-# host = "127.0.0.1"
-# listen = "8082"
-# location = "/another"
+[[server]]
+server_name = "another"
+host = "127.0.0.1"
+listen = "8082"
+root = "/home/hatalhao/WebServ/src"
+max_body_size = "5GB"

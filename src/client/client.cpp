@@ -1,4 +1,112 @@
 #include "../../includes/client.hpp"
+#include "../../includes/networking.hpp"
+#include <fcntl.h>
+
+in_addr_t host_to_addr(const std::string& host) {
+	stringstream ss(host);
+	string line;
+	u_int32_t addr = 0;
+	while (std::getline(ss, line, '.')) {
+		addr = (addr << 8) | std::atoi(line.c_str());
+	}
+	addr = ntohl(addr);
+	return (addr);
+}
+
+void Client::makeConnection(int port, const std::string& host) {
+	struct sockaddr_in serverAddr;
+	serverAddr.sin_family = AF_INET;
+	serverAddr.sin_port = htons(static_cast<uint16_t>(port));
+	serverAddr.sin_addr.s_addr = host_to_addr(host);
+
+	this->socketFd = socket(AF_INET, SOCK_STREAM, 0);
+	if (this->socketFd < 0) {
+		throw std::runtime_error("Failed to create socket");
+	}
+
+	if (connect(this->socketFd, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
+		close(this->socketFd);
+		throw std::runtime_error("Failed to connect to server");
+	}
+}
+
+//socket(), bind(), listen(), send(), epoll(), accept(), connect() functions
+void	Client::establishConnection(int port, const std::string& host) {
+	struct sockaddr_in serverAddr;
+	serverAddr.sin_family = AF_INET;
+	serverAddr.sin_port = htons(static_cast<uint16_t>(port));
+	serverAddr.sin_addr.s_addr = host_to_addr(host);
+
+	this->socketFd = socket(AF_INET, SOCK_STREAM, 0);
+	if (this->socketFd < 0) {
+		throw std::runtime_error("Failed to create socket");
+	}
+
+	if (bind(this->socketFd, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
+		close(this->socketFd);
+		throw std::runtime_error("Failed to bind socket");
+	}
+
+	if (fcntl(this->socketFd, F_SETFL, O_NONBLOCK) < 0) {
+		close(this->socketFd);
+		throw std::runtime_error("Failed to set socket to non-blocking mode");
+	}
+
+	if (setsockopt(this->socketFd, SOL_SOCKET, SO_REUSEADDR, (int[]){1}, sizeof(int)) < 0) {
+		close(this->socketFd);
+		throw std::runtime_error("Failed to set socket options");
+	}
+
+	if (listen(this->socketFd, SOMAXCONN) < 0) {
+		close(this->socketFd);
+		throw std::runtime_error("Failed to listen on socket");
+	}
+
+	int epollFd = epoll_create1(0);
+	if (epollFd < 0) {
+		close(this->socketFd);
+		throw std::runtime_error("Failed to create epoll instance");
+	}
+
+	struct epoll_event event;
+	event.events = EPOLLIN;
+	event.data.fd = this->socketFd;
+	if (epoll_ctl(epollFd, EPOLL_CTL_ADD, this->socketFd, &event) < 0) {
+		close(epollFd);
+		close(this->socketFd);
+		throw std::runtime_error("Failed to add socket to epoll instance");
+	}
+	struct epoll_event events[10];
+	while (true) {
+		int nfds = epoll_wait(epollFd, events, 10, -1);
+		if (nfds < 0) {
+			close(epollFd);
+			close(this->socketFd);
+			throw std::runtime_error("Epoll wait failed");
+		}
+	}
+	
+}
+
+void    initialiseServer(Config& config) {
+	for (vector<server>::const_iterator it = config._servers.begin(); it != config._servers.end(); ++it) {
+		try {
+			for (std::set<int>::const_iterator portIt = it->port.begin(); portIt != it->port.end(); ++portIt) {
+				Client _client;
+				_client.establishConnection(*portIt, it->host);
+				_client.makeConnection(*portIt, it->host);
+				config._clients.insert(config._clients.end(), _client);
+				print *portIt << " on host " << it->host << endl;
+			}
+		} catch (const std::exception& e) {
+			throw std::runtime_error("Error establishing connection: " + std::string(e.what()));
+		}
+	}
+}
+
+Client::Client() : socketFd(-1), contentLen(0), state(READING_REQUEST_LINE),
+	request(NULL), httpStatusCode(0) {
+}
 
 Client::Client(int fd, const server* serverConfig) :
 	_config(serverConfig), socketFd(fd), contentLen(0),
