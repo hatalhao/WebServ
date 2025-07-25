@@ -44,7 +44,14 @@ void	Client::establishConnection(int port, const std::string& host) {
 
 	if (bind(this->socketFd, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
 		close(this->socketFd);
-		throw std::runtime_error("Failed to bind socket");
+		switch (errno) {
+			case EADDRINUSE:
+				throw std::runtime_error("Address already in use");
+			case EACCES:
+				throw std::runtime_error("Permission denied");
+			default:
+				throw std::runtime_error("Failed to bind socket");
+		}
 	}
 
 	if (fcntl(this->socketFd, F_SETFL, O_NONBLOCK) < 0) {
@@ -62,7 +69,7 @@ void	Client::establishConnection(int port, const std::string& host) {
 		throw std::runtime_error("Failed to listen on socket");
 	}
 
-	int epollFd = epoll_create1(0);
+	int epollFd = epoll_create(1);
 	if (epollFd < 0) {
 		close(this->socketFd);
 		throw std::runtime_error("Failed to create epoll instance");
@@ -76,6 +83,7 @@ void	Client::establishConnection(int port, const std::string& host) {
 		close(this->socketFd);
 		throw std::runtime_error("Failed to add socket to epoll instance");
 	}
+	print "Server is listening on port " << port << " at host " << host << endl;
 	struct epoll_event events[10];
 	while (true) {
 		int nfds = epoll_wait(epollFd, events, 10, -1);
@@ -84,8 +92,21 @@ void	Client::establishConnection(int port, const std::string& host) {
 			close(this->socketFd);
 			throw std::runtime_error("Epoll wait failed");
 		}
+		for (int i = 0; i < nfds; ++i) {
+			if (events[i].data.fd == this->socketFd) {
+				int clientFd = accept(this->socketFd, NULL, NULL);
+				if (clientFd < 0) {
+					close(epollFd);
+					close(this->socketFd);
+					throw std::runtime_error("Failed to accept client connection");
+				}
+				print "Accepted new client connection on socket " << clientFd << endl;
+			}
+		}
 	}
-	
+	// Cleanup
+	close(epollFd);
+	close(this->socketFd);
 }
 
 void    initialiseServer(Config& config) {
