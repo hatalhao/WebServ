@@ -113,7 +113,7 @@ void    initialiseServer(Config& config) {
 	for (vector<server>::const_iterator it = config._servers.begin(); it != config._servers.end(); ++it) {
 		try {
 			for (std::set<int>::const_iterator portIt = it->port.begin(); portIt != it->port.end(); ++portIt) {
-				Client _client;
+				Client _client();
 				_client.establishConnection(*portIt, it->host);
 				_client.makeConnection(*portIt, it->host);
 				config._clients.insert(config._clients.end(), _client);
@@ -129,9 +129,9 @@ Client::Client() : socketFd(-1), contentLen(0), state(READING_REQUEST_LINE),
 	request(NULL), httpStatusCode(0) {
 }
 
-Client::Client(int fd, const Config* configuration) :
-	socketFd(fd), contentLen(0), state(READING_REQUEST_LINE),
-	request(configuration) , httpStatusCode(0) {}
+Client::Client(int fd, const server* serverConfig) :
+    socketFd(fd), contentLen(0), state(READING_REQUEST_LINE),
+    request(serverConfig) , httpStatusCode(0) {}
 
 void    Client::updateState() {
 	switch (this->request.getState()) {
