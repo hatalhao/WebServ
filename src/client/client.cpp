@@ -113,7 +113,7 @@ void    initialiseServer(Config& config) {
 	for (vector<server>::const_iterator it = config._servers.begin(); it != config._servers.end(); ++it) {
 		try {
 			for (std::set<int>::const_iterator portIt = it->port.begin(); portIt != it->port.end(); ++portIt) {
-				Client _client;
+				Client _client();
 				_client.establishConnection(*portIt, it->host);
 				_client.makeConnection(*portIt, it->host);
 				config._clients.insert(config._clients.end(), _client);
