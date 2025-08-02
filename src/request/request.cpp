@@ -1,7 +1,7 @@
 #include "../../includes/request.hpp"
 #include "../../includes/Config.hpp"
 
-Request::Request(const Config* configuration) : state(PARSINGREQUESTLINE),  _config(configuration){}
+Request::Request(const server* serverConfig) : state(PARSINGREQUESTLINE),  conf(serverConfig){}
 
 bool    Request::validateMethod(const string& _method, int& code) {
     if (_method == "GET") this->method = GET;
@@ -187,8 +187,8 @@ int Request::processBody(string& buffer) {
 
     if (headers.find("content-length") != headers.end()) {
         contentLen = atoll(headers["content-length"].c_str());
-        // if (contentLen > this->_config->maxBodySize)
-        //     return (this->state = PARSINGERROR, 413);
+        if (contentLen > this->conf->maxBodySize)
+            return (this->state = PARSINGERROR, 413);
         if (buffer.length() < contentLen)
             return 0;
         this->body.assign(buffer.begin(), buffer.begin() + contentLen);
@@ -206,8 +206,8 @@ int Request::processBody(string& buffer) {
 
             if (ss.fail()) return(this->state = PARSINGERROR, 400);
 
-            // if (this->body.size() + chunkSize > this->_config->MaxBodySize)
-            //     return (this->state = PARSINGERROR, 413);
+            if (this->body.size() + chunkSize > this->conf->maxBodySize)
+                return (this->state = PARSINGERROR, 413);
 
             size_t chunkDataStart = crlf_pos + CRLF_LENGTH;
             size_t totalChunkBlockSize = chunkDataStart + chunkSize + CRLF_LENGTH;
@@ -215,9 +215,8 @@ int Request::processBody(string& buffer) {
 
             if (chunkSize == 0) {
                 buffer.erase(0, totalChunkBlockSize - chunkSize);
-                return (this->state = PARSINGCOMPLETE, 0);
+                return (this->state = PARSINGCOMPLETE, 0); 
             }
-            // cout << "-->" << buffer.begin() + chunkDataStart << endl;
             body.insert(body.end(), buffer.begin() + chunkDataStart, buffer.begin() + chunkDataStart + chunkSize);
             buffer.erase(0, totalChunkBlockSize);
         }

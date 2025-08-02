@@ -24,7 +24,7 @@ class Request {
 		map<string, string>				headers;
 		vector<char>					body;
 		RequestState					state;
-		const Config					*_config;
+		const server					*conf;
 
 		bool	validateMethod(const string& _method, int& code);
 		bool	validateURI(int &code);
@@ -34,7 +34,7 @@ class Request {
 		bool    validateHostHeader(string& val);
 
 	public:
-		Request(const Config* configuration);
+		Request(const server* serverConfig);
 		methods	getMethod() const { return method; }
 		string	getUri() const { return uri; }
 		const vector<char>&	getBody() const { return body; }
