@@ -11,7 +11,7 @@ int main(int ac, char **av) {
         return (cerr << "invalid args!" << endl, 1);
     try {
         Config	webservConfig(string("config/file.toml"));
-        Client obj(-1, &webservConfig);
+        Client obj(-1, &webservConfig._servers[0]);
         fstream	raw(av[1]);
         string line;
         
@@ -21,7 +21,7 @@ int main(int ac, char **av) {
         }
         raw.close(); 
     
-        // cout << BRIGHT_GREEN "Final processing complete" RESET << endl;
+        cout << BRIGHT_GREEN "Final processing complete" RESET << endl;
         // obj.printState();
         // obj.printRequest();
         // obj.printBuffer();

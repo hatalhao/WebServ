@@ -1,8 +1,8 @@
 #include "../../includes/client.hpp"
 
-Client::Client(int fd, const Config* configuration) :
+Client::Client(int fd, const server* serverConfig) :
     socketFd(fd), contentLen(0), state(READING_REQUEST_LINE),
-    request(configuration) , httpStatusCode(0) {}
+    request(serverConfig) , httpStatusCode(0) {}
 
 void    Client::updateState() {
     switch (this->request.getState()) {
