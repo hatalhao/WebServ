@@ -20,8 +20,9 @@ int main(int ac, char **av) {
             obj.processRequest();
         }
         raw.close(); 
-    
-        cout << BRIGHT_GREEN "Final processing complete" RESET << endl;
+
+        cout << BRIGHT_GREEN "parsing complete" RESET << endl;
+        obj.generateResponse();
         // obj.printState();
         // obj.printRequest();
         // obj.printBuffer();

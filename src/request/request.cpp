@@ -1,18 +1,17 @@
 #include "../../includes/request.hpp"
 #include "../../includes/Config.hpp"
 
-Request::Request(const server* serverConfig) : state(PARSINGREQUESTLINE),  conf(serverConfig){}
+Request::Request(const size_t& maxBodySize) : state(PARSINGREQUESTLINE), _maxBodySize(maxBodySize){}
 
 bool    Request::validateMethod(const string& _method, int& code) {
-    if (_method == "GET") this->method = GET;
-    else if (_method == "POST") this->method = POST;
-    else if (_method == "DELETE") this->method = DELETE;
+    if (_method == "GET" || _method == "POST" || _method == "DELETE")
+        this->method = _method;
     else if (_method == "PUT" || _method == "HEAD"
         || _method == "OPTIONS" || _method == "PATCH"
         || _method == "TRACE" || _method == "CONNECT")
-            { this-> method = UNSUPPORTED; return (code = 501, false);}
-    else { this->method = UNKOWN; return (code = 400, false);}
-
+            return (code = 501, false);
+    else
+        return (code = 400, false);
     return true;
 }
 
@@ -187,7 +186,7 @@ int Request::processBody(string& buffer) {
 
     if (headers.find("content-length") != headers.end()) {
         contentLen = atoll(headers["content-length"].c_str());
-        if (contentLen > this->conf->maxBodySize)
+        if (contentLen > this->_maxBodySize)
             return (this->state = PARSINGERROR, 413);
         if (buffer.length() < contentLen)
             return 0;
@@ -206,7 +205,7 @@ int Request::processBody(string& buffer) {
 
             if (ss.fail()) return(this->state = PARSINGERROR, 400);
 
-            if (this->body.size() + chunkSize > this->conf->maxBodySize)
+            if (this->body.size() + chunkSize > this->_maxBodySize)
                 return (this->state = PARSINGERROR, 413);
 
             size_t chunkDataStart = crlf_pos + CRLF_LENGTH;
