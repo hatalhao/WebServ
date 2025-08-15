@@ -28,7 +28,7 @@ class Request {
 		const size_t&					_maxBodySize;
 
 		bool	validateMethod(const string& _method, int& code);
-		bool	validateURI(int &code);
+		bool	validateUri(const string& uri, int &code);
 		bool	validateVersion(int &code);
 		bool    validateHeaderKey(string& key);
 		bool	validateHeaderVal(const string& key, string& val);

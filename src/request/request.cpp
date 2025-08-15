@@ -15,12 +15,12 @@ bool    Request::validateMethod(const string& _method, int& code) {
     return true;
 }
 
-bool    Request::validateURI(int &code) {
-    if (path.empty() || path[0] != '/' || path.find(' ') != NPOS)
+bool    Request::validateUri(const string& uri, int &code) {
+    if (uri.empty() || uri[0] != '/')
         return (code = 400, false);
-    for (size_t i = 0; i < path.length(); ++i) {
-        unsigned char c = path[i];
-        if (iscntrl(c) || isspace(c))
+    for (size_t i = 0; i < uri.length(); ++i) {
+        unsigned char c = uri[i];
+        if (iscntrl(c))
             return (code = 400, false);
     }
     return true;
@@ -139,6 +139,7 @@ int Request::processRequestLine(string& buffer) {
         { this->state = PARSINGERROR; return 400; }
 
     string uri = line.substr(methodEndPos + 1, uriEndPos - (methodEndPos + 1));
+    uri = uri.substr(0, uri.find('#'));
     size_t queryPos = uri.find('?');
     if (queryPos != NPOS) {
         this->path = uri.substr(0, queryPos);
@@ -147,7 +148,7 @@ int Request::processRequestLine(string& buffer) {
         this->path = uri;
     this->version = line.substr(uriEndPos + 1);
     if (!validateMethod(line.substr(0, methodEndPos), code)
-    || !validateURI(code) || !validateVersion(code))
+    || !validateUri(uri, code) || !validateVersion(code))
         {this->state = PARSINGERROR; return code;}
 
     buffer.erase(0, pos + CRLF_LENGTH);
