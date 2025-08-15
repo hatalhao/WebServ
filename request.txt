@@ -1,4 +1,4 @@
-POSsT /watch?v=7SfQc6NRU-0&list=RDxsTNn_oyToM&index=7 HTTP/1.1
+POST /watch?v=7SfQc6NRU-0&list=RDxsTNn_oyToM&index=7 HTTP/1.1
 Host: localhost
 Transfer-Encoding: chunked
 

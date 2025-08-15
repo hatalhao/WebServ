@@ -19,7 +19,8 @@ typedef enum RequestState {
 class Request {
 	private:
 		string							method;
-		string							uri;
+		string							path;
+		string							queryString;
 		string							version;
 		map<string, string>				headers;
 		vector<char>					body;
@@ -36,7 +37,8 @@ class Request {
 	public:
 		Request(const size_t& maxBodySize);
 		string	getMethod() const { return method; }
-		string	getUri() const { return uri; }
+		string	getPath() const { return path; }
+		string	getQueryString() const { return queryString; }
 		const vector<char>&	getBody() const { return body; }
 		string	getVersion() const { return version; }
 		const map<string, string>&	getHeaders() const { return headers; }

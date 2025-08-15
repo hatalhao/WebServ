@@ -132,7 +132,7 @@ Client::Client() : socketFd(-1), contentLen(0), state(READING_REQUEST_LINE),
 Client::Client(int fd, const server* serverConfig) :
 	_config(serverConfig), socketFd(fd), contentLen(0),
 	state(READING_REQUEST_LINE), request(_config->maxBodySize),
-	response(_config->locations, request), httpStatusCode(0) {}
+	response(serverConfig, request), httpStatusCode(0) {}
 
 void    Client::updateState() {
 	switch (this->request.getState()) {
@@ -170,6 +170,10 @@ void    Client::processRequest() {
 }
 
 void    Client::generateResponse() {
+	if (this->httpStatusCode != 0) {
+		cout << this->httpStatusCode << endl;
+		return ;
+	}
 	response.checkRequirements();
-
+	response.constructResourcePath();
 }
