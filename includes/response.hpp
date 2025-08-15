@@ -4,14 +4,17 @@
 #include "request.hpp"
 
 class Response {
-    private:
-        const vector<location_b>& routes;
-        const Request&            request;
-        const location_b&	findLocationConfig();
+	private:
+		const server*		serverConf;
+		const Request&		request;
+		const location_b*	rules;
+		string				resourcePath;
+		const location_b&	findLocationConfig();
 
-    public:
-        Response(const vector<location_b>& locations, const Request& request);
-        int checkRequirements();
+	public:
+		Response(const server* _serverConf, const Request& request);
+		int checkRequirements();
+		int constructResourcePath();
 };
 
 #endif

@@ -16,10 +16,10 @@ bool    Request::validateMethod(const string& _method, int& code) {
 }
 
 bool    Request::validateURI(int &code) {
-    if (uri.empty() || uri[0] != '/' || uri.find(' ') != NPOS)
+    if (path.empty() || path[0] != '/' || path.find(' ') != NPOS)
         return (code = 400, false);
-    for (size_t i = 0; i < uri.length(); ++i) {
-        unsigned char c = uri[i];
+    for (size_t i = 0; i < path.length(); ++i) {
+        unsigned char c = path[i];
         if (iscntrl(c) || isspace(c))
             return (code = 400, false);
     }
@@ -46,6 +46,82 @@ bool    Request::validateVersion (int &code) {
     return true;
 }
 
+
+int toLower(int c) { return tolower(static_cast<unsigned char>(c)); }
+
+bool    Request::validateHeaderKey(string& key) {
+    if (key.empty()) return false;
+    
+    for (size_t i = 0; i < key.length(); i++) {
+        unsigned char c = key[i];
+        if (!isalnum(c) && string(REQUEST_HEADER_EXTRA_CHARS).find(c) == string::npos)
+        return false;
+    }
+    transform(key.begin(), key.end(), key.begin(), toLower);
+    if (key == "content-length" && ((headers.find(key) != headers.end())
+                    || headers.find("transfer-encoding") != headers.end()))
+                    return false;
+    if (key == "transfer-encoding" && ((headers.find(key) != headers.end())
+                    || headers.find("content-length") != headers.end()))
+                    return false;
+                    
+    if (key == "host" && this->headers.find(key) != this->headers.end())
+        return false;
+    return true;
+}
+
+bool    Request::validateHostHeader(string& val) {
+    if (val.empty() || val[0] == '.') return false;
+    
+    size_t colonPos = val.find(':');
+    size_t hostname_end = (colonPos != std::string::npos) ? colonPos : val.length();
+    
+    // validating the port
+    if (colonPos != std::string::npos) {
+        if (colonPos == val.length() - 1) return false;
+        for (size_t i = colonPos + 1; i < val.length(); ++i)
+        if (!isdigit(val[i])) return false;
+    }
+    
+    if (hostname_end > 0 && val[hostname_end - 1] == '.')
+        --hostname_end;
+    
+    if (hostname_end == 0 || val[0] == '-' || val[hostname_end - 1] == '-')
+    return false;
+    
+    for (size_t i = 0; i < hostname_end; ++i) {
+        if (!isalnum(val[i]) && val[i] != '-' && val[i] != '.') return false;
+        if (val[i] == '.' && (i == 0 || val[i - 1] == '.' || val[i - 1] == '-'))
+        return false;
+        else if (val[i] == '-' && i > 0 && val[i - 1] == '.') return false;
+    }
+    
+    return true;
+}
+
+bool    Request::validateHeaderVal(const string& key, string& val) {
+    size_t  i = val.find_first_not_of(" \t");
+    if (i != string::npos) {
+        size_t  j = val.find_last_not_of(" \t");
+        val = val.substr(i, (j - i) + 1);
+    }
+    else
+    val = "";
+    
+    for (size_t k = 0; k < val.length(); k++)
+    if (iscntrl(val[k])) return false;
+    
+    if (key == "host" && !validateHostHeader(val))
+    return false;
+    else if (key == "content-length") {
+        if (val.empty()) return false;
+        for (size_t x = 0; x < val.length(); x++)
+        if (!isdigit(val[x])) return false;
+    }
+    
+    return true;
+}
+
 int Request::processRequestLine(string& buffer) {
     size_t  pos = buffer.find(CRLF);
     if (pos == NPOS) return 0;
@@ -62,7 +138,13 @@ int Request::processRequestLine(string& buffer) {
     if (line.find(' ', uriEndPos + 1) != NPOS)
         { this->state = PARSINGERROR; return 400; }
 
-    this->uri = line.substr(methodEndPos + 1, uriEndPos - (methodEndPos + 1));
+    string uri = line.substr(methodEndPos + 1, uriEndPos - (methodEndPos + 1));
+    size_t queryPos = uri.find('?');
+    if (queryPos != NPOS) {
+        this->path = uri.substr(0, queryPos);
+        this->queryString = uri.substr(queryPos + 1);
+    } else
+        this->path = uri;
     this->version = line.substr(uriEndPos + 1);
     if (!validateMethod(line.substr(0, methodEndPos), code)
     || !validateURI(code) || !validateVersion(code))
@@ -73,84 +155,9 @@ int Request::processRequestLine(string& buffer) {
     return 0;
 }
 
-int toLower(int c) { return tolower(static_cast<unsigned char>(c)); }
-
-bool    Request::validateHeaderKey(string& key) {
-    if (key.empty()) return false;
-
-    for (size_t i = 0; i < key.length(); i++) {
-        unsigned char c = key[i];
-        if (!isalnum(c) && string(REQUEST_HEADER_EXTRA_CHARS).find(c) == string::npos)
-            return false;
-    }
-    transform(key.begin(), key.end(), key.begin(), toLower);
-    if (key == "content-length" && ((headers.find(key) != headers.end())
-                    || headers.find("transfer-encoding") != headers.end()))
-        return false;
-    if (key == "transfer-encoding" && ((headers.find(key) != headers.end())
-                    || headers.find("content-length") != headers.end()))
-        return false;
-
-    if (key == "host" && this->headers.find(key) != this->headers.end())
-        return false;
-    return true;
-}
-
-bool    Request::validateHostHeader(string& val) {
-    if (val.empty() || val[0] == '.') return false;
-
-    size_t colonPos = val.find(':');
-    size_t hostname_end = (colonPos != std::string::npos) ? colonPos : val.length();
-
-    // validating the port
-    if (colonPos != std::string::npos) {
-        if (colonPos == val.length() - 1) return false;
-        for (size_t i = colonPos + 1; i < val.length(); ++i)
-            if (!isdigit(val[i])) return false;
-    }
-
-    if (hostname_end > 0 && val[hostname_end - 1] == '.')
-        --hostname_end;
-
-    if (hostname_end == 0 || val[0] == '-' || val[hostname_end - 1] == '-')
-        return false;
-
-    for (size_t i = 0; i < hostname_end; ++i) {
-        if (!isalnum(val[i]) && val[i] != '-' && val[i] != '.') return false;
-        if (val[i] == '.' && (i == 0 || val[i - 1] == '.' || val[i - 1] == '-'))
-            return false;
-        else if (val[i] == '-' && i > 0 && val[i - 1] == '.') return false;
-    }
-
-    return true;
-}
-
-bool    Request::validateHeaderVal(const string& key, string& val) {
-    size_t  i = val.find_first_not_of(" \t");
-    if (i != string::npos) {
-        size_t  j = val.find_last_not_of(" \t");
-        val = val.substr(i, (j - i) + 1);
-    }
-    else
-        val = "";
-
-    for (size_t k = 0; k < val.length(); k++)
-        if (iscntrl(val[k])) return false;
-
-    if (key == "host" && !validateHostHeader(val))
-        return false;
-    else if (key == "content-length") {
-        if (val.empty()) return false;
-        for (size_t x = 0; x < val.length(); x++)
-            if (!isdigit(val[x])) return false;
-    }
-
-    return true;
-}
-
 int Request::processHeaders(string& buffer) {
     if (buffer.find(CRLF CRLF) == NPOS)
-        return 0;
+    return 0;
     while (true) {
         size_t pos = buffer.find(CRLF);
         if (pos == NPOS) {this->state = PARSINGERROR; return 400;}
