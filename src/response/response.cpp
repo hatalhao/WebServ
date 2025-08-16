@@ -23,7 +23,7 @@ const location_b&	Response::findLocationConfig() {
 	return *best;
 }
 
-int Response::checkRequirements() {
+int Response::prepareResponse() {
     this->rules = &(this->findLocationConfig());
     /**
 	 * check for redirections here
@@ -39,13 +39,45 @@ int Response::checkRequirements() {
 				rules->methods.end(),
 				this->request.getMethod()) == rules->methods.end())
 		return (405);
+
+	string root = this->rules->path.empty() ? this->serverConf->root : this->rules->path;
+	this->resourcePath = root + this->request.getPath();
+
+	size_t pos;
+	while ((pos = this->resourcePath.find("//")) != string::npos)
+		this->resourcePath.replace(pos, 2, "/");
+
+	struct stat statBuf;
 	
-    return (0);
+	if (stat(this->resourcePath.c_str(), &statBuf) != 0)
+		this->resourceType = (errno == ENOENT) ? IS_NOT_FOUND : IS_FORBIDDEN;
+	else if (S_ISDIR(statBuf.st_mode)) this->resourceType = IS_DIR;
+	else if (S_ISREG(statBuf.st_mode)) this->resourceType = IS_FILE;
+	else this->resourceType = IS_FORBIDDEN;
+
+	return (0);
 }
 
-int Response::constructResourcePath() {
-	string root = this->rules->path.empty() ? this->serverConf->root : this->rules->path; 
-	// cout << this->rules->name << endl;
-	// this->resourcePath = this->rules->path + this->request.getPath();
-	return 0;
-}
+// Determine the Full File Path: Construct the absolute path to the resource on the server's disk.
+//		You do this by combining the root directive from the matched location with the request's URI.
+
+// Check the Resource (stat): Use the stat() system call on the full path to see what it is.
+
+// If it's a file: Check if it's a CGI script based on its extension. If yes, execute the CGI handler.
+//	If no, proceed to serve the static file (for GET), delete it (for DELETE), or handle an upload (for POST).
+
+// If it's a directory:
+
+// Check for an index file (e.g., index.html). If one exists, treat the request as a request for that file
+// 					and restart this logic.
+
+// If no index file is found, check if autoindex is on. If so, generate a directory listing page.
+
+// If autoindex is off, the action is to generate a 403 Forbidden error.
+
+// If it doesn't exist: The action is to generate a 404 Not Found error.
+
+// Generate the Response: Based on the outcome of the step above
+// (e.g., you have file content to send, a CGI script's output, or an error code),
+// you will use your Response class to build the final HTTP response.
+
