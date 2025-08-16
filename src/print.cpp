@@ -1,10 +1,10 @@
 #include "../includes/client.hpp"
 
 void	Client::printRequest() const {
-    cout << "Request Method: ";
-    request.printMethod();
+    cout << "Request Method: " << this->request.getMethod();
     cout << endl;
-    cout << "Request URI: [" << request.getUri() << "]" << endl;
+    cout << "Request Path: [" << request.getPath() << "]" << endl;
+    cout << "Request Query: [" << request.getQueryString() << "]" << endl;
     cout << "Request Version: [" << request.getVersion() << "]" << endl;
     for (map<string, string>::const_iterator it = request.getHeaders().begin(); it != request.getHeaders().end(); ++it) {
         cout << it->first << ": [" << it->second << "]"<< endl;
@@ -41,24 +41,4 @@ void	Client::printState() const {
             break;
     }
     cout << BRIGHT_GREEN << this->httpStatusCode << RESET << endl;
-}
-
-void	Request::printMethod() const{
-    string m;
-    switch (this->method)
-    {
-    case GET:
-        m = "GET"; 
-        break;
-    case POST:
-        m = "POST";
-        break;
-    case DELETE:
-        m = "DELETE";
-        break;
-    default:
-        m = "UNKOWN";
-        break;
-    }
-    cout << m;
 }

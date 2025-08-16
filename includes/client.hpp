@@ -3,6 +3,7 @@
 #include "origin.hpp"
 #include "request.hpp"
 #include "Config.hpp"
+#include "response.hpp"
 
 enum ClientState {
 	READING_REQUEST_LINE,
@@ -17,23 +18,25 @@ enum ClientState {
 
 class Client {
 	private:
+		const server	*_config;
 		int             socketFd;
 		string			requestBuf;
 		string			responseBuf;
 		size_t          contentLen;
 		ClientState     state;
 		Request			request;
-		const server	*_config;
+		Response		response;
 		unsigned short	httpStatusCode;
 
 	public:
 		Client(int fd, const server* serverConfig);
 		void	processRequest();
+		void	generateResponse();
 		void	setRequestBuf(const string& buf) { requestBuf = buf; }
 		string	getRequestBuf() const { return requestBuf; }
-		void	printRequest() const;
-		void	printBuffer() const { cout << "Request Buffer: " << requestBuf << endl; }
 		void	updateState();
+		void	printBuffer() const { cout << "Request Buffer: " << requestBuf << endl; }
+		void	printRequest() const;
 		void	printState() const;
 };
 

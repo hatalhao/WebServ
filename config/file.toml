@@ -2,7 +2,7 @@
 server_name = ["sekhar", "awd", "awdaw", "aawdawd"]
 host = "127.0.0.1"
 listen = ["8989", "8080", "8081"]
-root = "/home/bello/WebServ"
+root = "/home/Ali/Desktop/WebServ"
 max_body_size = "15GB"
 [[error_pages]]
 403 = "./pages/403.html"
@@ -10,8 +10,8 @@ max_body_size = "15GB"
 413 = "./pages/413.html"
 
 [[location]]
-name = "images"
-path = "/home/bello/WebServ"
+name = "/"
+path = "/home/Ali/Desktop/WebServ"
 index = ["images.html", "images.php", "imagesFile.html"]
 autoindex = ["on"]
 allow = ["GET", "DELETE", "PUT", "POST"]
@@ -39,11 +39,11 @@ handler = "/usr/bin/python3"
 server_name = "hatalhao"
 host = "127.0.0.1"
 listen = "8081"
-root = "/home/bello/WebServ"
+root = "/home/Ali/Desktop/WebServ"
 max_body_size = "10GB"
 [[location]]
 name = "/images"
-path = "/home/bello/WebServ"
+path = "/home/Ali/Desktop/WebServ"
 index = ["index.html", "index.php", "indexFile.html"]
 autoindex = "on"
 allow = ["GET", "POST", "DELETE"]
