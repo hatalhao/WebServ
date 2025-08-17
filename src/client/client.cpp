@@ -106,7 +106,7 @@ void	Client::establishConnection(int port, const std::string& host) {
 	}
 	// Cleanup
 	close(epollFd);
-	close(this->socketFd);
+	eclose(this->socketFd);
 }
 
 void    initialiseServer(Config& config) {
