@@ -29,6 +29,7 @@ class Client {
 		unsigned short	httpStatusCode;
 
 	public:
+		Client();
 		Client(int fd, const server* serverConfig);
 		Client();
 		void	processRequest();
