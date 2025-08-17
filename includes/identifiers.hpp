@@ -11,4 +11,5 @@ bool	skipLine(const std::string& line);
 bool	isKeyValue(const std::string& line);
 bool	isArray(const std::string& line);
 bool	isArrayKey(const std::string& key);
+bool 	isValidMethod(const std::string& method);
 int		isValidStatusCode(long statusCode);

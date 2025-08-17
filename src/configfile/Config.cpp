@@ -82,9 +82,11 @@ location_b	getLocation(std::ifstream& configFile, std::string& line) {
 			}
 			continue ;
 		}
+
 		if (!isKeyValue(line)) {
 			throw std::runtime_error("Invalid location directive: " + line);
 		}
+		
 		if (pos != NPOS && pos > 0) {
 			std::string key = line.substr(0, pos - (line[pos - 1] == ' '));
 			removeInvalidChars(key);
@@ -98,19 +100,13 @@ location_b	getLocation(std::ifstream& configFile, std::string& line) {
 					value.clear();
 					while (std::getline(ss, value, ',')) {
 						removeInvalidChars(value);
+						if (!isValidMethod(value))
+							throw std::runtime_error("Invalid method in allow directive: " + value);
 						method.push_back(value);
 					}
 					location.methods = method;
 				}
-				if (key == "rewrite") {
-					value = saveArray(value);
-					stringstream ss(value);
-					value.clear();
-					while (std::getline(ss, value, ',')) {
-						removeInvalidChars(value);
-						location.redirection[true].insert(value);
-					}
-				}
+
 				if (key == "index") {
 					value = saveArray(value);
 					stringstream ss(value);
@@ -123,11 +119,12 @@ location_b	getLocation(std::ifstream& configFile, std::string& line) {
 			}
 			else {
 				removeInvalidChars(value);
-				if (key == "path") {
-					location.path = value;
-				} else if (key == "name") {
-					location.name = value;
-				} else if (key == "error_page") {
+				if (key == "return") {location.redirection = value; }
+				else if (key == "upload_path") { location.uploadPath = value; }
+				else if (key == "path") { location.path = value; }
+				else if (key == "name") { location.name = value; }
+				else if (key == "autoindex") { location.isAutoIndexEnabled = (value == "on"); }
+				else if (key == "error_page") {
 					size_t errorPos = value.find('=');
 					if (errorPos != NPOS) {
 						int errorCode = std::atoi(value.substr(0, errorPos).c_str());
@@ -135,8 +132,6 @@ location_b	getLocation(std::ifstream& configFile, std::string& line) {
 						removeInvalidChars(errorPagePath);
 						location.errorPageMap[errorCode] = errorPagePath;
 					}
-				} else if (key == "autoindex") {
-					location.isAutoIndexEnabled = (value == "on");
 				} else if (isValidBlock(line) == CGI_TOKEN) {
 					location.isCgiEnabled = (value == "on");
 					try {
@@ -219,7 +214,7 @@ Config::Config(const std::string& configFilePath) : _configFilePath(configFilePa
 		do {
 			if (skipLine(line))
 				continue;
-	
+
 			pos = line.find('=');
 			token = (pos == NPOS) ? isValidBlock(line) : token;
 			if (pos == NPOS && token == UNKNOWN_TOKEN) {

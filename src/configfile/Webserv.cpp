@@ -33,6 +33,15 @@ void	fillServer(server &serv, const Config &config) {
 	serv.root = config.extractRoot();
 	serv.serverName = config.extractServerName();
 	serv.maxBodySize = config.extractMaxBodySize();
+	if (serv.locations.empty()) {
+		location_b defaultLocation;
+		defaultLocation.path = serv.root;
+		defaultLocation.name = "/";
+		defaultLocation.methods.push_back("GET");
+		defaultLocation.isAutoIndexEnabled = false;
+		defaultLocation.isCgiEnabled = false;
+		serv.locations.push_back(defaultLocation);
+	}
 	// printServer(serv);
 }
 
@@ -46,7 +55,7 @@ void	printLocation(const std::vector<location_b> &location) {
 			std::cout << location[i].index[j] << " ";
 		}
 		std::cout << std::endl;
-		std::cout << "Methods: ";
+		std::cout << "Methods: "; 
 		for (size_t j = 0; j < location[i].methods.size(); ++j) {
 			std::cout << location[i].methods[j] << " ";
 		}
@@ -56,15 +65,8 @@ void	printLocation(const std::vector<location_b> &location) {
 			std::cout << "Extension: " << location[i].cgiList[j].extension
 					  << ", Handler: " << location[i].cgiList[j].path << endl;
 		}
-		std::cout << ((location[i].redirection.size() != 0) ? "Redirection: " : "");
-		for (std::map<bool, std::set<std::string> >::const_iterator it = location[i].redirection.begin(); it != location[i].redirection.end(); ++it)
-		{
-			if (it->first) {
-				for (std::set<std::string>::const_iterator sit = it->second.begin(); sit != it->second.end();) {
-					std::cout << *sit << ((++sit != it->second.end()) ? " " : "\n");
-				}
-			}
-		}
+		std::cout << (!(location[i].redirection.empty()) ? "Redirection: " : "");
+		std::cout << location[i].redirection << std::endl;
 		print endl;
 	}
 }

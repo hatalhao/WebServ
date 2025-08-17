@@ -9,48 +9,50 @@ max_body_size = "15GB"
 404 = "./pages/404.html"
 413 = "./pages/413.html"
 
-[[location]]
-name = "/"
-path = "/home/Ali/Desktop/WebServ"
-index = ["images.html", "images.php", "imagesFile.html"]
-autoindex = ["on"]
-allow = ["GET", "DELETE", "PUT", "POST"]
-rewrite = ["/home/hatalhao/photos", "/home/hatalhao/pictures"]
-[[cgi]]
-extension = ".py"
-handler = "/usr/bin/python3"
+# [[location]]
+# name = "images"
+# path = "/home/hatalhao/WebServ"
+# index = ["images.html", "images.php", "imagesFile.html"]
+# autoindex = ["on"]
+# allow = ["GET", "DELETE", "POST"]
+# upload_path = "/home/hatalhao/uploads"
+# return = "/home/hatalhao/pictures"
+# [[cgi]]
+# extension = ".py"
+# handler = "/usr/bin/python3"
 
-[[location]]
-name = "home"
-path = "/home/"
-index = ["home.html", "home.php", "homeFile.html"]
-autoindex = "on"
-[[location]]
-name = "trash"
-path = "/home/hatalhao/trash"
-index = ["trash.html", "trash.php", "trashFile.html"]
-autoindex = "off"
+# [[location]]
+# name = "home"
+# path = "/home/"
+# index = ["home.html", "home.php", "homeFile.html"]
+# autoindex = "on"
+# [[location]]
+# name = "trash"
+# path = "/home/hatalhao/trash"
+# index = ["trash.html", "trash.php", "trashFile.html"]
+# autoindex = "off"
 
-[[cgi]]
-extension = ".py"
-handler = "/usr/bin/python3"
+# [[cgi]]
+# extension = ".py"
+# handler = "/usr/bin/python3"
 
-[[server]]
-server_name = "hatalhao"
-host = "127.0.0.2"
-listen = "8081"
-root = "/home/Ali/Desktop/WebServ"
-max_body_size = "10GB"
-[[location]]
-name = "/images"
-path = "/home/Ali/Desktop/WebServ"
-index = ["index.html", "index.php", "indexFile.html"]
-autoindex = "on"
-allow = ["GET", "POST", "DELETE"]
+# [[server]]
+# server_name = "hatalhao"
+# host = "127.0.0.2"
+# listen = "8081"
+# root = "/home/hatalhao/WebServ"
+# max_body_size = "10GB"
+# [[location]]
+# name = "/images"
+# path = "/home/hatalhao/WebServ"
+# index = ["index.html", "index.php", "indexFile.html"]
+# autoindex = "on"
+# # allow = ["GET", "POST", "DELETE"]
+# # upload_path = "/home/hatalhao/uploads"
 
-[[server]]
-server_name = "another"
-host = "127.0.0.1"
-listen = "8082"
-root = "/home/hatalhao/WebServ/src"
-max_body_size = "5GB"
+# [[server]]
+# server_name = "another"
+# host = "127.0.0.1"
+# listen = "8082"
+# root = "/home/hatalhao/WebServ/src"
+# max_body_size = "5GB"
