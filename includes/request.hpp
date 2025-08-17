@@ -18,13 +18,13 @@ typedef enum RequestState {
 
 class Request {
 	private:
-		methods							method;
+		string							method;
 		string							uri;
 		string							version;
 		map<string, string>				headers;
 		vector<char>					body;
 		RequestState					state;
-		const server					*conf;
+		const size_t&					_maxBodySize;
 
 		bool	validateMethod(const string& _method, int& code);
 		bool	validateURI(int &code);
@@ -34,8 +34,8 @@ class Request {
 		bool    validateHostHeader(string& val);
 
 	public:
-		Request(const server* serverConfig);
-		methods	getMethod() const { return method; }
+		Request(const size_t& maxBodySize);
+		string	getMethod() const { return method; }
 		string	getUri() const { return uri; }
 		const vector<char>&	getBody() const { return body; }
 		string	getVersion() const { return version; }
@@ -44,5 +44,4 @@ class Request {
 		int	processHeaders(string& buffer);
 		int	processBody(string& buffer);
 		RequestState	getState() const { return state; }
-		void	printMethod() const;
 };

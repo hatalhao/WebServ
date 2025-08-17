@@ -20,14 +20,6 @@ class Client;
 struct server;
 typedef struct location location_b;
 
-typedef enum methods {
-    GET,
-    POST,
-    DELETE,
-    UNSUPPORTED,
-    UNKOWN
-} methods;
-
 using namespace std;
 
 #define CRLF "\r\n"

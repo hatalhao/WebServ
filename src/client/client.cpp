@@ -106,7 +106,7 @@ void	Client::establishConnection(int port, const std::string& host) {
 	}
 	// Cleanup
 	close(epollFd);
-	close(this->socketFd);
+	eclose(this->socketFd);
 }
 
 void    initialiseServer(Config& config) {
@@ -130,8 +130,9 @@ Client::Client() : socketFd(-1), contentLen(0), state(READING_REQUEST_LINE),
 }
 
 Client::Client(int fd, const server* serverConfig) :
-    socketFd(fd), contentLen(0), state(READING_REQUEST_LINE),
-    request(serverConfig) , httpStatusCode(0) {}
+	_config(serverConfig), socketFd(fd), contentLen(0),
+	state(READING_REQUEST_LINE), request(_config->maxBodySize),
+	response(_config->locations, request), httpStatusCode(0) {}
 
 void    Client::updateState() {
 	switch (this->request.getState()) {
@@ -140,7 +141,7 @@ void    Client::updateState() {
 		case REQUESTLINE_READY:
 			this->state = READING_HEADERS; break;
 		case REQUESTHEADERS_READY:
-			this->state = (this->request.getMethod() == POST) ?
+			this->state = (this->request.getMethod() == "POST") ?
 							READING_BODY : READING_DONE;
 			break;
 		case PARSINGCOMPLETE:
@@ -153,7 +154,6 @@ void    Client::updateState() {
 }
 
 void    Client::processRequest() {
-
 	switch (this->state)
 	{
 	case READING_REQUEST_LINE: 
@@ -167,4 +167,9 @@ void    Client::processRequest() {
 		break;
 	}
 	updateState();
+}
+
+void    Client::generateResponse() {
+	response.checkRequirements();
+
 }
