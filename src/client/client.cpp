@@ -52,6 +52,14 @@ void	Client::establishConnection(int port, const std::string& host) {
 			default:
 				throw std::runtime_error("Failed to bind socket");
 		}
+		switch (errno) {
+			case EADDRINUSE:
+				throw std::runtime_error("Address already in use");
+			case EACCES:
+				throw std::runtime_error("Permission denied");
+			default:
+				throw std::runtime_error("Failed to bind socket");
+		}
 	}
 
 	if (fcntl(this->socketFd, F_SETFL, O_NONBLOCK) < 0) {
@@ -70,6 +78,7 @@ void	Client::establishConnection(int port, const std::string& host) {
 	}
 
 	int epollFd = epoll_create(1);
+	int epollFd = epoll_create(1);
 	if (epollFd < 0) {
 		close(this->socketFd);
 		throw std::runtime_error("Failed to create epoll instance");
@@ -83,6 +92,7 @@ void	Client::establishConnection(int port, const std::string& host) {
 		close(this->socketFd);
 		throw std::runtime_error("Failed to add socket to epoll instance");
 	}
+	print "Server is listening on port " << port << " at host " << host << endl;
 	print "Server is listening on port " << port << " at host " << host << endl;
 	struct epoll_event events[10];
 	while (true) {
@@ -106,7 +116,7 @@ void	Client::establishConnection(int port, const std::string& host) {
 	}
 	// Cleanup
 	close(epollFd);
-	eclose(this->socketFd);
+	close(this->socketFd);
 }
 
 void    initialiseServer(Config& config) {
