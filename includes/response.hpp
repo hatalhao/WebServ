@@ -11,17 +11,19 @@ enum ResourceType {
 };
 
 class Response {
-	private:
+	protected:
 		const server*		serverConf;
 		const Request&		request;
 		const location_b*	rules;
 		string				resourcePath;
 		ResourceType		resourceType;
 		const location_b&	findLocationConfig();
+		const string	generatefilename(string& basePath);
 
 	public:
 		Response(const server* _serverConf, const Request& request);
 		int	prepareResponse();
+		int	Post();
 };
 
 #endif

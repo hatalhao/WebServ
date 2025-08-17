@@ -21,7 +21,7 @@ int main(int ac, char **av) {
         }
         raw.close(); 
         cout << BRIGHT_GREEN "parsing complete" RESET << endl;
-        // obj.printRequest();
+        obj.printRequest();
         // obj.printState();
         obj.generateResponse();
         // obj.printBuffer();

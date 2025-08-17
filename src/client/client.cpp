@@ -40,11 +40,20 @@ void    Client::processRequest() {
 	updateState();
 }
 
+
 void    Client::generateResponse() {
-	if (this->httpStatusCode != 0) {
-		cout << this->httpStatusCode << endl;
-		return ;
+	if (this->httpStatusCode != 0)
+		{ cout << this->httpStatusCode << endl; return ; }
+
+	this->httpStatusCode = response.prepareResponse();
+
+	if (this->request.getMethod() == "GET") {
+
 	}
-	response.checkRequirements();
-	response.constructResourcePath();
+	else if (this->request.getMethod() == "POST") {
+
+	}
+	else if (this->request.getMethod() == "DELETE") {
+		
+	}
 }

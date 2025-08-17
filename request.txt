@@ -1,4 +1,5 @@
-GET /index?.html?/topic=http&user=guest HTTP/1.1
-Host: localhost
+GET /some/path?qu=vval HTTP/1.1
+HOST: localhost
+SomeHeader: hello me e
 
 
