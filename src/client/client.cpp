@@ -78,7 +78,6 @@ void	Client::establishConnection(int port, const std::string& host) {
 	}
 
 	int epollFd = epoll_create(1);
-	int epollFd = epoll_create(1);
 	if (epollFd < 0) {
 		close(this->socketFd);
 		throw std::runtime_error("Failed to create epoll instance");
@@ -123,9 +122,8 @@ void    initialiseServer(Config& config) {
 	for (vector<server>::const_iterator it = config._servers.begin(); it != config._servers.end(); ++it) {
 		try {
 			for (std::set<int>::const_iterator portIt = it->port.begin(); portIt != it->port.end(); ++portIt) {
-				Client _client();
+				Client _client(-1, &(*it));
 				_client.establishConnection(*portIt, it->host);
-				_client.makeConnection(*portIt, it->host);
 				config._clients.insert(config._clients.end(), _client);
 				print *portIt << " on host " << it->host << endl;
 			}
@@ -135,8 +133,22 @@ void    initialiseServer(Config& config) {
 	}
 }
 
-Client::Client() : socketFd(-1), contentLen(0), state(READING_REQUEST_LINE),
-	request(NULL), httpStatusCode(0) {
+// Client::Client() : socketFd(-1), contentLen(0), state(READING_REQUEST_LINE),
+// 	request(this->_config->maxBodySize), response(this->_config, request), httpStatusCode(0) {
+// }
+
+Client& Client::operator=(const Client& other) {
+	if (this != &other) {
+		this->socketFd = other.socketFd;
+		this->requestBuf = other.requestBuf;
+		this->responseBuf = other.responseBuf;
+		this->contentLen = other.contentLen;
+		this->state = other.state;
+		this->request = other.request; // Will need to implement this
+		this->response = other.response; // This One too
+		this->httpStatusCode = other.httpStatusCode;
+	}
+	return *this;
 }
 
 Client::Client(int fd, const server* serverConfig) :
@@ -184,6 +196,6 @@ void    Client::generateResponse() {
 		cout << this->httpStatusCode << endl;
 		return ;
 	}
-	response.checkRequirements();
-	response.constructResourcePath();
+	// response.checkRequirements();
+	// response.constructResourcePath();
 }

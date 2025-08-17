@@ -55,18 +55,25 @@ bool	isArray(const std::string& line) {
 
 bool	isArrayKey(const std::string& key) {
 	return (key == "server_name" || key == "listen" || key == "index" \
-		|| key == "allow" || key == "rewrite");
+		|| key == "allow");
+}
+
+bool isValidMethod(const std::string& method) {
+	std::string methods[] = {"GET", "POST", "DELETE"};
+	for (size_t i = 0; i < 3 ; ++i)
+		if (methods[i] == method) return true;
+	return (false);
 }
 
 bool	isValidLocation(location_b& location) {
 	if (location.name.empty() || location.path.empty())
 		return false;
-	if (location.methods.empty()){
-		stringstream ss("GET POST DELETE");
-		for (string method; ss >> method;) {
-			location.methods.push_back(method);
-		}
-	}
+	
+	if (location.methods.empty())
+			location.methods.push_back("GET");
+
+	for (size_t i = 0; i < location.methods.size(); ++i)
+		if (location.methods[i] == "POST" && location.uploadPath.empty()) { return false ;}
 	return true;
 }
 

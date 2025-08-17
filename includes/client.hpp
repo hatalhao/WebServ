@@ -29,9 +29,9 @@ class Client {
 		unsigned short	httpStatusCode;
 
 	public:
-		Client();
+		// Client();
 		Client(int fd, const server* serverConfig);
-		Client();
+		Client& operator=(const Client& other);
 		void	processRequest();
 		void	generateResponse();
 		void	setRequestBuf(const string& buf) { requestBuf = buf; }
