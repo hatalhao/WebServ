@@ -1,13 +1,7 @@
 #include "../../includes/Webserv.hpp"
 #include "../../includes/Config.hpp"
+#include "../../includes/manipulators.hpp"
 // #include "../../includes/networking.hpp"
-
-template <typename T>
-const std::string	to_string(const T& port) {
-	std::ostringstream oss;
-	oss << port;
-	return oss.str();
-}
 
 void	checkAttributes(server &serv) {
 	if (serv.host.empty())

@@ -65,15 +65,19 @@ bool isValidMethod(const std::string& method) {
 	return (false);
 }
 
-bool	isValidLocation(location_b& location) {
-	if (location.name.empty() || location.path.empty())
+bool	isValidLocation(location_b& location, const std::string& root) {
+	if (location.name.empty())
 		return false;
+
+	if (location.path.empty()) {
+		location.path = root + location.name;
+	}
 	
 	if (location.methods.empty())
 			location.methods.push_back("GET");
 
 	for (size_t i = 0; i < location.methods.size(); ++i)
-		if (location.methods[i] == "POST" && location.uploadPath.empty()) { return false ;}
+		if (location.methods[i] == "POST" && (location.uploadPath.empty() && !location.isCgiEnabled)) { return false ;}
 	return true;
 }
 

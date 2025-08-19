@@ -4,7 +4,7 @@
 
 void	minimumRequirement(std::string &line, std::ifstream& configFile);
 int		isValidBlock(const std::string& line);
-bool	isValidLocation(location_b& location);
+bool	isValidLocation(location_b& location, const std::string& root);
 bool	notValidChar(char c);
 bool	trimmableChar(char c);
 bool	skipLine(const std::string& line);

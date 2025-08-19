@@ -23,6 +23,16 @@ const location_b&	Response::findLocationConfig() {
 	return *best;
 }
 
+Response& Response::operator=(const Response& other) {
+	if (this != &other) {
+		this->serverConf = other.serverConf;
+		this->rules = other.rules;
+		this->resourcePath = other.resourcePath;
+		this->resourceType = other.resourceType;
+	}
+	return *this;
+}
+
 int Response::prepareResponse() {
     this->rules = &(this->findLocationConfig());
     /**
