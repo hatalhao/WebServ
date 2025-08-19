@@ -23,6 +23,17 @@ const location_b&	Response::findLocationConfig() {
 	return *best;
 }
 
+ResourceType	getResourceType(const char* resource) {
+	struct stat statBuf;
+	
+	if (stat(resource, &statBuf) != 0)
+		return (errno == ENOENT) ? IS_NOT_FOUND : IS_FORBIDDEN;
+	else if (S_ISDIR(statBuf.st_mode)) return IS_DIR;
+	else if (S_ISREG(statBuf.st_mode)) return IS_FILE;
+
+	return IS_FORBIDDEN;
+}
+
 int Response::prepareResponse() {
     this->rules = &(this->findLocationConfig());
     /**
@@ -47,30 +58,33 @@ int Response::prepareResponse() {
 	while ((pos = this->resourcePath.find("//")) != string::npos)
 		this->resourcePath.replace(pos, 2, "/");
 
-	struct stat statBuf;
-	
-	if (stat(this->resourcePath.c_str(), &statBuf) != 0)
-		this->resourceType = (errno == ENOENT) ? IS_NOT_FOUND : IS_FORBIDDEN;
-	else if (S_ISDIR(statBuf.st_mode)) this->resourceType = IS_DIR;
-	else if (S_ISREG(statBuf.st_mode)) this->resourceType = IS_FILE;
-	else this->resourceType = IS_FORBIDDEN;
-
+	this->resourceType = getResourceType(this->resourcePath.c_str());
 	return (0);
 }
 
-const string	Response::generatefilename(string& basePath) {
 
+const string	Response::generatefilename(const string& basePath) {
+	stringstream ss;
+	ss << basePath << "/file_" << time(NULL) << ".upload";
+	return ss.str();
 }
 
 int	Response::Post() {
 	if (this->resourceType == IS_DIR) {
-		if (this->rules->cgiList.empty()) {
-			
-		}
+		// if (!this->rules->uploadPath.empty()) 
+		// {
+		// 	if (getResourceType(this->rules->uploadPath.c_str()) != IS_DIR) return (403);
+		// 	std::ofstream outfile(generatefilename(this->rules->uploadPath).c_str());
+		// 	if (!outfile.is_open())
+		// 		return 403;
+		// 	outfile.write(this->request.getBody().data(), this->request.getBody().size());
+		// 	outfile.close();
+		// }
+		// else
+		// 	return 500;
 	}
 	else if (this->resourceType == IS_FILE) {
 		
 	}
+	return (0);
 }
-
-

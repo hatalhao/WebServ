@@ -18,7 +18,7 @@ class Response {
 		string				resourcePath;
 		ResourceType		resourceType;
 		const location_b&	findLocationConfig();
-		const string	generatefilename(string& basePath);
+		const string		generatefilename(const string& basePath);
 
 	public:
 		Response(const server* _serverConf, const Request& request);

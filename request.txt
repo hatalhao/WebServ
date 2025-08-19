@@ -1,5 +1,5 @@
-GET /some/path?qu=vval HTTP/1.1
-HOST: localhost
+POST /?que=val HTTP/1.1
+Host: localhost
 SomeHeader: hello me e
-
-
+Content-length: 1
+xxxxxxxxxxxxxxxx

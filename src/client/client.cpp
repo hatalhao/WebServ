@@ -43,7 +43,7 @@ void    Client::processRequest() {
 
 void    Client::generateResponse() {
 	if (this->httpStatusCode != 0)
-		{ cout << this->httpStatusCode << endl; return ; }
+		{ cout << "-->" << this->httpStatusCode << endl; return ; }
 
 	this->httpStatusCode = response.prepareResponse();
 
@@ -51,7 +51,7 @@ void    Client::generateResponse() {
 
 	}
 	else if (this->request.getMethod() == "POST") {
-
+		this->httpStatusCode = this->response.Post();
 	}
 	else if (this->request.getMethod() == "DELETE") {
 		
