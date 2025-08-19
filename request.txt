@@ -1,4 +1,4 @@
-POST /?que=val HTTP/1.1
+POST /request.txt?que=val HTTP/1.1
 Host: localhost
 SomeHeader: hello me e
 Content-length: 1

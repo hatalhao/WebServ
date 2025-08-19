@@ -17,11 +17,14 @@ class Response {
 		const location_b*	rules;
 		string				resourcePath;
 		ResourceType		resourceType;
+		map<string, string>	headers;
 		const location_b&	findLocationConfig();
-		const string		generatefilename(const string& basePath);
+		const string		generatefilename();
+		vector<cgi_t>::const_iterator	searchExtensionHandler(const string& extension);
 
 	public:
 		Response(const server* _serverConf, const Request& request);
+		void	setHeader(string key, string value);
 		int	prepareResponse();
 		int	Post();
 };
