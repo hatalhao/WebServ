@@ -20,6 +20,7 @@ class Response {
 		const location_b&	findLocationConfig();
 
 	public:
+		Response& operator=(const Response& other);
 		Response(const server* _serverConf, const Request& request);
 		int	prepareResponse();
 };

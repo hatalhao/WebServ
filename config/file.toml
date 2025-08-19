@@ -2,8 +2,9 @@
 server_name = ["sekhar", "awd", "awdaw", "aawdawd"]
 host = "127.0.0.1"
 listen = ["8989", "8080", "8081"]
-root = "/home/hatalhao/WebServ"
+root = "/home/hatalhao/42-cc/WebServ"
 max_body_size = "15GB"
+
 [[error_pages]]
 403 = "./pages/403.html"
 404 = "./pages/404.html"

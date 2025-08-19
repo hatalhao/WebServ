@@ -3,6 +3,8 @@
 #include "../../includes/identifiers.hpp"
 #include "../../includes/manipulators.hpp"
 
+
+
 void removeInvalidChars(std::string &str) {
 	if (str.empty())
 		return ;

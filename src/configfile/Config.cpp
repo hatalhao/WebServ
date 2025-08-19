@@ -56,7 +56,7 @@ cgi_t	getCgi(std::ifstream& configFile, std::string& line) {
 	return cgi;
 }
 
-location_b	getLocation(std::ifstream& configFile, std::string& line) {
+location_b	getLocation(std::ifstream& configFile, std::string& line, const std::string& root) {
 	location_b location;
 	while (std::getline(configFile, line)) {
 		if (skipLine(line))
@@ -145,7 +145,7 @@ location_b	getLocation(std::ifstream& configFile, std::string& line) {
 			}
 		}
 	}
-	if (!isValidLocation(location)) {
+	if (!isValidLocation(location, root)) {
 		throw std::runtime_error("Invalid location configuration: " + location.name + " -> " + location.path);
 	}
 	return location;
@@ -234,7 +234,9 @@ Config::Config(const std::string& configFilePath) : _configFilePath(configFilePa
 			if (pos == NPOS && token == LOCATION_TOKEN) {
 				try {
 					while (line == "[[location]]") {
-						location_b location = getLocation(configFile, line);
+						if (serv.root.empty())
+							throw std::runtime_error("Root directory not specified before location block");
+						location_b location = getLocation(configFile, line, serv.root);
 						serv.locations.push_back(location);
 					}
 				} catch (const std::runtime_error& e) {
