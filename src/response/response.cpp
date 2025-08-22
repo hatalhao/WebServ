@@ -103,8 +103,8 @@ int	Response::Post() {
 	}
 	else if (this->resourceType == IS_FILE) {
 		if (this->rules->cgiList.empty() == false) {
-			if (searchExtensionHandler(this->request.getPath().substr(request.getPath().find_last_of(".")))
-							!= this->rules->cgiList.end()) {
+			vector<cgi_t>::const_iterator handler = searchExtensionHandler(this->request.getPath().substr(request.getPath().find_last_of(".")));
+			if (handler != this->rules->cgiList.end()) {
 				// CGI WORK STARTS HERE
 				return 200;
 			}
