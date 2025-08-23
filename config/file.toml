@@ -2,7 +2,7 @@
 server_name = ["sekhar", "awd", "awdaw", "aawdawd"]
 host = "127.0.0.1"
 listen = ["8989", "8080", "8081"]
-root = "/home/Ali/Desktop/WebServ"
+root = "/home/hatalhao/WebServ"
 max_body_size = "15GB"
 
 [[error_pages]]
@@ -10,17 +10,17 @@ max_body_size = "15GB"
 404 = "./pages/404.html"
 413 = "./pages/413.html"
 
-# [[location]]
-# name = "images"
-# path = "/home/hatalhao/WebServ"
-# index = ["images.html", "images.php", "imagesFile.html"]
-# autoindex = ["on"]
-# allow = ["GET", "DELETE", "POST"]
-# upload_path = "/home/hatalhao/uploads"
-# return = "/home/hatalhao/pictures"
-# [[cgi]]
-# extension = ".py"
-# handler = "/usr/bin/python3"
+[[location]]
+name = "images"
+path = "/home/hatalhao/WebServ"
+index = ["images.html", "images.php", "imagesFile.html"]
+autoindex = ["on"]
+allow = ["GET", "DELETE", "POST"]
+upload_path = "/home/hatalhao/uploads"
+return = "/home/hatalhao/pictures"
+[[cgi]]
+extension = ".py"
+handler = "/usr/bin/python3"
 
 # [[location]]
 # name = "home"
@@ -37,12 +37,12 @@ max_body_size = "15GB"
 # extension = ".py"
 # handler = "/usr/bin/python3"
 
-# [[server]]
-# server_name = "hatalhao"
-# host = "127.0.0.2"
-# listen = "8081"
-# root = "/home/hatalhao/WebServ"
-# max_body_size = "10GB"
+[[server]]
+server_name = "hatalhao"
+host = "127.0.0.2"
+listen = "8081"
+root = "/home/hatalhao/WebServ"
+max_body_size = "10GB"
 # [[location]]
 # name = "/images"
 # path = "/home/hatalhao/WebServ"

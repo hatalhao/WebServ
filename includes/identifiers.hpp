@@ -13,3 +13,5 @@ bool	isArray(const std::string& line);
 bool	isArrayKey(const std::string& key);
 bool 	isValidMethod(const std::string& method);
 int		isValidStatusCode(long statusCode);
+
+std::string ServerNameExists(const std::string& serverName, Config& config);

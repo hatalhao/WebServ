@@ -17,7 +17,7 @@ class Config {
 		std::map<std::string, std::string>	_settings;
 		size_t								_maxBodySize;
 		
-		public:
+	public:
 		Config(const std::string &configFilePath);
 		~Config();
 		

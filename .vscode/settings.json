@@ -114,6 +114,12 @@
     "semaphore": "cpp",
     "stop_token": "cpp",
     "thread": "cpp",
-    "cinttypes": "cpp"
+    "cinttypes": "cpp",
+    "bitset": "cpp",
+    "complex": "cpp",
+    "list": "cpp",
+    "variant": "cpp",
+    "typeindex": "cpp",
+    "cerrno": "cpp"
   }
 }

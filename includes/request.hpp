@@ -39,8 +39,9 @@ class Request {
 		Request(const size_t& maxBodySize);
 		Request& operator=(const Request& other);
 		string	getMethod() const { return method; }
+		string	getHeader(const string& key) const;
 		string	getPath() const { return path; }
-		string	getUri() const { return uri; }
+		// string	getUri() const { return uri; }
 		string	getQueryString() const { return queryString; }
 		const vector<char>&	getBody() const { return body; }
 		string	getVersion() const { return version; }
