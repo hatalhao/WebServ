@@ -11,18 +11,23 @@ enum ResourceType {
 };
 
 class Response {
-	private:
-		const server*		serverConf;
-		const Request&		request;
-		const location_b*	rules;
-		string				resourcePath;
-		ResourceType		resourceType;
-		const location_b&	findLocationConfig();
+	protected:
+		const server*					serverConf;
+		const Request&					request;
+		const location_b*				rules;
+		string							resourcePath;
+		ResourceType					resourceType;
+		map<string, string>				headers;
+		const location_b&				findLocationConfig();
+		const string					generatefilename();
+		vector<cgi_t>::const_iterator	searchExtensionHandler(const string& extension);
 
 	public:
 		Response& operator=(const Response& other);
 		Response(const server* _serverConf, const Request& request);
-		int	prepareResponse();
+		void	setHeader(string key, string value);
+		int		prepareResponse();
+		int		Post();
 };
 
 #endif

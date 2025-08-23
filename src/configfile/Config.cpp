@@ -234,7 +234,7 @@ Config::Config(const std::string& configFilePath) : _configFilePath(configFilePa
 			if (pos == NPOS && token == LOCATION_TOKEN) {
 				try {
 					while (line == "[[location]]") {
-						if (serv.root.empty())
+						if (_settings["root"].empty())
 							throw std::runtime_error("Root directory not specified before location block");
 						location_b location = getLocation(configFile, line, serv.root);
 						serv.locations.push_back(location);

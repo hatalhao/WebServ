@@ -2,6 +2,19 @@
 #include "../../includes/manipulators.hpp"
 #include "../../includes/tokenizer.hpp"
 #include "../../includes/Webserv.hpp"
+#include "../../includes/Config.hpp"
+
+std::string ServerNameExists(const std::string& serverName, Config& config) {
+	if (serverName.find_first_not_of("1234567890.") == NPOS)
+		return (serverName);
+	for (size_t i = 0; i < config._servers.size(); ++i) {
+		for (size_t j = 0; j < config._servers[i].serverName.size(); ++j) {
+			if (config._servers[i].serverName[j] == serverName)
+				return (config._servers[i].host);
+		}
+	}
+	return "";
+}
 
 bool notValidChar(char c) {
 	return (c == '\"' || c == '\'' || c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '[' || c == ']');
@@ -74,10 +87,10 @@ bool	isValidLocation(location_b& location, const std::string& root) {
 	}
 	
 	if (location.methods.empty())
-			location.methods.push_back("GET");
+		location.methods.push_back("GET");
 
 	for (size_t i = 0; i < location.methods.size(); ++i)
-		if (location.methods[i] == "POST" && (location.uploadPath.empty() && !location.isCgiEnabled)) { return false ;}
+		if (location.methods[i] == "POST" && location.uploadPath.empty()) { return false ;}
 	return true;
 }
 
