@@ -17,6 +17,9 @@ enum ClientState {
 
 
 #define MAXEVENTS 1024
+#define FINISHED 0
+#define DISCONNECTED -1
+#define CONTINUE 1
 
 class Client {
 	private:
@@ -41,10 +44,13 @@ class Client {
 		void	setRequestBuf(const string& buf) { requestBuf = buf; }
 		string	getRequestBuf() const { return requestBuf; }
 		void	updateState();
-		std::string resolveDNS(const std::string& hostname, const Config& config);
 		void	printBuffer() const { cout << "Request Buffer: " << requestBuf << endl; }
 		void	printRequest() const;
 		void	printState() const;
+		void	acceptConnection(int serverSocketIndex, int epollIndex);
+		void	listenForEvents();
+		int		handleClientData(int clientFd, int epollIndex);
+		void	CreateSockets(const struct addrinfo& hint, struct addrinfo **newAddr, const std::string& port, const std::string& host);
 		void	establishConnection(const Config& config);
 		void	fileDescriptorDisposal();	
 		void	makeConnection(int port, const std::string& host);

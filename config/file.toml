@@ -2,7 +2,7 @@
 server_name = ["sekhar", "awd", "awdaw", "aawdawd"]
 host = "127.0.0.1"
 listen = ["8989", "8080", "8081"]
-root = "/home/hatalhao/WebServ"
+root = "/home/hatalhao/42-cc/WebServ"
 max_body_size = "15GB"
 
 [[error_pages]]
@@ -12,7 +12,7 @@ max_body_size = "15GB"
 
 [[location]]
 name = "images"
-path = "/home/hatalhao/WebServ"
+path = "/home/hatalhao/42-cc/WebServ"
 index = ["images.html", "images.php", "imagesFile.html"]
 autoindex = ["on"]
 allow = ["GET", "DELETE", "POST"]
@@ -41,7 +41,7 @@ handler = "/usr/bin/python3"
 server_name = "hatalhao"
 host = "127.0.0.2"
 listen = "8081"
-root = "/home/hatalhao/WebServ"
+root = "/home/hatalhao/42-cc/WebServ"
 max_body_size = "10GB"
 # [[location]]
 # name = "/images"
