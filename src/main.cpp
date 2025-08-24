@@ -19,20 +19,6 @@ int main(int ac, char **av) {
     try {
         Config	webservConfig(filename);
         initialiseServer(webservConfig);
-        Client obj(-1, &webservConfig._servers[0]);
-        fstream	raw(filename.c_str());
-        string line;
-
-        while (getline(raw, line)) {
-            obj.setRequestBuf(obj.getRequestBuf() + line + "\n");
-            obj.processRequest();
-        }
-        raw.close(); 
-        cout << BRIGHT_GREEN "parsing complete" RESET << endl;
-        // obj.printRequest();
-        // obj.printState();
-        obj.generateResponse();
-        // obj.printBuffer();
         } catch (exception& e) {
             cout << e.what() << endl;
         }

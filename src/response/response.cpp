@@ -103,23 +103,23 @@ vector<cgi_t>::const_iterator	Response::searchExtensionHandler(const string& ext
 
 int	Response::Post() {
 	if (this->resourceType == IS_DIR) {
-		// if (!this->rules->uploadPath.empty())
-		// {
-		// 	if (getResourceType(this->rules->uploadPath.c_str()) != IS_DIR) return (500);
-		// 	string	filename = generatefilename();
-		// 	std::ofstream outfile((this->rules->uploadPath
-		// 		+ (rules->uploadPath[rules->uploadPath.length() - 1] == '/' ? "" : "/")
-		// 		+ filename).c_str(), ios::binary);
-		// 	if (!outfile.is_open()) return 500;
-		// 	outfile.write(this->request.getBody().data(), this->request.getBody().size());
-		// 	outfile.close();
-		// 	setHeader("Location", this->request.getPath()
-		// 			+ (this->request.getPath()[request.getPath().length() - 1] == '/' ? "" : "/")
-		// 			+ filename);
-		// 	return 201;
-		// }
-		// else
-		// 	return 500;
+		if (!this->rules->uploadPath.empty())
+		{
+			if (getResourceType(this->rules->uploadPath.c_str()) != IS_DIR) return (500);
+			string	filename = generatefilename();
+			std::ofstream outfile((this->rules->uploadPath
+				+ (rules->uploadPath[rules->uploadPath.length() - 1] == '/' ? "" : "/")
+				+ filename).c_str(), ios::binary);
+			if (!outfile.is_open()) return 500;
+			outfile.write(this->request.getBody().data(), this->request.getBody().size());
+			outfile.close();
+			setHeader("Location", this->request.getPath()
+					+ (this->request.getPath()[request.getPath().length() - 1] == '/' ? "" : "/")
+					+ filename);
+			return 201;
+		}
+		else
+			return 500;
 	}
 	else if (this->resourceType == IS_FILE) {
 		if (this->rules->cgiList.empty() == false) {

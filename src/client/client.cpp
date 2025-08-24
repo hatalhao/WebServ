@@ -2,65 +2,6 @@
 #include "../../includes/networking.hpp"
 #include "../../includes/methods.hpp"
 
-// in_addr_t host_to_addr(const std::string& host) {
-// 	stringstream ss(host);
-// 	string line;
-// 	u_int32_t addr = 0;
-// 	while (std::getline(ss, line, '.')) {
-// 		addr = (addr << 8) | std::atoi(line.c_str());
-// 	}
-// 	addr = htonl(addr);
-// 	return (addr);
-// }
-
-// void Client::makeConnection(int port, const std::string& host) {
-// 	struct sockaddr_in serverAddr;
-// 	serverAddr.sin_family = AF_INET;
-// 	serverAddr.sin_port = htons(static_cast<uint16_t>(port));
-// 	serverAddr.sin_addr.s_addr = host_to_addr(host);
-
-// 	this->socketFd = socket(AF_INET, SOCK_STREAM, 0);
-// 	if (this->socketFd < 0) {
-// 		throw std::runtime_error("Failed to create socket");
-// 	}
-
-// 	if (connect(this->socketFd, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
-// 		close(this->socketFd);
-// 		throw std::runtime_error("Failed to connect to server");
-// 	}
-// }
-
-// void Client::makeConnection(int port, const std::string& host) {
-// 	struct addrinfo hint, *newAddr;
-// 	hint.ai_family = AF_INET;
-// 	hint.ai_socktype = SOCK_STREAM;
-// 	hint.ai_flags = AI_PASSIVE;
-
-// 	if (getaddrinfo(host.c_str(), to_string(port).c_str(), &hint, &newAddr) != 0) {
-// 		throw std::runtime_error("Failed to get address info");
-// 	}
-
-// 	this->socketFd = socket(newAddr->ai_family, newAddr->ai_socktype, newAddr->ai_protocol);
-// 	if (this->socketFd < 0) {
-// 		freeaddrinfo(newAddr);
-// 		throw std::runtime_error("Failed to create socket");
-// 	}
-
-// 	if (connect(this->socketFd, newAddr->ai_addr, newAddr->ai_addrlen) < 0) {
-// 		close(this->socketFd);
-// 		freeaddrinfo(newAddr);
-// 		throw std::runtime_error("Failed to connect to server");
-// 	}
-
-// 	freeaddrinfo(newAddr);
-// }
-
-//Will need to refactor the code here for multiple ports instead of one
-
-// int	Client::newConnection() {
-
-// }
-
 void Client::fileDescriptorDisposal() {
 	for (size_t i = 0; i < this->socketFd.size(); i++) {
 		close(this->socketFd[i]);
@@ -150,7 +91,9 @@ void	Client::establishConnection(const Config& totalConfig) {
 	}
 	print "at host " << this->_config->host << std::endl;
 
+// this should be the end of the setablish connections method
 
+// this where we would listen for events and call accept() -> create client object
 	struct epoll_event events[MAXEVENTS];
 	while (true) {
 		for (size_t epollIndex = 0; epollIndex < this->epollFd.size(); epollIndex++) {
@@ -246,6 +189,9 @@ void	Client::establishConnection(const Config& totalConfig) {
 									}
 									
 									string response;
+									cout << BRIGHT_GREEN;
+									clientHandler.printState();
+									cout << RESET << endl;
 									if (clientHandler.httpStatusCode == 400 && clientHandler.state == READING_BODY) {
 										std::string method = clientHandler.request.getMethod();
 										if (method == "POST") {
@@ -281,6 +227,7 @@ void	Client::establishConnection(const Config& totalConfig) {
 									send(clientFd, response.c_str(), response.length(), 0);
 									
 									epoll_ctl(this->epollFd[epollIndex], EPOLL_CTL_DEL, clientFd, NULL);
+									std::cout << "hihi" << std::endl;
 									close(clientFd);
 								}
 								break;
@@ -299,12 +246,17 @@ void	Client::establishConnection(const Config& totalConfig) {
 	this->fileDescriptorDisposal();
 }
 
+
 void    initialiseServer(Config& config) {
 	for (vector<server>::const_iterator it = config._servers.begin(); it != config._servers.end(); ++it) {
 		// DEBUG;
 		try {
 			for (std::set<int>::const_iterator portIt = it->port.begin(); portIt != it->port.end(); ++portIt) {
 				Client _client(0, &(*it));
+				// here establishConnection should setup the listening sockets
+				// without depending on a client object.
+				// it has no logical meaning + it creates thon of accessibilty issues.
+				// better move it to the Config class.
 				_client.establishConnection(config);
 				config._clients.insert(config._clients.end(), _client);
 				print *portIt << " on host " << it->host << endl;

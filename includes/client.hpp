@@ -21,8 +21,9 @@ enum ClientState {
 class Client {
 	private:
 		const server	*_config;
-		vector<int>             socketFd;
-		vector<int>             epollFd;
+		int				currentPort;
+		vector<int>		socketFd;
+		vector<int>		epollFd;
 		string			requestBuf;
 		string			responseBuf;
 		size_t          contentLen;

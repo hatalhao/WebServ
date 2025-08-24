@@ -18,6 +18,7 @@ class Response {
 		string				resourcePath;
 		string				resourceDir;
 		ResourceType		resourceType;
+		string				resolvedServerName;
 		map<string, string>	headers;
 		vector<char>		body;
 		const location_b&	findLocationConfig();
