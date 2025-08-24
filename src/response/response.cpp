@@ -3,6 +3,12 @@
 Response::Response(const server* _serverConf, const Request& _request) :
         serverConf(_serverConf) , request(_request), rules(NULL) {}
 
+
+Response::Response(const Response& other) :
+	serverConf(other.serverConf), request(other.request), rules(other.rules),
+	resourcePath(other.resourcePath), resourceDir(other.resourceDir),
+	resourceType(other.resourceType), headers(other.headers), body(other.body) {}
+
 const location_b&	Response::findLocationConfig() {
 	const location_b *best = NULL, *root = NULL;
 	size_t	bestLen = 0;
@@ -51,8 +57,10 @@ int Response::prepareResponse() {
 				this->request.getMethod()) == rules->methods.end())
 		return (405);
 
-	string root = this->rules->path.empty() ? this->serverConf->root : this->rules->path;
-	this->resourcePath = root + this->request.getPath();
+	this->resourceDir = this->rules->path.empty() ? this->serverConf->root : this->rules->path;
+	this->resourcePath = this->resourceDir + this->request.getPath();
+
+	this->resourceDir += this->rules->name;
 
 	size_t pos;
 	while ((pos = this->resourcePath.find("//")) != string::npos)

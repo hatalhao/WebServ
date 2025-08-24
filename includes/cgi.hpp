@@ -2,20 +2,17 @@
 
 #include "response.hpp"
 
-class CgiHandler {
+class CgiHandler : public Response {
 	private:
-		const Response&		response;
-		const Request&      request;
-		const location_b&   route;
 		const string&		scriptPath;
 
-		char**              env;
+		vector<string>		env_vars;
 		int					pipeIn[2];
 		int					pipeOut[2];
 		pid_t				pid;
+		void	setupEnv();
 
 	public:
-		CgiHandler(const Response& response, const cgi_t& _cgiConfig);
-		~CgiHandler();
+		CgiHandler(const Response& _response, const string& _scriptPath);
 		void	execute();
 };
