@@ -16,14 +16,15 @@ typedef struct	location {
 	std::vector<std::string>				index;
 	std::map<int, std::string>				errorPageMap;
 	std::vector<std::string>				methods;
-	std::map<bool, std::set<std::string> >	redirection;
+	std::string								redirection;
+	std::string								uploadPath;
 
 	bool									isAutoIndexEnabled;
 	bool									isCgiEnabled;
 
 	std::vector<cgi_t> cgiList;
 
-	location() : name(), path(), index(), errorPageMap(), methods(), redirection(),
+	location() : name(), path(), index(), errorPageMap(), methods(), redirection(), uploadPath(),
 				isAutoIndexEnabled(false), isCgiEnabled(false), cgiList() {};
 
 }				location_b;
@@ -43,3 +44,4 @@ void	checkAttributes(server &serv);
 void	printServer(const server &serv);
 void	fillServer(server &serv, const Config &config);
 void	printLocation(const std::vector<location_b> &location);
+void	initialiseServer(Config& config);

@@ -1,9 +1,9 @@
 # pragma once
 
-#include "origin.hpp"
 #include "request.hpp"
 #include "Config.hpp"
 #include "response.hpp"
+#include "manipulators.hpp"
 
 enum ClientState {
 	READING_REQUEST_LINE,
@@ -16,10 +16,13 @@ enum ClientState {
 };
 
 
+#define MAXEVENTS 1024
+
 class Client {
 	private:
 		const server	*_config;
-		int             socketFd;
+		vector<int>             socketFd;
+		vector<int>             epollFd;
 		string			requestBuf;
 		string			responseBuf;
 		size_t          contentLen;
@@ -29,15 +32,20 @@ class Client {
 		unsigned short	httpStatusCode;
 
 	public:
+
 		Client(int fd, const server* serverConfig);
-		int		servePost();
+		Client& operator=(const Client& other);
 		void	processRequest();
 		void	generateResponse();
 		void	setRequestBuf(const string& buf) { requestBuf = buf; }
 		string	getRequestBuf() const { return requestBuf; }
 		void	updateState();
+		std::string resolveDNS(const std::string& hostname, const Config& config);
 		void	printBuffer() const { cout << "Request Buffer: " << requestBuf << endl; }
 		void	printRequest() const;
 		void	printState() const;
+		void	establishConnection(const Config& config);
+		void	fileDescriptorDisposal();	
+		void	makeConnection(int port, const std::string& host);
 };
 

@@ -2,6 +2,19 @@
 #include "../../includes/manipulators.hpp"
 #include "../../includes/tokenizer.hpp"
 #include "../../includes/Webserv.hpp"
+#include "../../includes/Config.hpp"
+
+std::string ServerNameExists(const std::string& serverName, Config& config) {
+	if (serverName.find_first_not_of("1234567890.") == NPOS)
+		return (serverName);
+	for (size_t i = 0; i < config._servers.size(); ++i) {
+		for (size_t j = 0; j < config._servers[i].serverName.size(); ++j) {
+			if (config._servers[i].serverName[j] == serverName)
+				return (config._servers[i].host);
+		}
+	}
+	return "";
+}
 
 bool notValidChar(char c) {
 	return (c == '\"' || c == '\'' || c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '[' || c == ']');
@@ -55,18 +68,29 @@ bool	isArray(const std::string& line) {
 
 bool	isArrayKey(const std::string& key) {
 	return (key == "server_name" || key == "listen" || key == "index" \
-		|| key == "allow" || key == "rewrite");
+		|| key == "allow");
 }
 
-bool	isValidLocation(location_b& location) {
-	if (location.name.empty() || location.path.empty())
+bool isValidMethod(const std::string& method) {
+	std::string methods[] = {"GET", "POST", "DELETE"};
+	for (size_t i = 0; i < 3 ; ++i)
+		if (methods[i] == method) return true;
+	return (false);
+}
+
+bool	isValidLocation(location_b& location, const std::string& root) {
+	if (location.name.empty())
 		return false;
-	if (location.methods.empty()){
-		stringstream ss("GET POST DELETE");
-		for (string method; ss >> method;) {
-			location.methods.push_back(method);
-		}
+
+	if (location.path.empty()) {
+		location.path = root + location.name;
 	}
+	
+	if (location.methods.empty())
+		location.methods.push_back("GET");
+
+	for (size_t i = 0; i < location.methods.size(); ++i)
+		if (location.methods[i] == "POST" && location.uploadPath.empty()) { return false ;}
 	return true;
 }
 

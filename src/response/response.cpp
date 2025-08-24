@@ -29,6 +29,16 @@ const location_b&	Response::findLocationConfig() {
 	return *best;
 }
 
+Response& Response::operator=(const Response& other) {
+	if (this != &other) {
+		this->serverConf = other.serverConf;
+		this->rules = other.rules;
+		this->resourcePath = other.resourcePath;
+		this->resourceType = other.resourceType;
+	}
+	return *this;
+}
+
 ResourceType	getResourceType(const char* resource) {
 	struct stat statBuf;
 	
@@ -65,7 +75,9 @@ int Response::prepareResponse() {
 	size_t pos;
 	while ((pos = this->resourcePath.find("//")) != string::npos)
 		this->resourcePath.replace(pos, 2, "/");
+
 	this->resourceType = getResourceType(this->resourcePath.c_str());
+
 	return (0);
 }
 

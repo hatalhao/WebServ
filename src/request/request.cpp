@@ -156,6 +156,15 @@ int Request::processRequestLine(string& buffer) {
     return 0;
 }
 
+std::string Request::getHeader(const std::string& key) const {
+    std::map<std::string, std::string>::const_iterator it = headers.find(key);
+    if (it != headers.end()) {
+        return it->second;
+    }
+    return "";
+}
+
+
 int Request::processHeaders(string& buffer) {
     if (buffer.find(CRLF CRLF) == NPOS)
     return 0;
@@ -231,4 +240,19 @@ int Request::processBody(string& buffer) {
     else
         return 400;
     return (0);
+}
+
+Request& Request::operator=(const Request& other) {
+    if (this != &other) {
+        // _MaxBodySize is a const. Makes it tricky to copy.
+        this->method = other.method;
+        this->uri = other.uri;
+        this->path = other.path;
+        this->queryString = other.queryString;
+        this->version = other.version;
+        this->headers = other.headers;
+        this->body = other.body;
+        this->state = other.state;
+    }
+    return *this;
 }
