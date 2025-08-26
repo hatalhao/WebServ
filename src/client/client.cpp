@@ -134,10 +134,9 @@ int		Client::handleClientData(int clientFd, int epollIndex) {
 				if (clientHandler.state == READING_DONE || clientHandler.state == READING_BAD_REQUEST) break;
 			}
 			
-			string response;
-			// Response Here <--
+			clientHandler.generateResponse();
 			
-			send(clientFd, response.c_str(), response.length(), 0);
+			send(clientFd, clientHandler.responseBuf.c_str(), clientHandler.responseBuf.length(), 0);
 			
 			epoll_ctl(this->epollFd[epollIndex], EPOLL_CTL_DEL, clientFd, NULL);
 			close(clientFd);
@@ -274,12 +273,12 @@ void    Client::processRequest() {
 
 void    Client::generateResponse() {
 	if (this->httpStatusCode != 0)
-		{ cout << "-->" << this->httpStatusCode << endl; return ; }
+		{ this->response.serializeResponse(); return ; }
 
 	this->httpStatusCode = response.prepareResponse();
 
 	if (this->request.getMethod() == "GET") {
-
+		this->httpStatusCode = response.Get();
 	}
 	else if (this->request.getMethod() == "POST") {
 		this->httpStatusCode = this->response.Post();
