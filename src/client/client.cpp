@@ -287,4 +287,5 @@ void    Client::generateResponse() {
 	else if (this->request.getMethod() == "DELETE") {
 		
 	}
+	this->responseBuf = this->response.serializeResponse();
 }
