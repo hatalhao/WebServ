@@ -1,10 +1,6 @@
 #include "../../includes/client.hpp"
 #include "../../includes/networking.hpp"
 #include "../../includes/methods.hpp"
-#include <fcntl.h>
-#include <cstring>
-#include <cerrno>
-#include <sstream>
 
 void Client::fileDescriptorDisposal() {
 	for (size_t i = 0; i < this->socketFd.size(); i++) {
@@ -235,10 +231,10 @@ Client& Client::operator=(const Client& other) {
 	return *this;
 }
 
-Client::Client(int fd, const server* serverConfig) :
+Client::Client(int fd, server* serverConfig) :
 	_config(serverConfig), socketFd(fd), contentLen(0),
 	state(READING_REQUEST_LINE), request(_config->maxBodySize),
-	response(serverConfig, request), httpStatusCode(0) {}
+	response(serverConfig, request, httpStatusCode), httpStatusCode(0) {}
 
 void    Client::updateState() {
 	switch (this->request.getState()) {

@@ -1,17 +1,17 @@
 #include "../../includes/response.hpp"
+#include "../../includes/cgi.hpp"
 
-Response::Response(const server* _serverConf, const Request& _request) :
-        serverConf(_serverConf) , request(_request), rules(NULL) {}
-
+Response::Response(const server* _serverConf, Request& _request, unsigned short& _statusCode) :
+        serverConf(_serverConf) , request(_request), rules(NULL), statusCode(_statusCode) {}
 
 Response::Response(const Response& other) :
 	serverConf(other.serverConf), request(other.request), rules(other.rules),
 	resourcePath(other.resourcePath), resourceDir(other.resourceDir),
-	resourceType(other.resourceType), headers(other.headers), body(other.body) {}
+	resourceType(other.resourceType), headers(other.headers), body(other.body), statusCode(other.statusCode){}
 
 const location_b&	Response::findLocationConfig() {
 	const location_b *best = NULL, *root = NULL;
-	size_t	bestLen = 0;
+	size_t	bestLen = 0;	
 	for (vector<location_b>::const_iterator it = this->serverConf->locations.begin();
 		it != this->serverConf->locations.end(); it++)
 	{
@@ -32,9 +32,15 @@ const location_b&	Response::findLocationConfig() {
 Response& Response::operator=(const Response& other) {
 	if (this != &other) {
 		this->serverConf = other.serverConf;
+		this->request = other.request;
 		this->rules = other.rules;
 		this->resourcePath = other.resourcePath;
+		this->resourceDir = other.resourceDir;
 		this->resourceType = other.resourceType;
+		this->resolvedServerName = other.resolvedServerName;
+		this->headers = other.headers;
+		this->body = other.body;
+		this->statusCode = other.statusCode;
 	}
 	return *this;
 }
@@ -92,6 +98,9 @@ const string	Response::generatefilename() {
 void	Response::setHeader(string key, string value)
 	{ this->headers.insert(pair<string, string>(key, value)); }
 
+void	Response::setBody(string& _body)
+	{ this->body.assign(_body.begin(), _body.end()); }
+
 vector<cgi_t>::const_iterator	Response::searchExtensionHandler(const string& ext) {
 	vector<cgi_t>::const_iterator it = this->rules->cgiList.begin();
 	for (; it != this->rules->cgiList.end(); it++) {
@@ -100,6 +109,7 @@ vector<cgi_t>::const_iterator	Response::searchExtensionHandler(const string& ext
 	}
 	return it;
 }
+
 
 int	Response::Post() {
 	if (this->resourceType == IS_DIR) {
@@ -126,7 +136,10 @@ int	Response::Post() {
 			vector<cgi_t>::const_iterator handler = searchExtensionHandler(this->request.getPath().substr(request.getPath().find_last_of(".")));
 			if (handler != this->rules->cgiList.end()) {
 				// CGI WORK STARTS HERE
-				return 200;
+				CgiHandler _cgi(*this, handler->path);
+				_cgi.execute();
+				*this = _cgi.exportResponse();
+				return (this->statusCode);
 			}
 		}
 		else 

@@ -1,7 +1,7 @@
 #include "../../includes/request.hpp"
 #include "../../includes/Config.hpp"
 
-Request::Request(const size_t& maxBodySize) : state(PARSINGREQUESTLINE), _maxBodySize(maxBodySize){}
+Request::Request(size_t& maxBodySize) : state(PARSINGREQUESTLINE), _maxBodySize(maxBodySize){}
 
 bool    Request::validateMethod(const string& _method, int& code) {
     if (_method == "GET" || _method == "POST" || _method == "DELETE")
@@ -164,7 +164,6 @@ std::string Request::getHeader(const std::string& key) const {
     return "";
 }
 
-
 int Request::processHeaders(string& buffer) {
     if (buffer.find(CRLF CRLF) == NPOS)
     return 0;
@@ -244,7 +243,6 @@ int Request::processBody(string& buffer) {
 
 Request& Request::operator=(const Request& other) {
     if (this != &other) {
-        // _MaxBodySize is a const. Makes it tricky to copy.
         this->method = other.method;
         this->uri = other.uri;
         this->path = other.path;
@@ -253,6 +251,7 @@ Request& Request::operator=(const Request& other) {
         this->headers = other.headers;
         this->body = other.body;
         this->state = other.state;
+        this->_maxBodySize = other._maxBodySize;
     }
     return *this;
 }

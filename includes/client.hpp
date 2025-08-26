@@ -23,7 +23,7 @@ enum ClientState {
 
 class Client {
 	private:
-		const server	*_config;
+		server	*_config;
 		int				currentPort;
 		vector<int>		socketFd;
 		vector<int>		epollFd;
@@ -37,7 +37,7 @@ class Client {
 
 	public:
 
-		Client(int fd, const server* serverConfig);
+		Client(int fd, server* serverConfig);
 		Client& operator=(const Client& other);
 		void	processRequest();
 		void	generateResponse();

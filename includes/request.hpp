@@ -26,7 +26,7 @@ class Request {
 		map<string, string>				headers;
 		vector<char>					body;
 		RequestState					state;
-		const size_t					_maxBodySize;
+		size_t					_maxBodySize;
 
 		bool	validateMethod(const string& _method, int& code);
 		bool	validateUri(const string& uri, int &code);
@@ -36,7 +36,7 @@ class Request {
 		bool    validateHostHeader(string& val);
 
 	public:
-		Request(const size_t& maxBodySize);
+		Request(size_t& maxBodySize);
 		Request& operator=(const Request& other);
 		string	getMethod() const { return method; }
 		string	getHeader(const string& key) const;
