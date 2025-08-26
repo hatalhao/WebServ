@@ -153,7 +153,7 @@ int	Response::Post() {
 string	Response::serializeResponse() {
 	stringstream	ss;
 	//	waiting to add the status message 
-	ss << "HTTP/1.1" << this->statusCode << " " <<  "OK" <<  CRLF;
+	ss << "HTTP/1.1 " << this->statusCode << " " <<  "OK" <<  CRLF;
 
 	this->setHeader("Content-Length", toString(this->body.size()));
 	this->setHeader("Server", "Webserv/1.0");
