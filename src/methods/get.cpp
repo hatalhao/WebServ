@@ -1,5 +1,6 @@
 #include "../../includes/methods.hpp"
 #include "../../includes/manipulators.hpp"
+#include "../../includes/response.hpp"
 
 string getMimeType(const string& filePath) {
     size_t dotPos = filePath.find_last_of('.');
@@ -141,11 +142,10 @@ bool readFileContent(const string& filePath, string& content) {
     return true;
 }
 
-int handleGet(const Request& request, Response& response, const location_b& rules, 
-              const string& resourcePath, ResourceType resourceType) {
+int Response::Get() {
 
     if (!isSafePath(request.getPath())) {
-        return 403;
+        return (403);
     }
     
     switch (resourceType) {
@@ -154,21 +154,20 @@ int handleGet(const Request& request, Response& response, const location_b& rule
             if (!readFileContent(resourcePath, content)) {
                 return 500;
             }
-            
             // TODO: Set response headers and body
-            // response.setStatusCode(200);
+            this->statusCode = 200;
             // response.setStatusMessage("OK");
-            // response.setHeader("Content-Type", getMimeType(resourcePath));
-            // response.setHeader("Content-Length", to_string(content.length()));
-            // response.setBody(content);
+            this->setHeader("Content-Type", getMimeType(resourcePath));
+            this->setHeader("Content-Length", to_string(content.length()));
+            this->setBody(content);
             
             return 200;
         }
         
         case IS_DIR: {
-            if (!rules.index.empty()) {
-                for (vector<string>::const_iterator it = rules.index.begin(); 
-                     it != rules.index.end(); ++it) {
+            if (!this->rules->index.empty()) {
+                for (vector<string>::const_iterator it = this->rules->index.begin(); 
+                     it != this->rules->index.end(); ++it) {
                     string indexPath = resourcePath;
                     if (!indexPath.empty() && indexPath[indexPath.length() - 1] != '/') {
                         indexPath += "/";
@@ -183,30 +182,28 @@ int handleGet(const Request& request, Response& response, const location_b& rule
                         }
                         
                         // TODO: Set response headers and body
-                        // response.setStatusCode(200);
+                        this->statusCode = 200;
                         // response.setStatusMessage("OK");
-                        response.setHeader("Content-Type", getMimeType(indexPath));
-                        response.setHeader("Content-Length", to_string(content.length()));
-                        // response.setBody(content);
-                        
+                        this->setHeader("Content-Type", getMimeType(indexPath));
+                        this->setHeader("Content-Length", to_string(content.length()));
+                        this->setBody(content);
                         return 200;
                     }
                 }
             }
 
-            if (rules.isAutoIndexEnabled) {
+            if (this->rules->isAutoIndexEnabled) {
                 string listing = generateDirectoryListing(resourcePath, request.getPath());
                 if (listing.empty()) {
                     return 500;
                 }
                 
                 // TODO: Set response headers and body
-                // response.setStatusCode(200);
+                this->statusCode = 200;
                 // response.setStatusMessage("OK");
-                response.setHeader("Content-Type", "text/html");
-                response.setHeader("Content-Length", to_string(listing.length()));
-                // response.setBody(listing);
-                
+                this->setHeader("Content-Type", "text/html");
+                this->setHeader("Content-Length", to_string(listing.length()));
+                this->setBody(listing);
                 return 200;
             } else {
                 return 403;
@@ -214,7 +211,7 @@ int handleGet(const Request& request, Response& response, const location_b& rule
         }
         
         case IS_NOT_FOUND:
-            return 404;
+            return (cout << BRIGHT_GREEN << "NOT_FOUND" << RESET << endl, 404);
             
         case IS_FORBIDDEN:
         default:

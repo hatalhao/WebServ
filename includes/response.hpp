@@ -35,6 +35,7 @@ class Response {
 		int		prepareResponse();
 		string	serializeResponse();
 		int	Post();
+		int	Get();
 };
 
 #endif
