@@ -163,6 +163,8 @@ string	Response::serializeResponse() {
 			it != this->headers.end(); it++)
 	{ ss << it->first << ": " << it->second << CRLF; }
 
-	ss.str().append(this->body.begin(), this->body.end());
+	ss << CRLF;
+
+	ss.write(this->body.data(), this->body.size());
 	return ss.str();
 }
