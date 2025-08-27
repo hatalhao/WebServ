@@ -134,10 +134,21 @@ int		Client::handleClientData(int clientFd, int epollIndex) {
 				if (clientHandler.state == READING_DONE || clientHandler.state == READING_BAD_REQUEST) break;
 			}
 			
-			string response;
-			// Response Here <--
+			clientHandler.generateResponse();
+
+			// this would be changed to be dependant on the state too.
+			size_t totalSent = 0;
+			size_t toSend = clientHandler.responseBuf.length();
+			const char* buf = clientHandler.responseBuf.c_str();
 			
-			send(clientFd, response.c_str(), response.length(), 0);
+			while (totalSent < toSend) {
+				ssize_t sent = send(clientFd, buf + totalSent, toSend - totalSent, 0);
+				if (sent <= 0) {
+					// Handle error or client disconnect
+					break;
+				}
+				totalSent += sent;
+			}
 			
 			epoll_ctl(this->epollFd[epollIndex], EPOLL_CTL_DEL, clientFd, NULL);
 			close(clientFd);
@@ -274,12 +285,12 @@ void    Client::processRequest() {
 
 void    Client::generateResponse() {
 	if (this->httpStatusCode != 0)
-		{ cout << "-->" << this->httpStatusCode << endl; return ; }
+		{ this->response.serializeResponse(); return ; }
 
 	this->httpStatusCode = response.prepareResponse();
 
 	if (this->request.getMethod() == "GET") {
-
+		this->httpStatusCode = response.Get();
 	}
 	else if (this->request.getMethod() == "POST") {
 		this->httpStatusCode = this->response.Post();
@@ -287,4 +298,5 @@ void    Client::generateResponse() {
 	else if (this->request.getMethod() == "DELETE") {
 		
 	}
+	this->responseBuf = this->response.serializeResponse();
 }

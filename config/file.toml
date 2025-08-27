@@ -3,7 +3,7 @@ server_name = ["sekhar", "awd", "awdaw", "aawdawd"]
 host = "127.0.0.1"
 listen = ["8989", "8080", "8081"]
 root = "/home/Ali/Desktop/WebServ"
-max_body_size = "15GB"
+max_body_size = "1GB"
 
 [[error_pages]]
 403 = "./pages/403.html"
@@ -11,9 +11,9 @@ max_body_size = "15GB"
 413 = "./pages/413.html"
 
 [[location]]
-name = "images"
+name = "/"
 path = "/home/Ali/Desktop/WebServ"
-index = ["images.html", "images.php", "imagesFile.html"]
+index = ["index.html", "images.php", "imagesFile.html"]
 autoindex = ["on"]
 allow = ["GET", "DELETE", "POST"]
 upload_path = "/home/hatalhao/uploads"

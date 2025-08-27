@@ -110,7 +110,6 @@ vector<cgi_t>::const_iterator	Response::searchExtensionHandler(const string& ext
 	return it;
 }
 
-
 int	Response::Post() {
 	if (this->resourceType == IS_DIR) {
 		if (!this->rules->uploadPath.empty())
@@ -148,4 +147,24 @@ int	Response::Post() {
 	else if (this->resourceType == IS_NOT_FOUND)
 		return 404;
 	return 403;
+}
+
+
+string	Response::serializeResponse() {
+	stringstream	ss;
+	//	waiting to add the status message 
+	ss << "HTTP/1.1 " << this->statusCode << " " <<  "OK" <<  CRLF;
+
+	this->setHeader("Content-Length", toString(this->body.size()));
+	this->setHeader("Server", "Webserv/1.0");
+	this->setHeader("Connection", "keep-alive");
+
+	for (map<string, string>::iterator it = this->headers.begin();
+			it != this->headers.end(); it++)
+	{ ss << it->first << ": " << it->second << CRLF; }
+
+	ss << CRLF;
+
+	ss.write(this->body.data(), this->body.size());
+	return ss.str();
 }

@@ -32,8 +32,10 @@ class Response {
 		Response(const Response& _response);
 		void	setHeader(string key, string value);
 		void	setBody(string& _body);
-		int	prepareResponse();
+		int		prepareResponse();
+		string	serializeResponse();
 		int	Post();
+		int	Get();
 };
 
 #endif
