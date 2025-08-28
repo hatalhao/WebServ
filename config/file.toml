@@ -11,8 +11,8 @@ max_body_size = "1GB"
 413 = "./pages/413.html"
 
 [[location]]
-name = "/"
-path = "/home/Ali/Desktop/WebServ"
+name = "/whatever"
+path = "/home/Ali/"
 index = ["index.html", "images.php", "imagesFile.html"]
 autoindex = ["on"]
 allow = ["GET", "DELETE", "POST"]

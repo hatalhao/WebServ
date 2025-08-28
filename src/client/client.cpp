@@ -14,10 +14,11 @@ void Client::fileDescriptorDisposal() {
 void	Client::CreateSockets(const struct addrinfo& hint, struct addrinfo **newAddr, const std::string& port, const std::string& host) {
 	*newAddr = 0;
 
-	if (getaddrinfo(host.c_str(), port.c_str(), &hint, newAddr) < 0){
+	int returnValue = getaddrinfo(host.c_str(), port.c_str(), &hint, newAddr);
+	if (returnValue < 0){
 		this->fileDescriptorDisposal();
 		if (newAddr != NULL) { freeaddrinfo(*newAddr); }
-		throw std::runtime_error(gai_strerror(errno));
+		throw std::runtime_error(gai_strerror(returnValue));
 	}
 
 	int fileDescriptor = socket((*newAddr)->ai_family, (*newAddr)->ai_socktype, (*newAddr)->ai_protocol);
@@ -25,6 +26,13 @@ void	Client::CreateSockets(const struct addrinfo& hint, struct addrinfo **newAdd
 	if (this->socketFd.back() < 0) {
 		freeaddrinfo(*newAddr);
 		throw std::runtime_error("Failed to create socket");
+	}
+	
+	int optval = 1;
+	if (setsockopt(this->socketFd.back(), SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int)) < 0) {
+		close(this->socketFd.back());
+		freeaddrinfo(*newAddr);
+		throw std::runtime_error("Failed to set socket options");
 	}
 
 	if (bind(this->socketFd.back(), (*newAddr)->ai_addr, (*newAddr)->ai_addrlen) < 0) {
@@ -46,12 +54,6 @@ void	Client::CreateSockets(const struct addrinfo& hint, struct addrinfo **newAdd
 		throw std::runtime_error("Failed to set socket to non-blocking mode");
 	}
 
-	int optval = 1;
-	if (setsockopt(this->socketFd.back(), SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int)) < 0) {
-		close(this->socketFd.back());
-		freeaddrinfo(*newAddr);
-		throw std::runtime_error("Failed to set socket options");
-	}
 
 	if (listen(this->socketFd.back(), SOMAXCONN) < 0) {
 		close(this->socketFd.back());
@@ -198,7 +200,7 @@ void	Client::listenForEvents() {
 }
 
 void	Client::establishConnection(const Config& totalConfig) {
-	struct addrinfo hint, *newAddr;
+	struct addrinfo hint = addrinfo(), *newAddr;
 	hint.ai_family = AF_INET;
 	hint.ai_socktype = SOCK_STREAM;
 	hint.ai_flags = AI_PASSIVE;
