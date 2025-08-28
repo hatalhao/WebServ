@@ -1,6 +1,7 @@
 #include "../../includes/Webserv.hpp"
 #include "../../includes/Config.hpp"
 #include "../../includes/manipulators.hpp"
+#include "../../includes/identifiers.hpp"
 // #include "../../includes/networking.hpp"
 
 void	checkAttributes(server &serv) {
@@ -21,13 +22,15 @@ void	checkAttributes(server &serv) {
 		throw std::invalid_argument("Max body size cannot be zero");
 }
 
+
 void	fillServer(server &serv, const Config &config) {
 	serv.port = config.extractPorts();
 	serv.host = config.extractHost();
 	serv.root = config.extractRoot();
 	serv.serverName = config.extractServerName();
 	serv.maxBodySize = config.extractMaxBodySize();
-	if (serv.locations.empty()) {
+
+	if (serv.locations.empty() || !isdefaultLocationFound(&serv)) {
 		location_b defaultLocation;
 		defaultLocation.path = serv.root;
 		defaultLocation.name = "/";

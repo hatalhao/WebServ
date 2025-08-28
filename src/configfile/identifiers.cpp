@@ -83,7 +83,7 @@ bool	isValidLocation(location_b& location, const std::string& root) {
 		return false;
 
 	if (location.path.empty()) {
-		location.path = root + location.name;
+		location.path = root;
 	}
 	
 	if (location.methods.empty())
@@ -101,4 +101,12 @@ int isValidStatusCode(long statusCode) {
 		statusCode != NOT_IMPLEMENTED)
 		return -1;
 	return static_cast<int>(statusCode);
+}
+
+bool	isdefaultLocationFound(const server* serv) {
+	for (size_t i = 0; i < serv->locations.size(); i++) {
+		if (serv->locations[i].name == "/")
+			return true;
+	}
+	return false;
 }

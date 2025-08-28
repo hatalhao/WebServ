@@ -171,7 +171,7 @@ std::map<int, std::string> getPages(std::ifstream& configFile, std::string& line
 			continue;
 		size_t pos = line.find('=');
 		token = isValidBlock(line);
-		if (pos == NPOS && (token == ERROR_TOKEN || token == LOCATION_TOKEN)) {
+		if (pos == NPOS && (token == ERROR_TOKEN || token == LOCATION_TOKEN || token == SERVER_TOKEN)) {
 			break ;
 		}
 
@@ -225,6 +225,9 @@ Config::Config(const std::string& configFilePath) : _configFilePath(configFilePa
 				try {
 					serv.errorPageMap = getPages(configFile, line);
 					token = isValidBlock(line);
+					lastLine = line;
+					if (token == SERVER_TOKEN)
+						break;
 				} catch (const std::runtime_error& e) {
 					configFile.close();
 					throw std::runtime_error(std::string(e.what()));
