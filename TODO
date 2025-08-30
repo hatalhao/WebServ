@@ -1,5 +1,7 @@
 sending the response in chunks (in GET)
 
+remove MasterClient dependancy
+
 make the handleClientData() dependant on clientState instead of while true
 
 serve error pages
