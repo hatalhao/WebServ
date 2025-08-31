@@ -34,10 +34,16 @@ typedef struct	server {
 	std::set<int>				port;
 	std::string					host;
 	std::string					root;
+	vector<int>					socketFd;
+	vector<int>					epollFd;
 	std::vector<std::string>	serverName;
 	std::vector<location_b>		locations;
 	std::map<int, std::string>	errorPageMap;
-	server() : maxBodySize(0), port(), host(), root(), serverName(), locations(), errorPageMap() {};
+	server() : maxBodySize(0), port(), host(), root(), socketFd(), epollFd(), serverName(), locations(), errorPageMap() {};
+	
+	// Member functions
+	void	createSockets(const struct addrinfo& hint, struct addrinfo **newAddr, const std::string& port, const std::string& host);
+	void	fileDescriptorDisposal();
 
 }			 server;
 void	checkAttributes(server &serv);

@@ -1,7 +1,7 @@
 # pragma once
 
 #include "origin.hpp"
-#include "client.hpp"
+#include "networking.hpp"
 
 typedef enum unit {
 	B = 1,
@@ -10,6 +10,7 @@ typedef enum unit {
 	GB = 1024 * MB
 } unit;
 
+class Client;
 
 class Config {
 	private:
@@ -23,7 +24,13 @@ class Config {
 		
 		std::vector<Client>					_clients;
 		std::vector<server>					_servers;
-		//extracting methods
+		
+		void								establishConnection();
+		void								acceptConnection(int serverIndex, int socketIndex);
+		int									handleClientData(int clientFd, int serverIndex, int epollIndex);
+		int									handleSimpleClientData(int clientFd, int epollFd);
+		void								listenForEvents();
+		
 		std::set<int>						extractPorts() const;
 		std::string							extractHost() const;
 		std::string							extractRoot() const;

@@ -87,3 +87,12 @@ void	printServer(const server &serv) {
 	}
 	printLocation(serv.locations);
 }
+
+void    initialiseServer(Config& config) {
+	try {
+		config.establishConnection();
+		print "All servers initialized successfully" << endl;
+	} catch (const std::exception& e) {
+		throw std::runtime_error("Error establishing connection: " + std::string(e.what()));
+	}
+}

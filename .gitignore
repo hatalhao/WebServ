@@ -13,3 +13,8 @@ config
 .tldr
 # Executable
 webserv
+
+#files
+*.md
+*.sh
+*.log
