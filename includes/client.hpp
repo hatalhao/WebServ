@@ -33,10 +33,15 @@ class Client {
 		Request			request;
 		Response		response;
 		unsigned short	httpStatusCode;
-		size_t			bytesSent;
-
+		
 	public:
-
+		
+    	size_t bodySent;
+		size_t headerSent;
+		char fileBuffer[100000]; // Buffer for file streaming
+		size_t fileBufferUsed;   // How much of buffer is used
+		size_t fileBufferSent;   // How much of buffer has been sent
+		size_t fileReadOffset;   // Current file read position
 		Client(int fd, server* serverConfig);
 		Client& operator=(const Client& other);
 		void	processRequest();
@@ -51,6 +56,6 @@ class Client {
 		void	printState() const;
 		int		handleData();
 		int		handleReadEvent(int epollFd);
-		int		handleWriteEvent(int epollFd);
+		int		handleWriteEvent();
 };
 

@@ -2,12 +2,14 @@
 #include "../../includes/cgi.hpp"
 
 Response::Response(const server* _serverConf, Request& _request, unsigned short& _statusCode) :
-        serverConf(_serverConf) , request(_request), rules(NULL), statusCode(_statusCode) {}
+        serverConf(_serverConf) , request(_request), rules(NULL), statusCode(_statusCode),
+		bodyFd(-1), bodySize(0), bodySent(0), isFileBody(false){}
 
 Response::Response(const Response& other) :
 	serverConf(other.serverConf), request(other.request), rules(other.rules),
 	resourcePath(other.resourcePath), resourceDir(other.resourceDir),
-	resourceType(other.resourceType), headers(other.headers), body(other.body), statusCode(other.statusCode){}
+	resourceType(other.resourceType), headers(other.headers), body(other.body),
+	statusCode(other.statusCode){}
 
 const location_b&	Response::findLocationConfig() {
 	const location_b *best = NULL, *root = NULL;
@@ -149,22 +151,48 @@ int	Response::Post() {
 	return 403;
 }
 
+string Response::serializeHeaders() {
+    stringstream ss;
 
-string	Response::serializeResponse() {
-	stringstream	ss;
-	//	waiting to add the status message 
-	ss << "HTTP/1.1 " << this->statusCode << " " <<  "OK" <<  CRLF;
+    ss << "HTTP/1.1 " << statusCode << " " << "OK" << CRLF;
 
-	this->setHeader("Content-Length", toString(this->body.size()));
-	this->setHeader("Server", "Webserv/1.0");
-	this->setHeader("Connection", "keep-alive");
+    // Content-Length already set in GET or Post
+    ss << "Server: Webserv/1.0" << CRLF;
+    ss << "Connection: keep-alive" << CRLF;
 
-	for (map<string, string>::iterator it = this->headers.begin();
-			it != this->headers.end(); it++)
-	{ ss << it->first << ": " << it->second << CRLF; }
+    for (map<string,string>::iterator it = headers.begin(); it != headers.end(); ++it) {
+        ss << it->first << ": " << it->second << CRLF;
+    }
 
-	ss << CRLF;
-
-	ss.write(this->body.data(), this->body.size());
-	return ss.str();
+    ss << CRLF; // end of headers
+    return ss.str();
 }
+
+string Response::serializeHeadersAndBody() {
+    stringstream ss;
+    ss << serializeHeaders();
+    if (!body.empty()) {
+        ss.write(body.data(), body.size());
+    }
+    return ss.str();
+}
+
+
+// string	Response::serializeResponse() {
+// 	stringstream	ss;
+// 	//	waiting to add the status message 
+// 	ss << "HTTP/1.1 " << this->statusCode << " " <<  "OK" <<  CRLF;
+
+// 	this->setHeader("Content-Length", toString(this->body.size()));
+// 	this->setHeader("Server", "Webserv/1.0");
+// 	this->setHeader("Connection", "keep-alive");
+
+// 	for (map<string, string>::iterator it = this->headers.begin();
+// 			it != this->headers.end(); it++)
+// 	{ ss << it->first << ": " << it->second << CRLF; }
+
+// 	ss << CRLF;
+
+// 	ss.write(this->body.data(), this->body.size());
+// 	return ss.str();
+// }

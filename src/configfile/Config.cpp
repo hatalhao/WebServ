@@ -473,46 +473,46 @@ int	Config::acceptConnection(int serverIndex, int socketIndex) {
 	return clientFd;
 }
 
-int	Client::handleData() {
-	char buffer[4096];
-	print "Receiving data on client socket " << this->_clientFd << endl;
-	ssize_t bytesRead = recv(this->_clientFd, buffer, sizeof(buffer) - 1, 0);
+// int	Client::handleData() {
+// 	char buffer[4096];
+// 	print "Receiving data on client socket " << this->_clientFd << endl;
+// 	ssize_t bytesRead = recv(this->_clientFd, buffer, sizeof(buffer) - 1, 0);
 	
-	if (bytesRead > 0) {
-		buffer[bytesRead] = '\0';
-		string requestData(buffer);
-		this->setRequestBuf(requestData);
-		this->processRequest();
-		if (this->getState() == READING_DONE || this->getState() == READING_BAD_REQUEST) {
-			print "Received " << requestData.length() << " bytes from client " << this->_clientFd << endl;
-			print "The Full Request is: " << requestData << endl;
-			this->generateResponse();
+// 	if (bytesRead > 0) {
+// 		buffer[bytesRead] = '\0';
+// 		string requestData(buffer);
+// 		this->setRequestBuf(requestData);
+// 		this->processRequest();
+// 		if (this->getState() == READING_DONE || this->getState() == READING_BAD_REQUEST) {
+// 			print "Received " << requestData.length() << " bytes from client " << this->_clientFd << endl;
+// 			print "The Full Request is: " << requestData << endl;
+// 			this->generateResponse();
 			
-			string responseBuffer = this->getResponseBuf();
+// 			string responseBuffer = this->getResponseBuf();
 			
-			size_t totalSent = 0;
-			size_t toSend = responseBuffer.length();
-			const char* buf = responseBuffer.c_str();
+// 			size_t totalSent = 0;
+// 			size_t toSend = responseBuffer.length();
+// 			const char* buf = responseBuffer.c_str();
 			
-			while (totalSent < toSend) {
-				ssize_t sent = send(this->_clientFd, buf + totalSent, toSend - totalSent, 0);
-				if (sent <= 0) {
-					break;
-				}
-				totalSent += sent;
-			}
+// 			while (totalSent < toSend) {
+// 				ssize_t sent = send(this->_clientFd, buf + totalSent, toSend - totalSent, 0);
+// 				if (sent <= 0) {
+// 					break;
+// 				}
+// 				totalSent += sent;
+// 			}
 			
-			return (FINISHED);
-		}	
-	} else if (bytesRead == 0) {
-		print "Client " << this->_clientFd << " disconnected" << endl;
-		return (DISCONNECTED);
-	} else if (bytesRead < 0) {
-		print "Error reading from client " << this->_clientFd << ": " << strerror(errno) << endl;
-		return (DISCONNECTED);
-	}
-	return (CONTINUE);
-}
+// 			return (FINISHED);
+// 		}	
+// 	} else if (bytesRead == 0) {
+// 		print "Client " << this->_clientFd << " disconnected" << endl;
+// 		return (DISCONNECTED);
+// 	} else if (bytesRead < 0) {
+// 		print "Error reading from client " << this->_clientFd << ": " << strerror(errno) << endl;
+// 		return (DISCONNECTED);
+// 	}
+// 	return (CONTINUE);
+// }
 
 void Config::listenForEvents() {
     print "Starting epoll-based event loop" << endl;
@@ -653,7 +653,7 @@ void Config::listenForEvents() {
 
                     // Handle writable client
                     if (events[i].events & EPOLLOUT) {
-                        client->handleWriteEvent(this->_epollFd);
+                        client->handleWriteEvent();
                     }
                 }
             }

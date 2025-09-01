@@ -12,8 +12,8 @@ max_body_size = "1GB"
 
 [[location]]
 name = "/"
-path = "/home/Ali/Desktop/WebServ/"
-index = ["index.html", "images.php", "imagesFile.html"]
+path = "/home/Ali/Downloads"
+# index = ["index.html", "images.php", "imagesFile.html"]
 autoindex = ["on"]
 allow = ["GET", "DELETE", "POST"]
 upload_path = "/home/Ali/Desktop/WebServ/"
