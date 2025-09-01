@@ -165,11 +165,9 @@ std::string Request::getHeader(const std::string& key) const {
 }
 
 int Request::processHeaders(string& buffer) {
-    if (buffer.find(CRLF CRLF) == NPOS)
-    return 0;
     while (true) {
         size_t pos = buffer.find(CRLF);
-        if (pos == NPOS) {this->state = PARSINGERROR; return 400;}
+        if (pos == NPOS) { return 0; }
 
         string  line = buffer.substr(0, pos);
         

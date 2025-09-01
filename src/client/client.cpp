@@ -39,19 +39,35 @@ void    Client::updateState() {
 }
 
 void    Client::processRequest() {
-	switch (this->state)
-	{
-	case READING_REQUEST_LINE: 
-		this->httpStatusCode = this->request.processRequestLine(this->requestBuf); break;
-	case READING_HEADERS:
-		this->httpStatusCode = this->request.processHeaders(this->requestBuf); break;
-	case READING_BODY:
-		this->httpStatusCode = this->request.processBody(this->requestBuf); break;
-		break;
-	default:
-		break;
-	}
-	updateState();
+    // The previous state is saved to check if the parser made progress.
+    ClientState previousState = this->state;
+
+    // The switch statement ensures we only do the work for the current state.
+    switch (this->state)
+    {
+        case READING_REQUEST_LINE: 
+            this->httpStatusCode = this->request.processRequestLine(this->requestBuf);
+            break;
+        case READING_HEADERS:
+            this->httpStatusCode = this->request.processHeaders(this->requestBuf);
+            break;
+        case READING_BODY:
+            this->httpStatusCode = this->request.processBody(this->requestBuf);
+            break;
+        default:
+            // For states like READING_DONE or READING_BAD_REQUEST, do nothing.
+            break;
+    }
+
+    // After attempting to process, update the state based on the request's internal progress.
+    updateState();
+
+    // If the state is still a parsing state and it hasn't changed, it means
+    // we need more data from the client, so we stop processing for now.
+    // If the state HAS changed, it means we can immediately try the next step.
+    if (this->state != previousState && this->state != READING_DONE
+		&& this->state != READING_BAD_REQUEST)
+        this->processRequest();
 }
 
 void    Client::generateResponse() {

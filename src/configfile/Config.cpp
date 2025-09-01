@@ -482,9 +482,7 @@ int	Client::handleData() {
 		buffer[bytesRead] = '\0';
 		string requestData(buffer);
 		this->setRequestBuf(requestData);
-		while (this->getState() != READING_DONE && this->getState() != READING_BAD_REQUEST) {
-			this->processRequest();
-		}
+		this->processRequest();
 		if (this->getState() == READING_DONE || this->getState() == READING_BAD_REQUEST) {
 			print "Received " << requestData.length() << " bytes from client " << this->_clientFd << endl;
 			print "The Full Request is: " << requestData << endl;
