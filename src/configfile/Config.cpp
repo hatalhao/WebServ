@@ -429,84 +429,75 @@ std::map<int, std::string>	Config::extractErrorPageMap() const {
 	return errorPageMap;
 }
 
-Config::~Config() {}
+Config::~Config() {
+	// Clean up all client pointers
+	for (size_t i = 0; i < this->_clients.size(); ++i) {
+		delete this->_clients[i];
+	}
+	this->_clients.clear();
+}
 
-void	Config::acceptConnection(int serverIndex, int socketIndex) {
+int	Config::acceptConnection(int serverIndex, int socketIndex) {
 	if (serverIndex >= static_cast<int>(this->_servers.size()) || 
 		socketIndex >= static_cast<int>(this->_servers[serverIndex].socketFd.size())) {
-		return;
+		return -1;
 	}
 	
 	int clientFd = accept(this->_servers[serverIndex].socketFd[socketIndex], NULL, NULL);
 	if (clientFd < 0) {
-		return ;
+		return -1;
 	}
 
 	if (fcntl(clientFd, F_SETFL, O_NONBLOCK) < 0) {
 		close(clientFd);
-		return ;
+		return -1;
 	}
 
-	// Note: This method is currently not used by the main event loop
-	// Client connections are handled directly in listenForEvents()
-	// If this method is to be used, epoll management would need to be passed as parameter
-	
-	print "Accepted new client connection on socket " << clientFd << endl;
-	close(clientFd); // Close immediately since we can't add to epoll from here
+	// Create client on heap to avoid stack-use-after-return
+	Client* newClient = new Client(clientFd, &this->_servers[serverIndex]);
+	this->_clients.push_back(newClient);
+	int clientIndex = this->_clients.size() - 1;
+
+	struct epoll_event ev;
+	ev.events = EPOLLIN | EPOLLET;
+	ev.data.fd = clientFd;
+	if (epoll_ctl(this->_epollFd, EPOLL_CTL_ADD, clientFd, &ev) < 0) {
+		perror("epoll_ctl: clientFd");
+		close(clientFd);
+		delete this->_clients.back(); // Delete the client we just added
+		this->_clients.pop_back();
+		return -1;
+	}
+
+	print "Accepted new client connection on socket " << clientFd << " (client index: " << clientIndex << ")" << endl;
+	return clientFd;
 }
 
-int	Config::handleClientData(int clientFd, int serverIndex) {
+int	Client::handleData() {
 	char buffer[4096];
-	ssize_t bytesRead = recv(clientFd, buffer, sizeof(buffer) - 1, 0);
+	print "Receiving data on client socket " << this->_clientFd << endl;
+	ssize_t bytesRead = recv(this->_clientFd, buffer, sizeof(buffer) - 1, 0);
 	
 	if (bytesRead > 0) {
 		buffer[bytesRead] = '\0';
 		string requestData(buffer);
-		
-		// For edge-triggered epoll, we should read all available data
-		// But we need to be careful about blocking
-		while (true) {
-			ssize_t moreBytes = recv(clientFd, buffer, sizeof(buffer) - 1, MSG_DONTWAIT);
-			if (moreBytes > 0) {
-				buffer[moreBytes] = '\0';
-				requestData.append(buffer);
-			} else {
-				// No more data available (EAGAIN/EWOULDBLOCK) or error
-				break;
-			}
+		this->setRequestBuf(requestData);
+		while (this->getState() != READING_DONE && this->getState() != READING_BAD_REQUEST) {
+			this->processRequest();
 		}
-		
-		if (requestData.find("\r\n\r\n") != string::npos) {
-			print "Received " << requestData.length() << " bytes from client " << clientFd << endl;
+		if (this->getState() == READING_DONE || this->getState() == READING_BAD_REQUEST) {
+			print "Received " << requestData.length() << " bytes from client " << this->_clientFd << endl;
 			print "The Full Request is: " << requestData << endl;
+			this->generateResponse();
 			
-			Client clientHandler(clientFd, &this->_servers[serverIndex]);
-			clientHandler.setRequestBuf(requestData);
-			
-			for (int i = 0; i < MAXEVENTS; ++i) {
-				ClientState prevState = clientHandler.getState();
-				clientHandler.processRequest();
-				
-				if (clientHandler.getState() == READING_BAD_REQUEST || 
-					clientHandler.getState() == READING_DONE) {
-					break;
-				}
-				
-				if (clientHandler.getState() == prevState) {
-					break;
-				}
-			}
-			
-			clientHandler.generateResponse();
-
-			string responseBuffer = clientHandler.getResponseBuf();
+			string responseBuffer = this->getResponseBuf();
 			
 			size_t totalSent = 0;
 			size_t toSend = responseBuffer.length();
 			const char* buf = responseBuffer.c_str();
 			
 			while (totalSent < toSend) {
-				ssize_t sent = send(clientFd, buf + totalSent, toSend - totalSent, 0);
+				ssize_t sent = send(this->_clientFd, buf + totalSent, toSend - totalSent, 0);
 				if (sent <= 0) {
 					break;
 				}
@@ -514,19 +505,15 @@ int	Config::handleClientData(int clientFd, int serverIndex) {
 			}
 			
 			return (FINISHED);
-		} else {
-			print "Incomplete request received, closing connection" << endl;
-			return (DISCONNECTED);
-		}
+		}	
 	} else if (bytesRead == 0) {
-		print "Client " << clientFd << " disconnected" << endl;
+		print "Client " << this->_clientFd << " disconnected" << endl;
 		return (DISCONNECTED);
-	} else {
-		if (errno == EAGAIN || errno == EWOULDBLOCK) {
-			return (CONTINUE);
-		}
+	} else if (bytesRead < 0) {
+		print "Error reading from client " << this->_clientFd << ": " << strerror(errno) << endl;
 		return (DISCONNECTED);
 	}
+	return (CONTINUE);
 }
 
 void	Config::listenForEvents() {
@@ -536,8 +523,8 @@ void	Config::listenForEvents() {
 		throw std::runtime_error("No servers configured");
 	}
 	
-	int epollFd = epoll_create1(0);
-	if (epollFd < 0) {
+	this->_epollFd = epoll_create1(0);
+	if (this->_epollFd < 0) {
 		throw std::runtime_error("Failed to create epoll instance");
 	}
 
@@ -548,18 +535,14 @@ void	Config::listenForEvents() {
 	std::map<int, std::pair<int, int> > socketToServer;
 
 	std::map<int, int> clientToServer;
-	
-	size_t totalSockets = 0;
-	for (size_t i = 0; i < this->_servers.size(); ++i) {
-		totalSockets += this->_servers[i].socketFd.size();
-	}
+	std::map<int, int> fdToClientIndex; // Maps file descriptor to client index
 	
 	for (size_t serverIndex = 0; serverIndex < this->_servers.size(); ++serverIndex) {
 		for (size_t socketFdIndex = 0; socketFdIndex < this->_servers[serverIndex].socketFd.size(); ++socketFdIndex) {
 			int serverSocket = this->_servers[serverIndex].socketFd[socketFdIndex];
 			
 			if (fcntl(serverSocket, F_SETFL, O_NONBLOCK) < 0) {
-				close(epollFd);
+				close(this->_epollFd);
 				throw std::runtime_error("Failed to set server socket non-blocking");
 			}
 			
@@ -567,20 +550,19 @@ void	Config::listenForEvents() {
 			event.events = EPOLLIN;
 			event.data.fd = serverSocket;
 			
-			if (epoll_ctl(epollFd, EPOLL_CTL_ADD, serverSocket, &event) < 0) {
-				close(epollFd);
+			if (epoll_ctl(this->_epollFd, EPOLL_CTL_ADD, serverSocket, &event) < 0) {
+				close(this->_epollFd);
 				throw std::runtime_error("Failed to add server socket to epoll");
 			}
 
 			socketToServer[serverSocket] = std::make_pair(serverIndex, socketFdIndex);
-			print "Added server socket " << serverSocket << " to epoll" << endl;
 		}
 	}
 	
 	struct epoll_event events[MAXEVENTS];
 	
 	while (true) {
-		int eventCount = epoll_wait(epollFd, events, MAXEVENTS, -1);
+		int eventCount = epoll_wait(this->_epollFd, events, MAXEVENTS, -1);
 		if (eventCount < 0) {
 			if (errno == EINTR) continue;
 			break;
@@ -592,54 +574,78 @@ void	Config::listenForEvents() {
 			if (socketToServer.find(fd) != socketToServer.end()) {
 				std::pair<int, int> serverInfo = socketToServer[fd];
 				int serverIndex = serverInfo.first;
+				int socketIndex = serverInfo.second;
 				
-				struct sockaddr_in clientAddr;
-				socklen_t clientLen = sizeof(clientAddr);
-				
-				int clientFd = accept(fd, (struct sockaddr*)&clientAddr, &clientLen);
-				if (clientFd < 0) {
-					if (errno != EAGAIN && errno != EWOULDBLOCK) {
-						print "Accept failed: " << strerror(errno) << endl;
+				int clientFd = this->acceptConnection(serverIndex, socketIndex);
+				if (clientFd >= 0) {
+					// Set client socket to non-blocking
+					if (fcntl(clientFd, F_SETFL, O_NONBLOCK) < 0) {
+						print "Failed to set client socket non-blocking" << endl;
+						close(clientFd);
+						continue;
 					}
-					continue;
+					
+					// Add client socket to epoll for monitoring
+					struct epoll_event clientEvent;
+					clientEvent.events = EPOLLIN | EPOLLET; // Edge-triggered mode
+					clientEvent.data.fd = clientFd;
+					
+					// Try to add to epoll, if it fails because it already exists, try to modify it
+					if (epoll_ctl(this->_epollFd, EPOLL_CTL_ADD, clientFd, &clientEvent) < 0) {
+						if (errno == EEXIST) {
+							// Already exists, try to modify instead
+							if (epoll_ctl(this->_epollFd, EPOLL_CTL_MOD, clientFd, &clientEvent) < 0) {
+								print "Failed to modify client socket in epoll: " << strerror(errno) << endl;
+								close(clientFd);
+								continue;
+							}
+						} else {
+							print "Failed to add client socket to epoll: " << strerror(errno) << endl;
+							close(clientFd);
+							continue;
+						}
+					}
+					
+					clientToServer[clientFd] = serverIndex;
+					fdToClientIndex[clientFd] = this->_clients.size() - 1; // Map fd to the last client added
 				}
-				
-				if (fcntl(clientFd, F_SETFL, O_NONBLOCK) < 0) {
-					close(clientFd);
-					print "Failed to set client socket non-blocking" << endl;
-					continue;
-				}
-				
-				struct epoll_event clientEvent;
-				clientEvent.events = EPOLLIN | EPOLLET;
-				clientEvent.data.fd = clientFd;
-				
-				if (epoll_ctl(epollFd, EPOLL_CTL_ADD, clientFd, &clientEvent) < 0) {
-					close(clientFd);
-					print "Failed to add client to epoll" << endl;
-					continue;
-				}
-				
-				clientToServer[clientFd] = serverIndex;
-				print "Accepted client connection on socket " << clientFd << endl;
 			}
 			else {
 				std::map<int, int>::iterator it = clientToServer.find(fd);
 				if (it != clientToServer.end()) {
-					int serverIndex = it->second;
-					int result = this->handleClientData(fd, serverIndex);
-					if (result == DISCONNECTED || result == FINISHED) {
-						epoll_ctl(epollFd, EPOLL_CTL_DEL, fd, NULL);
-						close(fd);
-						clientToServer.erase(it);
-						print "Closed connection to client " << fd << endl;
+					print it->first << " is mapped to server index " << it->second << endl;
+					
+					// Find the correct client index using the fd
+					std::map<int, int>::iterator clientIt = fdToClientIndex.find(fd);
+					if (clientIt != fdToClientIndex.end()) {
+						int clientIndex = clientIt->second;
+						int result = this->_clients[clientIndex]->handleData();
+						if (result == DISCONNECTED || result == FINISHED) {
+							epoll_ctl(this->_epollFd, EPOLL_CTL_DEL, fd, NULL);
+							close(fd);
+							clientToServer.erase(it);
+							fdToClientIndex.erase(clientIt);
+							
+							// Delete client object and remove from vector
+							delete this->_clients[clientIndex];
+							this->_clients.erase(this->_clients.begin() + clientIndex);
+							
+							// Update fdToClientIndex mapping for all clients after the removed one
+							for (std::map<int, int>::iterator mapIt = fdToClientIndex.begin(); mapIt != fdToClientIndex.end(); ++mapIt) {
+								if (mapIt->second > clientIndex) {
+									mapIt->second--; // Decrement index since we removed a client before this one
+								}
+							}
+							
+							print "Closed connection to client " << fd << endl;
+						}
 					}
 				}
 			}
 		}
 	}
-	
-	close(epollFd);
+
+	close(this->_epollFd);
 }
 
 void	Config::establishConnection() {

@@ -15,7 +15,7 @@ Client& Client::operator=(const Client& other) {
 }
 
 Client::Client(int fd, server* serverConfig) :
-	_config(serverConfig), currentPort(fd), requestBuf(""), responseBuf(""), contentLen(0),
+	_config(serverConfig), _clientFd(fd), requestBuf(""), responseBuf(""), contentLen(0),
 	state(READING_REQUEST_LINE), request(_config->maxBodySize),
 	response(serverConfig, request, httpStatusCode), httpStatusCode(0) {}
 

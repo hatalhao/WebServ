@@ -23,7 +23,8 @@ enum ClientState {
 
 class Client {
 	private:
-		server	*_config;
+		server			*_config;
+		int				_clientFd;
 		int				currentPort;
 		string			requestBuf;
 		string			responseBuf;
@@ -47,5 +48,6 @@ class Client {
 		void	printBuffer() const { cout << "Request Buffer: " << requestBuf << endl; }
 		void	printRequest() const;
 		void	printState() const;
+		int		handleData();
 };
 

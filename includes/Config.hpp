@@ -17,17 +17,17 @@ class Config {
 		std::string							_configFilePath;
 		std::map<std::string, std::string>	_settings;
 		size_t								_maxBodySize;
-		
+		int									_epollFd;
+
 	public:
 		Config(const std::string &configFilePath);
 		~Config();
 		
-		std::vector<Client>					_clients;
+		std::vector<Client*>				_clients;
 		std::vector<server>					_servers;
 		
 		void								establishConnection();
-		void								acceptConnection(int serverIndex, int socketIndex);
-		int									handleClientData(int clientFd, int serverIndex);
+		int									acceptConnection(int serverIndex, int socketIndex);
 		void								listenForEvents();
 		
 		std::set<int>						extractPorts() const;
