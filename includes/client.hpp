@@ -33,6 +33,7 @@ class Client {
 		Request			request;
 		Response		response;
 		unsigned short	httpStatusCode;
+		size_t			bytesSent;
 
 	public:
 
@@ -49,5 +50,7 @@ class Client {
 		void	printRequest() const;
 		void	printState() const;
 		int		handleData();
+		int		handleReadEvent(int epollFd);
+		int		handleWriteEvent(int epollFd);
 };
 

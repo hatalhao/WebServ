@@ -17,7 +17,7 @@ Client& Client::operator=(const Client& other) {
 Client::Client(int fd, server* serverConfig) :
 	_config(serverConfig), _clientFd(fd), requestBuf(""), responseBuf(""), contentLen(0),
 	state(READING_REQUEST_LINE), request(_config->maxBodySize),
-	response(serverConfig, request, httpStatusCode), httpStatusCode(0) {}
+	response(serverConfig, request, httpStatusCode), httpStatusCode(0), bytesSent(0) {}
 
 void    Client::updateState() {
 	switch (this->request.getState()) {
@@ -39,10 +39,8 @@ void    Client::updateState() {
 }
 
 void    Client::processRequest() {
-    // The previous state is saved to check if the parser made progress.
     ClientState previousState = this->state;
 
-    // The switch statement ensures we only do the work for the current state.
     switch (this->state)
     {
         case READING_REQUEST_LINE: 
@@ -55,16 +53,11 @@ void    Client::processRequest() {
             this->httpStatusCode = this->request.processBody(this->requestBuf);
             break;
         default:
-            // For states like READING_DONE or READING_BAD_REQUEST, do nothing.
             break;
     }
 
-    // After attempting to process, update the state based on the request's internal progress.
     updateState();
 
-    // If the state is still a parsing state and it hasn't changed, it means
-    // we need more data from the client, so we stop processing for now.
-    // If the state HAS changed, it means we can immediately try the next step.
     if (this->state != previousState && this->state != READING_DONE
 		&& this->state != READING_BAD_REQUEST)
         this->processRequest();
@@ -88,4 +81,83 @@ void    Client::generateResponse() {
 		
 	}
 	this->responseBuf = this->response.serializeResponse();
+}
+
+
+int Client::handleReadEvent(int epollFd) {
+    char buffer[4096];
+    ssize_t bytesRead;
+
+    // Read until EAGAIN because EPOLLET
+    while ((bytesRead = recv(this->_clientFd, buffer, sizeof(buffer), 0)) > 0) {
+        this->requestBuf.append(buffer, bytesRead);
+    }
+
+    if (bytesRead == 0) {
+        return DISCONNECTED; // client closed
+    }
+    if (bytesRead < 0 && errno != EAGAIN) {
+        perror("recv failed");
+        return DISCONNECTED;
+    }
+
+    this->processRequest();
+
+    if (this->state == READING_DONE || this->state == READING_BAD_REQUEST) {
+        this->generateResponse();
+        this->state = SENDING_RESPONSE;
+        this->bytesSent = 0;
+
+        struct epoll_event event;
+        memset(&event, 0, sizeof(event));
+        event.data.fd = this->_clientFd;
+        event.events = EPOLLOUT | EPOLLET; 
+        // if supporting pipelining: event.events |= EPOLLIN;
+
+        if (epoll_ctl(epollFd, EPOLL_CTL_MOD, this->_clientFd, &event) < 0) {
+            perror("epoll_ctl MOD failed");
+            return DISCONNECTED;
+        }
+    }
+
+    return CONTINUE;
+}
+
+
+int Client::handleWriteEvent(int epollFd) {
+    if (this->state != SENDING_RESPONSE)
+        return CONTINUE;
+
+    size_t toSend = this->responseBuf.size() - this->bytesSent;
+    const char* buf = this->responseBuf.c_str() + this->bytesSent;
+
+    ssize_t sent = send(this->_clientFd, buf, toSend, 0);
+
+    if (sent < 0) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            return CONTINUE; // try again later
+        }
+        perror("send failed");
+        return DISCONNECTED;
+    }
+
+    this->bytesSent += sent;
+
+    if (this->bytesSent == this->responseBuf.size()) {
+        // Done sending response
+        this->responseBuf.clear();
+        this->state = READING_REQUEST_LINE; // reset for next request if keep-alive
+
+        // Switch back to EPOLLIN (or EPOLLIN|EPOLLET if edge triggered)
+        struct epoll_event event;
+        memset(&event, 0, sizeof(event));
+        event.data.fd = this->_clientFd;
+        event.events = EPOLLIN | EPOLLET;
+
+        epoll_ctl(epollFd, EPOLL_CTL_MOD, this->_clientFd, &event);
+
+        return FINISHED;
+    }
+
+    return CONTINUE;
 }
