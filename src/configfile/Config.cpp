@@ -653,7 +653,45 @@ void Config::listenForEvents() {
 
                     // Handle writable client
                     if (events[i].events & EPOLLOUT) {
-                        client->handleWriteEvent();
+                        int result = client->handleWriteEvent();
+                        if (result == FINISHED) {
+                            // Switch back to reading for keep-alive
+                            struct epoll_event event;
+                            event.events = EPOLLIN | EPOLLET;
+                            event.data.fd = fd;
+                            if (epoll_ctl(this->_epollFd, EPOLL_CTL_MOD, fd, &event) < 0) {
+                                print "Failed to switch client to read mode: " << strerror(errno) << endl;
+                                // Close connection on error
+                                epoll_ctl(this->_epollFd, EPOLL_CTL_DEL, fd, NULL);
+                                close(fd);
+                                clientToServer.erase(fd);
+                                fdToClientIndex.erase(clientIt);
+                                delete this->_clients[clientIndex];
+                                this->_clients.erase(this->_clients.begin() + clientIndex);
+                                for (std::map<int, int>::iterator mapIt = fdToClientIndex.begin();
+                                     mapIt != fdToClientIndex.end(); ++mapIt) {
+                                    if (mapIt->second > clientIndex) {
+                                        mapIt->second--;
+                                    }
+                                }
+                                continue;
+                            }
+                        } else if (result == DISCONNECTED) {
+                            epoll_ctl(this->_epollFd, EPOLL_CTL_DEL, fd, NULL);
+                            close(fd);
+                            clientToServer.erase(fd);
+                            fdToClientIndex.erase(clientIt);
+                            delete this->_clients[clientIndex];
+                            this->_clients.erase(this->_clients.begin() + clientIndex);
+                            for (std::map<int, int>::iterator mapIt = fdToClientIndex.begin();
+                                 mapIt != fdToClientIndex.end(); ++mapIt) {
+                                if (mapIt->second > clientIndex) {
+                                    mapIt->second--;
+                                }
+                            }
+                            print "Closed connection to client " << fd << endl;
+                            continue;
+                        }
                     }
                 }
             }

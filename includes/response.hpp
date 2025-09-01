@@ -25,7 +25,8 @@ class Response {
 		const location_b&	findLocationConfig();
 		const string		generatefilename();
 		vector<cgi_t>::const_iterator	searchExtensionHandler(const string& extension);
-		
+		string				getReasonPhrase();
+
 	public:
 		int					bodyFd;
 		size_t				bodySize;
@@ -43,6 +44,7 @@ class Response {
 		string	serializeHeadersAndBody();
 		int	Post();
 		int	Get();
+		void	setErrorResponse(int code);
 };
 
 #endif

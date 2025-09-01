@@ -71,6 +71,8 @@ void    Client::processRequest() {
 void Client::generateResponse() {
     if (httpStatusCode != 0) {
         // Error responses still use responseBuf
+        response.setErrorResponse(httpStatusCode);
+        
         responseBuf = response.serializeHeadersAndBody();
         headerSent = 0;
         bodySent = 0;

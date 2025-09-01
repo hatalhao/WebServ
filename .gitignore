@@ -7,12 +7,12 @@
 # vscode config files
 *.vscode
 
-config
+*config
 
 # tldraw
-.tldr
+*.tldr
 # Executable
-webserv
+*webserv
 
 #files
 *.md

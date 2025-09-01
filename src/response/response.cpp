@@ -96,6 +96,49 @@ const string	Response::generatefilename() {
 	return ss.str();
 }
 
+string Response::getReasonPhrase() {
+	switch (this->statusCode) {
+		case 200: return "OK";
+		case 201: return "Created";
+		case 400: return "Bad Request";
+		case 403: return "Forbidden";
+		case 404: return "Not Found";
+		case 405: return "Method Not Allowed";
+		case 408: return "Request Timeout";
+		case 413: return "Request Entity Too Large";
+		case 414: return "Request-URI Too Long";
+		case 500: return "Internal Server Error";
+		case 501: return "Not Implemented";
+		case 505: return "HTTP Version Not Supported";
+		default: return "OK";
+	}
+}
+
+void Response::setErrorResponse(int code) {
+	this->statusCode = code;
+	this->rules = &(this->findLocationConfig());
+	
+	map<int, string>::const_iterator it = this->rules->errorPageMap.find(code);
+	string content;
+	if (it != this->rules->errorPageMap.end()) {
+		ifstream file(it->second.c_str());
+		if (file.is_open()) {
+			content.assign((istreambuf_iterator<char>(file)), istreambuf_iterator<char>());
+			file.close();
+		}
+	}
+	if (content.empty()) {
+		// Default error message
+		stringstream ss;
+		ss << "<html><body><h1>Error " << code << "</h1><p>" << getReasonPhrase() << "</p></body></html>";
+		content = ss.str();
+	}
+	this->setBody(content);
+	this->setHeader("Content-Type", "text/html");
+	stringstream len_ss;
+	len_ss << content.length();
+	this->setHeader("Content-Length", len_ss.str());
+}
 
 void	Response::setHeader(string key, string value)
 	{ this->headers.insert(pair<string, string>(key, value)); }
@@ -127,6 +170,7 @@ int	Response::Post() {
 			setHeader("Location", this->request.getPath()
 					+ (this->request.getPath()[request.getPath().length() - 1] == '/' ? "" : "/")
 					+ filename);
+			setHeader("Content-Length", "0");
 			return 201;
 		}
 		else
@@ -144,7 +188,7 @@ int	Response::Post() {
 			}
 		}
 		else 
-			return (setHeader("Allow", "GET"), 405);
+			return (setHeader("Allow", "GET"), setHeader("Content-Length", "0"), 405);
 	}
 	else if (this->resourceType == IS_NOT_FOUND)
 		return 404;
@@ -154,11 +198,11 @@ int	Response::Post() {
 string Response::serializeHeaders() {
     stringstream ss;
 
-    ss << "HTTP/1.1 " << statusCode << " " << "OK" << CRLF;
+    ss << "HTTP/1.1 " << statusCode << " " << getReasonPhrase() << CRLF;
 
     // Content-Length already set in GET or Post
     ss << "Server: Webserv/1.0" << CRLF;
-    ss << "Connection: keep-alive" << CRLF;
+    ss << "Connection: close" << CRLF;
 
     for (map<string,string>::iterator it = headers.begin(); it != headers.end(); ++it) {
         ss << it->first << ": " << it->second << CRLF;
@@ -181,7 +225,7 @@ string Response::serializeHeadersAndBody() {
 // string	Response::serializeResponse() {
 // 	stringstream	ss;
 // 	//	waiting to add the status message 
-// 	ss << "HTTP/1.1 " << this->statusCode << " " <<  "OK" <<  CRLF;
+// 	ss << "HTTP/1.1 " << this->statusCode << " " <<  getReasonPhrase() <<  CRLF;
 
 // 	this->setHeader("Content-Length", toString(this->body.size()));
 // 	this->setHeader("Server", "Webserv/1.0");
