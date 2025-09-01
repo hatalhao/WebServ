@@ -27,8 +27,7 @@ class Config {
 		
 		void								establishConnection();
 		void								acceptConnection(int serverIndex, int socketIndex);
-		int									handleClientData(int clientFd, int serverIndex, int epollIndex);
-		int									handleSimpleClientData(int clientFd, int epollFd);
+		int									handleClientData(int clientFd, int serverIndex);
 		void								listenForEvents();
 		
 		std::set<int>						extractPorts() const;

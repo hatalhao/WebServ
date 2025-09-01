@@ -16,8 +16,8 @@ path = "/home/hatalhao/"
 index = ["index.html", "images.php", "imagesFile.html"]
 autoindex = ["on"]
 allow = ["GET", "DELETE", "POST"]
-upload_path = "/home/hatalhao/uploads"
-return = "/home/hatalhao/pictures"
+upload_path = "/home/hatalhao/"
+return = "/home/hatalhao/"
 [[cgi]]
 extension = ".py"
 handler = "/usr/bin/python3"
@@ -39,10 +39,11 @@ handler = "/usr/bin/python3"
 
 [[server]]
 server_name = "hatalhao"
-host = "127.0.0.2"
-listen = "8081"
+host = "127.0.0.1"
+listen = "8082"
 root = "/home/hatalhao/42-cc/WebServ"
 max_body_size = "10GB"
+index = ["index.html"]
 # [[location]]
 # name = "/images"
 # path = "/home/hatalhao/42-cc/WebServ"
