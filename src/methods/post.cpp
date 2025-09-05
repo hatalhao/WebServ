@@ -41,10 +41,8 @@ int	Response::Post() {
 				return (this->statusCode);
 			}
 		}
-		else 
-			return (setHeader("Allow", "GET"), setHeader("Content-Length", "0"), 405);
 	}
-	return 403;
+	return (setHeader("Allow", "GET"), setHeader("Content-Length", "0"), 405);
 }
 
 string Response::serializeHeaders() {

@@ -8,12 +8,18 @@
 *.vscode
 
 *config
+
 *.toml
 
+*tmp
 # tldraw
 *.tldr
 # Executable
 *webserv
+
+*.upload
+
+*.txt
 
 #files
 *.md
