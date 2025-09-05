@@ -69,7 +69,7 @@ void    Client::processRequest() {
 }
 
 void Client::generateResponse() {
-    if (httpStatusCode != 0) {
+    if (httpStatusCode != 0 || response.prepareResponse()) {
         // Error responses still use responseBuf
         response.setErrorResponse(httpStatusCode);
         
@@ -82,17 +82,25 @@ void Client::generateResponse() {
         return;
     }
 
-    httpStatusCode = response.prepareResponse();
+    // httpStatusCode = response.prepareResponse();
 
-    if (request.getMethod() == "GET") {
+    if (request.getMethod() == "GET")
         httpStatusCode = response.Get();
-    } 
-    else if (request.getMethod() == "POST") {
+    else if (request.getMethod() == "POST")
         httpStatusCode = response.Post();
-    } 
     else if (request.getMethod() == "DELETE") {
         // handle DELETE
     }
+    // if (httpStatusCode != 0) {
+    //     response.setErrorResponse(httpStatusCode);
+    //     responseBuf = response.serializeHeadersAndBody();
+    //     headerSent = 0;
+    //     bodySent = 0;
+    //     fileBufferUsed = 0;
+    //     fileBufferSent = 0;
+    //     fileReadOffset = 0;
+    //     return;
+    // }
 
     if (!response.isFileBody) {
         // Small responses: headers + body in memory
@@ -133,7 +141,6 @@ int Client::handleReadEvent(int epollFd) {
     }
 
     this->processRequest();
-
     if (this->state == READING_DONE || this->state == READING_BAD_REQUEST) {
         this->generateResponse();
         this->state = SENDING_RESPONSE;
@@ -179,7 +186,6 @@ int Client::handleWriteEvent() {
         if (headerSent < responseBuf.size())
             return CONTINUE; // still sending headers
     }
-
     // If it's a file, stream it in chunks
     if (response.isFileBody) {
         // If buffer is empty or fully sent, read more data

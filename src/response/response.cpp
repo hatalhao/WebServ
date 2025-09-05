@@ -85,6 +85,9 @@ int Response::prepareResponse() {
 		this->resourcePath.replace(pos, 2, "/");
 
 	this->resourceType = getResourceType(this->resourcePath.c_str());
+	cout << this->resourcePath << " is " << this->resourceType << endl;
+	if (this->resourceType == IS_NOT_FOUND || this->resourceType == IS_FORBIDDEN)
+		return (this->statusCode = this->resourceType, -1);
 
 	return (0);
 }
@@ -117,10 +120,10 @@ string Response::getReasonPhrase() {
 void Response::setErrorResponse(int code) {
 	this->statusCode = code;
 	this->rules = &(this->findLocationConfig());
-	
-	map<int, string>::const_iterator it = this->rules->errorPageMap.find(code);
+
+	map<int, string>::const_iterator it = this->serverConf->errorPageMap.find(code);
 	string content;
-	if (it != this->rules->errorPageMap.end()) {
+	if (it != this->serverConf->errorPageMap.end()) {
 		ifstream file(it->second.c_str());
 		if (file.is_open()) {
 			content.assign((istreambuf_iterator<char>(file)), istreambuf_iterator<char>());
@@ -146,97 +149,4 @@ void	Response::setHeader(string key, string value)
 void	Response::setBody(string& _body)
 	{ this->body.assign(_body.begin(), _body.end()); }
 
-vector<cgi_t>::const_iterator	Response::searchExtensionHandler(const string& ext) {
-	vector<cgi_t>::const_iterator it = this->rules->cgiList.begin();
-	for (; it != this->rules->cgiList.end(); it++) {
-		if (it->extension == ext)
-				return it;
-	}
-	return it;
-}
 
-int	Response::Post() {
-	if (this->resourceType == IS_DIR) {
-		if (!this->rules->uploadPath.empty())
-		{
-			if (getResourceType(this->rules->uploadPath.c_str()) != IS_DIR) return (500);
-			string	filename = generatefilename();
-			std::ofstream outfile((this->rules->uploadPath
-				+ (rules->uploadPath[rules->uploadPath.length() - 1] == '/' ? "" : "/")
-				+ filename).c_str(), ios::binary);
-			if (!outfile.is_open()) return 500;
-			outfile.write(this->request.getBody().data(), this->request.getBody().size());
-			outfile.close();
-			setHeader("Location", this->request.getPath()
-					+ (this->request.getPath()[request.getPath().length() - 1] == '/' ? "" : "/")
-					+ filename);
-			setHeader("Content-Length", "0");
-			return 201;
-		}
-		else
-			return 500;
-	}
-	else if (this->resourceType == IS_FILE) {
-		if (this->rules->cgiList.empty() == false) {
-			vector<cgi_t>::const_iterator handler = searchExtensionHandler(this->request.getPath().substr(request.getPath().find_last_of(".")));
-			if (handler != this->rules->cgiList.end()) {
-				// CGI WORK STARTS HERE
-				CgiHandler _cgi(*this, handler->path);
-				_cgi.execute();
-				*this = _cgi.exportResponse();
-				return (this->statusCode);
-			}
-		}
-		else 
-			return (setHeader("Allow", "GET"), setHeader("Content-Length", "0"), 405);
-	}
-	else if (this->resourceType == IS_NOT_FOUND)
-		return 404;
-	return 403;
-}
-
-string Response::serializeHeaders() {
-    stringstream ss;
-
-    ss << "HTTP/1.1 " << statusCode << " " << getReasonPhrase() << CRLF;
-
-    // Content-Length already set in GET or Post
-    ss << "Server: Webserv/1.0" << CRLF;
-    ss << "Connection: close" << CRLF;
-
-    for (map<string,string>::iterator it = headers.begin(); it != headers.end(); ++it) {
-        ss << it->first << ": " << it->second << CRLF;
-    }
-
-    ss << CRLF; // end of headers
-    return ss.str();
-}
-
-string Response::serializeHeadersAndBody() {
-    stringstream ss;
-    ss << serializeHeaders();
-    if (!body.empty()) {
-        ss.write(body.data(), body.size());
-    }
-    return ss.str();
-}
-
-
-// string	Response::serializeResponse() {
-// 	stringstream	ss;
-// 	//	waiting to add the status message 
-// 	ss << "HTTP/1.1 " << this->statusCode << " " <<  getReasonPhrase() <<  CRLF;
-
-// 	this->setHeader("Content-Length", toString(this->body.size()));
-// 	this->setHeader("Server", "Webserv/1.0");
-// 	this->setHeader("Connection", "keep-alive");
-
-// 	for (map<string, string>::iterator it = this->headers.begin();
-// 			it != this->headers.end(); it++)
-// 	{ ss << it->first << ": " << it->second << CRLF; }
-
-// 	ss << CRLF;
-
-// 	ss.write(this->body.data(), this->body.size());
-// 	return ss.str();
-// }

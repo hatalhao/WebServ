@@ -4,10 +4,10 @@
 #include "request.hpp"
 
 enum ResourceType {
-	IS_NOT_FOUND,
+	IS_NOT_FOUND = 404,
 	IS_DIR,
 	IS_FILE,
-	IS_FORBIDDEN
+	IS_FORBIDDEN = 403
 };
 
 class Response {
@@ -47,4 +47,5 @@ class Response {
 		void	setErrorResponse(int code);
 };
 
+ResourceType	getResourceType(const char* resource);
 #endif

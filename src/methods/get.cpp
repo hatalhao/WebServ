@@ -162,8 +162,7 @@ int Response::Get() {
                 perror("fstat");
                 return 500;
             }
-            
-            this->statusCode = 200;
+
             this->setHeader("Content-Type", getMimeType(resourcePath));
             this->setHeader("Content-Length", to_string(st.st_size));
 
@@ -187,17 +186,22 @@ int Response::Get() {
                     
                     struct stat indexStat;
                     if (stat(indexPath.c_str(), &indexStat) == 0 && S_ISREG(indexStat.st_mode)) {
-                        string content;
-                        if (!readFileContent(indexPath, content)) {
+                        int fd = open(indexPath.c_str(), O_RDONLY);
+                        if (fd < 0) {
+                            perror("open");
                             return 500;
                         }
                         
-                        // TODO: Set response headers and body
                         this->statusCode = 200;
-                        // response.setStatusMessage("OK");
                         this->setHeader("Content-Type", getMimeType(indexPath));
-                        this->setHeader("Content-Length", to_string(content.length()));
-                        this->setBody(content);
+                        this->setHeader("Content-Length", to_string(indexStat.st_size));
+
+                        // Use streaming approach for index files too
+                        this->bodyFd = fd;              // keep fd for streaming
+                        this->bodySize = indexStat.st_size;    // track remaining size
+                        this->bodySent = 0;             // how much we already sent
+                        this->isFileBody = true;
+
                         return 200;
                     }
                 }
@@ -215,16 +219,10 @@ int Response::Get() {
                 this->setHeader("Content-Type", "text/html");
                 this->setHeader("Content-Length", to_string(listing.length()));
                 this->setBody(listing);
-                return 200;
-            } else {
+                return 0;
+            } else
                 return 403;
-            }
         }
-        
-        case IS_NOT_FOUND:
-            return (cout << BRIGHT_GREEN << "NOT_FOUND" << RESET << endl, 404);
-            
-        case IS_FORBIDDEN:
         default:
             return 403;
     }

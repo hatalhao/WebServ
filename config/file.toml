@@ -2,7 +2,7 @@
 server_name = ["sekhar", "awd", "awdaw", "aawdawd"]
 host = "127.0.0.1"
 listen = ["8989", "8080", "8081"]
-root = "/home/Ali/Desktop/WebServ"
+root = "/workspaces/WebServ"
 max_body_size = "1GB"
 
 [[error_pages]]
@@ -12,12 +12,12 @@ max_body_size = "1GB"
 
 [[location]]
 name = "/"
-path = "/home/Ali/Downloads"
-# index = ["index.html", "images.php", "imagesFile.html"]
+path = "/workspaces/WebServ"
+index = ["index.html", "images.php", "imagesFile.html"]
 autoindex = ["on"]
 allow = ["GET", "DELETE", "POST"]
-upload_path = "/home/Ali/Desktop/WebServ/"
-return = "/home/Ali/Desktop/WebServ/"
+upload_path = "/workspaces/WebServ/"
+return = "/workspaces/WebServ/"
 [[cgi]]
 extension = ".py"
 handler = "/usr/bin/python3"
@@ -41,12 +41,12 @@ handler = "/usr/bin/python3"
 server_name = "hatalhao"
 host = "127.0.0.1"
 listen = "8082"
-root = "/home/Ali/Desktop/WebServ"
+root = "/workspaces/WebServ"
 max_body_size = "10GB"
 index = ["index.html"]
 # [[location]]
 # name = "/images"
-# path = "/home/Ali/Desktop/WebServ"
+# path = "/workspaces/WebServ"
 # index = ["index.html", "index.php", "indexFile.html"]
 # autoindex = "on"
 # # allow = ["GET", "POST", "DELETE"]
@@ -56,5 +56,5 @@ index = ["index.html"]
 # server_name = "another"
 # host = "127.0.0.1"
 # listen = "8082"
-# root = "/home/Ali/Desktop/WebServ/src"
+# root = "/workspaces/WebServ/src"
 # max_body_size = "5GB"
