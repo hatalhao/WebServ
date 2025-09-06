@@ -73,7 +73,7 @@ int Response::prepareResponse() {
 	if (std::find(rules->methods.begin(),
 				rules->methods.end(),
 				this->request.getMethod()) == rules->methods.end())
-		return (405);
+		return (this->statusCode = 405, -1);
 
 	this->resourceDir = this->rules->path.empty() ? this->serverConf->root : this->rules->path;
 	this->resourcePath = this->resourceDir + this->request.getPath();
@@ -85,7 +85,6 @@ int Response::prepareResponse() {
 		this->resourcePath.replace(pos, 2, "/");
 
 	this->resourceType = getResourceType(this->resourcePath.c_str());
-	cout << this->resourcePath << " is " << this->resourceType << endl;
 	if (this->resourceType == IS_NOT_FOUND || this->resourceType == IS_FORBIDDEN)
 		return (this->statusCode = this->resourceType, -1);
 
@@ -147,6 +146,9 @@ void	Response::setHeader(string key, string value)
 	{ this->headers.insert(pair<string, string>(key, value)); }
 
 void	Response::setBody(string& _body)
-	{ this->body.assign(_body.begin(), _body.end()); }
+{
+	this->body.assign(_body.begin(), _body.end());
+	this->bodySize = this->body.size();
+}
 
 

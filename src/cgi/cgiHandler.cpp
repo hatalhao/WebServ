@@ -12,11 +12,16 @@ string	toLower(string& src) {
 
 void	CgiHandler::populateResponse(const string& output) {
 	size_t crlfPos = output.find(CRLF CRLF);
+	size_t lfPos = output.find("\n\n");
 	string	_headers, _body, line;
 
 	if (crlfPos != string::npos) {
 		_headers = output.substr(0, crlfPos);
 		_body = output.substr(crlfPos + CRLF_LENGTH + CRLF_LENGTH); 
+	}
+	else if (lfPos != string::npos) {
+		_headers = output.substr(0, lfPos);
+		_body = output.substr(lfPos + 2); 
 	}
 	else 
 		_body = output;
@@ -117,7 +122,8 @@ void    CgiHandler::executeParent() {
 	close(this->pipeIn[0]);
 	close(this->pipeOut[1]);
 
-	write(this->pipeIn[1], this->request.getBody().data(), this->request.getBody().size());
+	if(this->request.getMethod() == "POST")
+		write(this->pipeIn[1], this->request.getBody().data(), this->request.getBody().size());
 	close(this->pipeIn[1]);
 
 	char	buffer[4096];

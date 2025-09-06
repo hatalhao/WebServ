@@ -41,13 +41,13 @@ class Request {
 		string	getMethod() const { return method; }
 		string	getHeader(const string& key) const;
 		string	getPath() const { return path; }
-		// string	getUri() const { return uri; }
 		string	getQueryString() const { return queryString; }
+		RequestState	getState() const { return state; }
 		const vector<char>&	getBody() const { return body; }
 		string	getVersion() const { return version; }
 		const map<string, string>&	getHeaders() const { return headers; }
 		int	processRequestLine(string& buffer);
 		int	processHeaders(string& buffer);
 		int	processBody(string& buffer);
-		RequestState	getState() const { return state; }
+		void	setPath(const string& _path) { path = _path; }
 };

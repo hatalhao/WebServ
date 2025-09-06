@@ -39,13 +39,14 @@ class Response {
 		void	setBody(string& _body);
 		size_t	getBodySize() { return body.size(); }
 		int		prepareResponse();
-		string	serializeResponse();
 		string	serializeHeaders();
 		string	serializeHeadersAndBody();
 		int	Post();
 		int	Get();
 		int	Delete();
 		void	setErrorResponse(int code);
+		bool	findHeader(string key) { return headers.find(key) != headers.end(); }
+
 };
 
 ResourceType	getResourceType(const char* resource);

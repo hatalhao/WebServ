@@ -1,8 +1,7 @@
-sending the response in chunks (in GET)
+configure the client to store it's port
 
-remove MasterClient dependancy
+change cgi to state machine (prevents hanging)
 
-make the handleClientData() dependant on clientState instead of while true
+implement cookies
 
-serve error pages
-
+clean up code

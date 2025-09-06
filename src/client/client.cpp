@@ -92,11 +92,11 @@ void    Client::generateResponse() {
         httpStatusCode = response.Delete();
 
     if (!response.isFileBody) {
-        response.setHeader("content-length", to_string(response.bodySize));
+        if (response.findHeader("Content-Length") == false)
+            response.setHeader("Content-Length", to_string(response.bodySize));
         responseBuf = response.serializeHeadersAndBody();
     } else
         responseBuf = response.serializeHeaders();
-    cout << BRIGHT_GREEN << "[" << responseBuf << "]" << RESET << endl;
     resetWriteState();
     state = SENDING_RESPONSE;
 }
