@@ -33,9 +33,9 @@ class Client {
 		Request			request;
 		Response		response;
 		unsigned short	httpStatusCode;
+		void    resetWriteState();
 		
 	public:
-		
     	size_t bodySent;
 		size_t headerSent;
 		char fileBuffer[100000]; // Buffer for file streaming
@@ -54,7 +54,6 @@ class Client {
 		void	printBuffer() const { cout << "Request Buffer: " << requestBuf << endl; }
 		void	printRequest() const;
 		void	printState() const;
-		int		handleData();
 		int		handleReadEvent(int epollFd);
 		int		handleWriteEvent();
 };

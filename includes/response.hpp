@@ -44,6 +44,7 @@ class Response {
 		string	serializeHeadersAndBody();
 		int	Post();
 		int	Get();
+		int	Delete();
 		void	setErrorResponse(int code);
 };
 

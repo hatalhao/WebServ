@@ -68,58 +68,36 @@ void    Client::processRequest() {
         this->processRequest();
 }
 
-void Client::generateResponse() {
+void    Client::resetWriteState() {
+    this->headerSent = 0;
+    this->bodySent = 0;
+    this->fileBufferUsed = 0;
+    this->fileBufferSent = 0;
+    this->fileReadOffset = 0;
+}
+
+void    Client::generateResponse() {
     if (httpStatusCode != 0 || response.prepareResponse()) {
-        // Error responses still use responseBuf
         response.setErrorResponse(httpStatusCode);
-        
         responseBuf = response.serializeHeadersAndBody();
-        headerSent = 0;
-        bodySent = 0;
-        fileBufferUsed = 0;
-        fileBufferSent = 0;
-        fileReadOffset = 0;
+        resetWriteState();
         return;
     }
-
-    // httpStatusCode = response.prepareResponse();
 
     if (request.getMethod() == "GET")
         httpStatusCode = response.Get();
     else if (request.getMethod() == "POST")
         httpStatusCode = response.Post();
-    else if (request.getMethod() == "DELETE") {
-        // handle DELETE
-    }
-    // if (httpStatusCode != 0) {
-    //     response.setErrorResponse(httpStatusCode);
-    //     responseBuf = response.serializeHeadersAndBody();
-    //     headerSent = 0;
-    //     bodySent = 0;
-    //     fileBufferUsed = 0;
-    //     fileBufferSent = 0;
-    //     fileReadOffset = 0;
-    //     return;
-    // }
+    else if (request.getMethod() == "DELETE")
+        httpStatusCode = response.Delete();
 
     if (!response.isFileBody) {
-        // Small responses: headers + body in memory
+        response.setHeader("content-length", to_string(response.bodySize));
         responseBuf = response.serializeHeadersAndBody();
-        headerSent = 0;
-        bodySent = 0;
-        fileBufferUsed = 0;
-        fileBufferSent = 0;
-        fileReadOffset = 0;
-    } else {
-        // File response: send headers first
-        responseBuf = response.serializeHeaders(); // headers only
-        headerSent = 0;
-        bodySent = 0;
-        fileBufferUsed = 0;
-        fileBufferSent = 0;
-        fileReadOffset = 0;
-    }
-
+    } else
+        responseBuf = response.serializeHeaders();
+    cout << BRIGHT_GREEN << "[" << responseBuf << "]" << RESET << endl;
+    resetWriteState();
     state = SENDING_RESPONSE;
 }
 

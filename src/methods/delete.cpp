@@ -62,10 +62,10 @@ bool deleteResource(const std::string& path) {
     return (unlink(path.c_str()) == 0);
 }
 
-int deleteMethod(const std::string& resourcePath) {
+int Response::Delete() {
     struct stat statBuf;
     
-	if (stat(resourcePath.c_str(), &statBuf) != 0) {
+	if (stat(this->resourcePath.c_str(), &statBuf) != 0) {
         if (errno == ENOENT) {
             return NOT_FOUND;
         } else {
@@ -73,11 +73,11 @@ int deleteMethod(const std::string& resourcePath) {
         }
     }
     
-    if (!DeletePermitted(resourcePath)) {
+    if (!DeletePermitted(this->resourcePath)) {
         return FORBIDDEN;
     }
     
-    if (deleteResource(resourcePath)) {
+    if (deleteResource(this->resourcePath)) {
         return 200;
     } else {
         if (errno == EACCES || errno == EPERM) {

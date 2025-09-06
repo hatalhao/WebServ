@@ -1,5 +1,6 @@
 #include "../../includes/response.hpp"
 #include "../../includes/cgi.hpp"
+
 vector<cgi_t>::const_iterator	Response::searchExtensionHandler(const string& ext) {
 	vector<cgi_t>::const_iterator it = this->rules->cgiList.begin();
 	for (; it != this->rules->cgiList.end(); it++) {
@@ -34,7 +35,6 @@ int	Response::Post() {
 		if (this->rules->cgiList.empty() == false) {
 			vector<cgi_t>::const_iterator handler = searchExtensionHandler(this->request.getPath().substr(request.getPath().find_last_of(".")));
 			if (handler != this->rules->cgiList.end()) {
-				// CGI WORK STARTS HERE
 				CgiHandler _cgi(*this, handler->path);
 				_cgi.execute();
 				*this = _cgi.exportResponse();
@@ -50,15 +50,13 @@ string Response::serializeHeaders() {
 
     ss << "HTTP/1.1 " << statusCode << " " << getReasonPhrase() << CRLF;
 
-    // Content-Length already set in GET or Post
     ss << "Server: Webserv/1.0" << CRLF;
     ss << "Connection: close" << CRLF;
 
-    for (map<string,string>::iterator it = headers.begin(); it != headers.end(); ++it) {
+    for (map<string,string>::iterator it = headers.begin(); it != headers.end(); ++it)
         ss << it->first << ": " << it->second << CRLF;
-    }
 
-    ss << CRLF; // end of headers
+    ss << CRLF;
     return ss.str();
 }
 

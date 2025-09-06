@@ -213,13 +213,10 @@ int Response::Get() {
                     return 500;
                 }
                 
-                // TODO: Set response headers and body
-                this->statusCode = 200;
-                // response.setStatusMessage("OK");
                 this->setHeader("Content-Type", "text/html");
                 this->setHeader("Content-Length", to_string(listing.length()));
                 this->setBody(listing);
-                return 0;
+                return 200;
             } else
                 return 403;
         }
