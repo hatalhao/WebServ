@@ -7,7 +7,7 @@
 # vscode config files
 *.vscode
 
-config
+*config
 
 # tldraw
 .tldr
