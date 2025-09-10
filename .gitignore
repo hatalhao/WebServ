@@ -5,9 +5,9 @@
 *.o
 
 # vscode config files
-*.vscode
+.vscode/
 
-*config
+config/
 
 *.toml
 
