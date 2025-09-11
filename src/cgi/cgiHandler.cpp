@@ -133,7 +133,7 @@ void	CgiHandler::manageReadEvent(int epollFd) {
 	char	buffer[8192];
 	ssize_t	bytesRead;
 
-	// Drain the pipe fully for EPOLLET until EAGAIN or EOF
+	// Read available data; under level-triggered epoll we'll get called again if more remains
 	while ((bytesRead = read(this->readPipeFd, buffer, sizeof(buffer))) > 0)
 		this->output.append(buffer, bytesRead);
 
@@ -145,7 +145,7 @@ void	CgiHandler::manageReadEvent(int epollFd) {
 		this->state = CGI_DONE;
 	} else if (bytesRead < 0) {
 		if (errno == EAGAIN || errno == EWOULDBLOCK) {
-			// No more data for now under EPOLLET
+			// No more data for now; will continue on next EPOLLIN
 			return;
 		}
 		// Hard error
@@ -165,7 +165,7 @@ void	CgiHandler::manageWriteEvent(int epollFd) {
 	const vector<char>& body = request.getBody();
 	size_t	bytesLeft = body.size() - this->bytesRecieved;
 
-	// Write as much as possible for EPOLLET until EAGAIN
+	// Write as much as possible until EAGAIN
 	while (bytesLeft > 0) {
 		ssize_t sent = write(this->writePipeFd, body.data() + this->bytesRecieved, bytesLeft);
 		if (sent > 0) {

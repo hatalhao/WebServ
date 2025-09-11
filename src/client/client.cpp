@@ -94,16 +94,17 @@ void    Client::generateResponse() {
             // Track handler lifetime to avoid dangling pointers during cleanup
             this->globalConfig->_cgiSet.insert(cgi);
             struct epoll_event ev = epoll_event();
-            ev.events = EPOLLET;
+            // Level-triggered events by default
+            ev.events = 0;
 
             // If the CGI needs to be written-to (POST), watch for EPOLLOUT on its write-pipe.
             if (cgi->getState() == CGI_WRITING) {
-                ev.events |= EPOLLOUT;
+                ev.events |= EPOLLOUT; // watch write readiness
                 ev.data.fd = cgi->getWriteFd();
                 this->globalConfig->_cgiHandlers[ev.data.fd] = cgi;
                 epoll_ctl(this->globalConfig->getEpollFd(), EPOLL_CTL_ADD, ev.data.fd, &ev);
             }
-            ev.events = EPOLLIN | EPOLLET;
+            ev.events = EPOLLIN; // watch read readiness
             ev.data.fd = cgi->getReadFd();
             this->globalConfig->_cgiHandlers[ev.data.fd] = cgi;
             epoll_ctl(this->globalConfig->getEpollFd(), EPOLL_CTL_ADD, ev.data.fd, &ev);
@@ -143,17 +144,16 @@ int Client::handleReadEvent(int epollFd) {
     char buffer[4096];
     ssize_t bytesRead;
 
-    // Read until EAGAIN because EPOLLET
-    while ((bytesRead = recv(this->_clientFd, buffer, sizeof(buffer), 0)) > 0) {
+    bytesRead = recv(this->_clientFd, buffer, sizeof(buffer), 0);
+    if (bytesRead > 0) {
         this->requestBuf.append(buffer, bytesRead);
-    }
-
-    if (bytesRead == 0) {
+    } else if (bytesRead == 0) {
         return DISCONNECTED; // client closed
-    }
-    if (bytesRead < 0 && errno != EAGAIN) {
-        perror("recv failed");
-        return DISCONNECTED;
+    } else if (bytesRead < 0) {
+        if (errno != EAGAIN && errno != EWOULDBLOCK) {
+            perror("recv failed");
+            return DISCONNECTED;
+        }
     }
 
     this->processRequest();
@@ -163,7 +163,7 @@ int Client::handleReadEvent(int epollFd) {
         if (this->state == SENDING_RESPONSE) {
             struct epoll_event event = epoll_event();
             event.data.fd = this->_clientFd;
-            event.events = EPOLLOUT | EPOLLET;
+            event.events = EPOLLOUT; // level-triggered write readiness
     
             if (epoll_ctl(epollFd, EPOLL_CTL_MOD, this->_clientFd, &event) < 0) {
                 perror("epoll_ctl MOD failed");
@@ -326,7 +326,7 @@ void	Client::onCgiDone(string& cgiOutput) {
     // --- 4. Tell epoll to watch for when this client's socket is ready for writing ---
     struct epoll_event event = epoll_event();
     event.data.fd = this->_clientFd;
-    event.events = EPOLLOUT | EPOLLET;
+    event.events = EPOLLOUT; // level-triggered
     epoll_ctl(this->globalConfig->getEpollFd(), EPOLL_CTL_MOD, this->_clientFd, &event);
     
 }
@@ -345,6 +345,6 @@ void    Client::onCgiError() {
     // 4. Tell epoll to watch for when this client's socket is ready for writing.
     struct epoll_event event = epoll_event();
     event.data.fd = this->_clientFd;
-    event.events = EPOLLOUT | EPOLLET;
+    event.events = EPOLLOUT; // level-triggered
     epoll_ctl(this->globalConfig->getEpollFd(), EPOLL_CTL_MOD, this->_clientFd, &event);
 }

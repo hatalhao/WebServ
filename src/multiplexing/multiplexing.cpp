@@ -24,8 +24,9 @@ int	Config::acceptConnection(int serverIndex, int socketIndex) {
 	this->_clients.push_back(newClient);
 	int clientIndex = this->_clients.size() - 1;
 
-	struct epoll_event ev;
-	ev.events = EPOLLIN | EPOLLET;
+    struct epoll_event ev;
+    // Level-triggered: only watch for readability on new client sockets
+    ev.events = EPOLLIN;
 	ev.data.fd = clientFd;
 	if (epoll_ctl(this->_epollFd, EPOLL_CTL_ADD, clientFd, &ev) < 0) {
 		perror("epoll_ctl: clientFd");
@@ -108,7 +109,8 @@ void Config::listenForEvents() {
                     }
 
                     struct epoll_event clientEvent;
-                    clientEvent.events = EPOLLIN | EPOLLET; // start with read
+                    // Level-triggered: start watching for read events
+                    clientEvent.events = EPOLLIN; // start with read
                     clientEvent.data.fd = clientFd;
 
                     if (epoll_ctl(this->_epollFd, EPOLL_CTL_ADD, clientFd, &clientEvent) < 0) {
@@ -132,7 +134,7 @@ void Config::listenForEvents() {
             // new cgi case
             else if (this->_cgiHandlers.find(fd) != this->_cgiHandlers.end()) {
                 CgiHandler  *handler = this->_cgiHandlers[fd];
-                // For pipes under EPOLLET, treat HUP/ERR on read side as readable to drain & finalize
+                // For pipes, treat HUP/ERR on read side similar to readable to drain & finalize
                 if (events[i].events & (EPOLLIN | EPOLLHUP | EPOLLERR))
                     handler->manageReadEvent(this->_epollFd);
                 if (events[i].events & EPOLLOUT)
@@ -194,7 +196,8 @@ void Config::listenForEvents() {
                         if (result == FINISHED) {
                             // Switch back to reading for keep-alive
                             struct epoll_event event;
-                            event.events = EPOLLIN | EPOLLET;
+                            // Switch back to level-triggered read
+                            event.events = EPOLLIN;
                             event.data.fd = fd;
                             if (epoll_ctl(this->_epollFd, EPOLL_CTL_MOD, fd, &event) < 0) {
                                 print "Failed to switch client to read mode: " << strerror(errno) << endl;
