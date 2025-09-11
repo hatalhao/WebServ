@@ -1,14 +1,6 @@
 #include "../../includes/response.hpp"
 #include "../../includes/cgi.hpp"
 
-vector<cgi_t>::const_iterator	Response::searchExtensionHandler(const string& ext) {
-	vector<cgi_t>::const_iterator it = this->rules->cgiList.begin();
-	for (; it != this->rules->cgiList.end(); it++) {
-		if (it->extension == ext)
-				return it;
-	}
-	return it;
-}
 
 int	Response::Post() {
 	if (this->resourceType == IS_DIR) {
@@ -30,17 +22,6 @@ int	Response::Post() {
 		}
 		else
 			return 500;
-	}
-	else if (this->resourceType == IS_FILE) {
-		if (this->rules->cgiList.empty() == false) {
-			vector<cgi_t>::const_iterator handler = searchExtensionHandler(this->request.getPath().substr(request.getPath().find_last_of(".")));
-			if (handler != this->rules->cgiList.end()) {
-				CgiHandler _cgi(*this, handler->path);
-				_cgi.execute();
-				*this = _cgi.exportResponse();
-				return (this->statusCode);
-			}
-		}
 	}
 	return (setHeader("Allow", "GET"), setHeader("Content-Length", "0"), 405);
 }

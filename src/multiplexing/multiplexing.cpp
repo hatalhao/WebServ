@@ -20,7 +20,7 @@ int	Config::acceptConnection(int serverIndex, int socketIndex) {
 	}
 
 	// Create client on heap to avoid stack-use-after-return
-	Client* newClient = new Client(clientFd, &this->_servers[serverIndex]);
+	Client* newClient = new Client(clientFd, this, serverIndex);
 	this->_clients.push_back(newClient);
 	int clientIndex = this->_clients.size() - 1;
 
@@ -56,6 +56,8 @@ void Config::listenForEvents() {
     std::map<int, int> clientToServer;                   // clientFd → serverIndex
     std::map<int, int> fdToClientIndex;                  // clientFd → client index in _clients
 
+    // Use the shared CGI handlers map from Config to track pipe FDs
+    
     // Register server sockets
     for (size_t serverIndex = 0; serverIndex < this->_servers.size(); ++serverIndex) {
         for (size_t socketFdIndex = 0; socketFdIndex < this->_servers[serverIndex].socketFd.size(); ++socketFdIndex) {
@@ -126,6 +128,15 @@ void Config::listenForEvents() {
                     clientToServer[clientFd] = serverIndex;
                     fdToClientIndex[clientFd] = this->_clients.size() - 1;
                 }
+            }
+            // new cgi case
+            else if (this->_cgiHandlers.find(fd) != this->_cgiHandlers.end()) {
+                CgiHandler  *handler = this->_cgiHandlers[fd];
+                // For pipes under EPOLLET, treat HUP/ERR on read side as readable to drain & finalize
+                if (events[i].events & (EPOLLIN | EPOLLHUP | EPOLLERR))
+                    handler->manageReadEvent(this->_epollFd);
+                if (events[i].events & EPOLLOUT)
+                    handler->manageWriteEvent(this->_epollFd);
             }
             // Existing client activity
             else {
@@ -222,6 +233,28 @@ void Config::listenForEvents() {
                 }
             }
         }
+
+        // Cleanup finished CGI handlers using the tracked set to avoid UAF
+        for (std::set<CgiHandler*>::iterator sit = this->_cgiSet.begin(); sit != this->_cgiSet.end(); ) {
+            CgiHandler* h = *sit;
+            if (h->getState() == CGI_DONE) {
+                // Remove all fds registered for this handler
+                std::vector<int> keys;
+                for (std::map<int, CgiHandler*>::iterator jt = this->_cgiHandlers.begin(); jt != this->_cgiHandlers.end(); ++jt) {
+                    if (jt->second == h) keys.push_back(jt->first);
+                }
+                for (size_t k = 0; k < keys.size(); ++k) {
+                    epoll_ctl(this->_epollFd, EPOLL_CTL_DEL, keys[k], NULL);
+                    this->_cgiHandlers.erase(keys[k]);
+                }
+                // Reap child with waitpid(WNOHANG) could be added here
+                delete h;
+                this->_cgiSet.erase(sit++);
+            } else {
+                ++sit;
+            }
+        }
+
     }
 
     close(this->_epollFd);

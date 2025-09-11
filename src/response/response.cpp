@@ -84,6 +84,13 @@ int Response::prepareResponse() {
 	while ((pos = this->resourcePath.find("//")) != string::npos)
 		this->resourcePath.replace(pos, 2, "/");
 
+	size_t dotPos = this->request.getPath().find_last_of(".");
+	if (dotPos != string::npos) {
+		this->resourceExtension = this->request.getPath().substr(dotPos);
+	} else {
+		this->resourceExtension = "";
+	}
+
 	this->resourceType = getResourceType(this->resourcePath.c_str());
 	if (this->resourceType == IS_NOT_FOUND || this->resourceType == IS_FORBIDDEN)
 		return (this->statusCode = this->resourceType, -1);
@@ -151,4 +158,11 @@ void	Response::setBody(string& _body)
 	this->bodySize = this->body.size();
 }
 
-
+string	Response::searchCgiHandlerPath() {
+	vector<cgi_t>::const_iterator it = this->rules->cgiList.begin();
+	for (; it != this->rules->cgiList.end(); it++) {
+		if (it->extension == this->resourceExtension)
+				return it->path;
+	}
+	return "";
+}

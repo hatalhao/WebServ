@@ -1,7 +1,5 @@
 configure the client to store it's port
 
-change cgi to state machine (prevents hanging)
-
 implement cookies
 
 clean up code

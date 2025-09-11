@@ -1,89 +1,8 @@
 #include "../../includes/cgi.hpp"
 
-CgiHandler::CgiHandler(const Response& _response, const string& _scriptPath) :
-	Response(_response), scriptPath(_scriptPath) {}
-
-string	toLower(string& src) {
-	string _new = src;
-	for (size_t i = 0; i < _new.length(); i++)
-		_new[i] = tolower(_new[i]);
-	return (_new);
-}
-
-void	CgiHandler::populateResponse(const string& output) {
-	size_t crlfPos = output.find(CRLF CRLF);
-	size_t lfPos = output.find("\n\n");
-	string	_headers, _body, line;
-
-	if (crlfPos != string::npos) {
-		_headers = output.substr(0, crlfPos);
-		_body = output.substr(crlfPos + CRLF_LENGTH + CRLF_LENGTH); 
-	}
-	else if (lfPos != string::npos) {
-		_headers = output.substr(0, lfPos);
-		_body = output.substr(lfPos + 2); 
-	}
-	else 
-		_body = output;
-
-	this->setBody(_body);
-
-	stringstream ss(_headers);
-	bool isStatusSet = false;
-
-	while (getline(ss, line)) {
-		if (!line.empty() && line[line.length() - 1] == '\r')
-			line.erase(line.length() - 1);
-		size_t colonPos = line.find(':');
-		if (colonPos != string::npos) {
-			string key = line.substr(0, colonPos);
-			string value = line.substr(colonPos + 1);
-			value.erase(0, value.find_first_not_of(" \t"));
-			if (toLower(key) == "status") {
-				this->statusCode = atoi(value.c_str());
-				isStatusSet = true;
-			}
-			else
-				this->setHeader(key, value);
-		}
-	}
-	if (!isStatusSet)
-		this->statusCode = 200;
-
-	this->setHeader("Content-Length", toString(this->body.size()));
-}
-
-void    CgiHandler::setupEnv() {
-	vector<string> env_vars;
-	env_vars.push_back("GATEWAY_INTERFACE=CGI/1.1");
-	env_vars.push_back("SERVER_SOFTWARE=WebServ/1.0");
-	env_vars.push_back("SERVER_PROTOCOL=HTTP/1.1");
-
-	// env_vars.push_back("SERVER_NAME=" + this->serverConf->serverName);
-	// env_vars.push_back("SERVER_PORT=" + this->currentPort);
-
-	env_vars.push_back("REQUEST_METHOD=" + this->request.getMethod());
-	env_vars.push_back("QUERY_STRING=" + this->request.getQueryString());
-	env_vars.push_back("SCRIPT_NAME=" + this->request.getPath());
-
-	env_vars.push_back("PATH_INFO=" + this->scriptPath);
-
-	if (this->request.getMethod() == "POST") {
-		env_vars.push_back("CONTENT_TYPE=" + this->request.getHeader("content-type"));
-		if (this->request.getHeader("content-length") != "")
-			env_vars.push_back("CONTENT_LENGTH=" + this->request.getHeader("content-length"));
-		else {
-			env_vars.push_back("CONTENT_LENGTH=" + toString(this->request.getBody().size()));
-		}
-	}
-
-	this->envp = new char*[env_vars.size() + 1];
-	for (size_t i = 0; i < env_vars.size(); i++) {
-		this->envp[i] = new char[env_vars[i].length() + 1];
-		this->envp[i] = strcpy(this->envp[i], env_vars[i].c_str());
-	}
-	this->envp[env_vars.size()] = NULL;
-}
+CgiHandler::CgiHandler(Client& client) :
+	_client(client), envp(NULL), pid(-1), state(CGI_IDLE),
+	writePipeFd(-1), readPipeFd(-1), output(""), bytesRecieved(0) {}
 
 void    closeFds(int* in, int *out) {
 	if (in) {
@@ -96,20 +15,59 @@ void    closeFds(int* in, int *out) {
 	}
 }
 
-void    CgiHandler::executeChild() {
-	if (chdir(this->resourceDir.c_str())) {
-		closeFds(this->pipeIn, this->pipeOut);
+void    CgiHandler::setupEnv() {
+	Request request = this->_client.getRequest();
+	vector<string> env_vars;
+	env_vars.push_back("GATEWAY_INTERFACE=CGI/1.1");
+	env_vars.push_back("SERVER_SOFTWARE=WebServ/1.0");
+	env_vars.push_back("SERVER_PROTOCOL=HTTP/1.1");
+
+	// env_vars.push_back("SERVER_NAME=" + this->serverConf->serverName);
+	// env_vars.push_back("SERVER_PORT=" + this->currentPort);
+
+	env_vars.push_back("REQUEST_METHOD=" + request.getMethod());
+	env_vars.push_back("QUERY_STRING=" + request.getQueryString());
+	env_vars.push_back("SCRIPT_NAME=" + this->_client.getResponse().getResourcePath());
+
+	env_vars.push_back("PATH_INFO=" + this->_client.getResponse().getResourcePath());
+
+	if (request.getMethod() == "POST") {
+		env_vars.push_back("CONTENT_TYPE=" + request.getHeader("content-type"));
+		if (request.getHeader("content-length") != "")
+			env_vars.push_back("CONTENT_LENGTH=" + request.getHeader("content-length"));
+		else {
+			env_vars.push_back("CONTENT_LENGTH=" + toString(request.getBody().size()));
+		}
+	}
+
+	this->envp = new char*[env_vars.size() + 1];
+	for (size_t i = 0; i < env_vars.size(); i++) {
+		this->envp[i] = new char[env_vars[i].length() + 1];
+		this->envp[i] = strcpy(this->envp[i], env_vars[i].c_str());
+	}
+	this->envp[env_vars.size()] = NULL;
+}
+
+void    CgiHandler::executeChild(int *pipeIn, int *pipeOut) {
+
+	Response response = this->_client.getResponse();
+	if (chdir(response.getresourceDir().c_str())) {
+		closeFds(pipeIn, pipeOut);
 		exit(EXIT_FAILURE);
 	}
 
-	dup2(this->pipeIn[0], STDIN_FILENO);
-	dup2(this->pipeOut[1], STDOUT_FILENO);
+	dup2(pipeIn[0], STDIN_FILENO);
+	dup2(pipeOut[1], STDOUT_FILENO);
 
-	closeFds(this->pipeIn, this->pipeOut);
+	closeFds(pipeIn, pipeOut);
+
+	// Store strings to prevent use-after-free
+	string handlerPath = this->_client.getCgiHandlerPath();
+	string resourcePath = response.getResourcePath();
 
 	char *argv[] = {
-		(char*)this->scriptPath.c_str(),
-		(char*)this->resourcePath.c_str(),
+		(char*)handlerPath.c_str(),
+		(char*)resourcePath.c_str(),
 		NULL
 	};
 
@@ -118,51 +76,135 @@ void    CgiHandler::executeChild() {
 	exit(EXIT_FAILURE);
 }
 
-void    CgiHandler::executeParent() {
-	close(this->pipeIn[0]);
-	close(this->pipeOut[1]);
-
-	if(this->request.getMethod() == "POST")
-		write(this->pipeIn[1], this->request.getBody().data(), this->request.getBody().size());
-	close(this->pipeIn[1]);
-
-	char	buffer[4096];
-	int		bytesRead;
-	string	cgiOutput;
-	while ((bytesRead = read(this->pipeOut[0], buffer, sizeof(buffer))) > 0)
-		cgiOutput.append(buffer, bytesRead);
-	
-	close(this->pipeOut[0]);
-
-	int status;
-	waitpid(this->pid, &status, 0);
-
-	if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-		this->statusCode = 502;
-		return ;
-	}
-	populateResponse(cgiOutput);
-}
-
-
-void    CgiHandler::execute() {
+bool	CgiHandler::start() {
+	int pipeIn[2] = {-1}, pipeOut[2] = {-1};
 	try {
+		if (this->_client.getCgiHandlerPath().empty())
+			return false;
+
 		this->setupEnv();
-		if (pipe(this->pipeIn) < 0 || pipe(this->pipeOut) < 0)
-			throw runtime_error("CGI error: failed to create pipe!");
+		if (pipe(pipeIn) < 0 || pipe(pipeOut) < 0)
+			throw exception();
+		
+		for (int i = 0; i < 2; ++i) {
+			fcntl(pipeIn[i], F_SETFL, O_NONBLOCK);
+			fcntl(pipeOut[i], F_SETFL, O_NONBLOCK); }
 
 		this->pid = fork();
-		if (this->pid < 0) 
-			throw runtime_error("CGI error: fork() failed!");
+		if (this->pid < 0) throw exception();
 
 		if (this->pid == 0)
-			this->executeChild();
-		else
-			this->executeParent();
-	} catch (const std::exception& e) {
-		this->statusCode = 500;
+			this->executeChild(pipeIn, pipeOut);
+		
+		close(pipeIn[0]);
+		close(pipeOut[1]);
+
+		writePipeFd = pipeIn[1];
+		readPipeFd = pipeOut[0];
+
+		Request _request = this->_client.getRequest();
+		bool hasBody = (_request.getHeader("transfer-encoding") == "chunked"
+						|| (_request.getHeader("content-length") != ""
+								&&  _request.getHeader("content-length") != "0"));
+
+		if (this->_client.getRequest().getMethod() == "POST" && hasBody)
+			this->state = CGI_WRITING;
+		else {
+			close(writePipeFd);
+			writePipeFd = -1;
+			this->state = CGI_READING;
+		}
+	} catch (...) {
+		for (int i = 0; i < 2; ++i) {
+			if (pipeIn[i] != -1) close(pipeIn[i]);
+			if (pipeOut[i] != -1) close(pipeOut[i]);
+		}
+		// optional: catch the exception msj && print it OR send it as response
+		this->_client.setStatusCode(500);
+		return false;
+	}
+	return true;
+}
+
+void	CgiHandler::manageReadEvent(int epollFd) {
+	if (this->state != CGI_READING || this->readPipeFd < 0)
+		return;
+	
+	char	buffer[8192];
+	ssize_t	bytesRead;
+
+	// Drain the pipe fully for EPOLLET until EAGAIN or EOF
+	while ((bytesRead = read(this->readPipeFd, buffer, sizeof(buffer))) > 0)
+		this->output.append(buffer, bytesRead);
+
+	if (bytesRead == 0) {
+		epoll_ctl(epollFd, EPOLL_CTL_DEL, this->readPipeFd, NULL);
+		close(this->readPipeFd);
+		this->readPipeFd = -1;
+		this->_client.onCgiDone(this->output);
+		this->state = CGI_DONE;
+	} else if (bytesRead < 0) {
+		if (errno == EAGAIN || errno == EWOULDBLOCK) {
+			// No more data for now under EPOLLET
+			return;
+		}
+		// Hard error
+		this->state = CGI_DONE;
+		epoll_ctl(epollFd, EPOLL_CTL_DEL, this->readPipeFd, NULL);
+		close(this->readPipeFd);
+		this->readPipeFd = -1;
+		this->_client.onCgiError();
 	}
 }
 
-Response CgiHandler::exportResponse()
-	{ return static_cast<Response&>(*this); }
+void	CgiHandler::manageWriteEvent(int epollFd) {
+	if (this->state != CGI_WRITING || this->writePipeFd < 0)
+		return ;
+	
+	const Request& request = this->_client.getRequest();
+	const vector<char>& body = request.getBody();
+	size_t	bytesLeft = body.size() - this->bytesRecieved;
+
+	// Write as much as possible for EPOLLET until EAGAIN
+	while (bytesLeft > 0) {
+		ssize_t sent = write(this->writePipeFd, body.data() + this->bytesRecieved, bytesLeft);
+		if (sent > 0) {
+			this->bytesRecieved += sent;
+			bytesLeft -= sent;
+			continue;
+		}
+
+		if (sent < 0) {
+			if (errno == EAGAIN || errno == EWOULDBLOCK) {
+				// Try again on next EPOLLOUT
+				return;
+			}
+			if (errno == EPIPE) {
+				// Child closed stdin early; stop writing and switch to reading
+				epoll_ctl(epollFd, EPOLL_CTL_DEL, this->writePipeFd, 0);
+				close(this->writePipeFd);
+				this->writePipeFd = -1;
+				this->state = CGI_READING;
+				return;
+			}
+			// Hard error
+			this->state = CGI_DONE;
+			epoll_ctl(epollFd, EPOLL_CTL_DEL, this->writePipeFd, 0);
+			close(this->writePipeFd);
+			this->writePipeFd = -1;
+			this->_client.onCgiError();
+			return;
+		}
+	}
+
+	if (this->bytesRecieved >= body.size()) {
+		// Finished sending request body to CGI
+		epoll_ctl(epollFd, EPOLL_CTL_DEL, this->writePipeFd, 0);
+		close(this->writePipeFd);
+		this->writePipeFd = -1;
+		this->state = CGI_READING;
+	} else if (bytesLeft == 0) {
+		// Nothing left right now; will continue on next EPOLLOUT
+		return;
+	}
+}

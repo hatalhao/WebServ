@@ -10,7 +10,8 @@ typedef enum unit {
 	GB = 1024 * MB
 } unit;
 
-class Client;
+class CgiHandler; // forward declaration
+
 
 class Config {
 	private:
@@ -26,6 +27,10 @@ class Config {
 		std::vector<Client*>				_clients;
 		std::vector<server>					_servers;
 		
+		std::map<int, CgiHandler*>			_cgiHandlers;
+		std::set<CgiHandler*>				_cgiSet; // track live CGI handlers for safe cleanup
+		
+		int									getEpollFd() { return _epollFd; }
 		void								establishConnection();
 		int									acceptConnection(int serverIndex, int socketIndex);
 		void								listenForEvents();

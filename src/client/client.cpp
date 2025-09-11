@@ -1,28 +1,30 @@
 #include "../../includes/client.hpp"
 
-Client& Client::operator=(const Client& other) {
-	if (this != &other) {
-		_config = other._config;
-		requestBuf = other.requestBuf;
-		responseBuf = other.responseBuf;
-		contentLen = other.contentLen;
-		state = other.state;
-		request = other.request;
-		response = other.response;
-		httpStatusCode = other.httpStatusCode;
-		fileBufferUsed = other.fileBufferUsed;
-		fileBufferSent = other.fileBufferSent;
-		fileReadOffset = other.fileReadOffset;
-		memcpy(fileBuffer, other.fileBuffer, sizeof(fileBuffer));
-	}
-	return *this;
-}
+// Client& Client::operator=(const Client& other) {
+// 	if (this != &other) {
+// 		_config = other._config;
+// 		requestBuf = other.requestBuf;
+// 		responseBuf = other.responseBuf;
+// 		contentLen = other.contentLen;
+// 		state = other.state;
+// 		request = other.request;
+// 		response = other.response;
+// 		httpStatusCode = other.httpStatusCode;
+// 		fileBufferUsed = other.fileBufferUsed;
+// 		fileBufferSent = other.fileBufferSent;
+// 		fileReadOffset = other.fileReadOffset;
+// 		memcpy(fileBuffer, other.fileBuffer, sizeof(fileBuffer));
+// 	}
+// 	return *this;
+// }
 
-Client::Client(int fd, server* serverConfig) :
-	_config(serverConfig), _clientFd(fd), requestBuf(""), responseBuf(""), contentLen(0),
-	state(READING_REQUEST_LINE), request(_config->maxBodySize),
-	response(serverConfig, request, httpStatusCode), httpStatusCode(0), bodySent(0), headerSent(0),
-	fileBufferUsed(0), fileBufferSent(0), fileReadOffset(0) {}
+Client::Client(int fd, Config* _g_config, int _serverIdx) :
+	globalConfig(_g_config), serverIdx(_serverIdx), _clientFd(fd),
+    requestBuf(""), responseBuf(""), contentLen(0), state(READING_REQUEST_LINE),
+    request(globalConfig->_servers[_serverIdx].maxBodySize),
+	response(&globalConfig->_servers[_serverIdx], request, httpStatusCode),
+    cgiHandlerPath(""), httpStatusCode(0), bodySent(0), headerSent(0),
+    fileBufferUsed(0), fileBufferSent(0), fileReadOffset(0) {}
 
 void    Client::updateState() {
 	switch (this->request.getState()) {
@@ -84,6 +86,39 @@ void    Client::generateResponse() {
         return;
     }
 
+    if (this->response.searchCgiHandlerPath().empty() == false) {
+        this->cgiHandlerPath = this->response.searchCgiHandlerPath();
+        CgiHandler* cgi = new CgiHandler(*this);
+        if (cgi->start()) {
+            // Track handler lifetime to avoid dangling pointers during cleanup
+            this->globalConfig->_cgiSet.insert(cgi);
+            struct epoll_event ev = epoll_event();
+            ev.events = EPOLLET;
+
+            // If the CGI needs to be written-to (POST), watch for EPOLLOUT on its write-pipe.
+            if (cgi->getState() == CGI_WRITING) {
+                ev.events |= EPOLLOUT;
+                ev.data.fd = cgi->getWriteFd();
+                this->globalConfig->_cgiHandlers[ev.data.fd] = cgi;
+                epoll_ctl(this->globalConfig->getEpollFd(), EPOLL_CTL_ADD, ev.data.fd, &ev);
+            }
+            ev.events = EPOLLIN | EPOLLET;
+            ev.data.fd = cgi->getReadFd();
+            this->globalConfig->_cgiHandlers[ev.data.fd] = cgi;
+            epoll_ctl(this->globalConfig->getEpollFd(), EPOLL_CTL_ADD, ev.data.fd, &ev);
+
+            this->state = WAITING_FOR_CGI;
+        }
+        else {
+            delete cgi;
+            httpStatusCode = 500;
+            response.setErrorResponse(httpStatusCode);
+            responseBuf = response.serializeHeadersAndBody();
+            state = SENDING_RESPONSE;
+        }
+        return ;
+    }
+
     if (request.getMethod() == "GET")
         httpStatusCode = response.Get();
     else if (request.getMethod() == "POST")
@@ -97,9 +132,11 @@ void    Client::generateResponse() {
         responseBuf = response.serializeHeadersAndBody();
     } else
         responseBuf = response.serializeHeaders();
+
     resetWriteState();
     state = SENDING_RESPONSE;
 }
+
 
 int Client::handleReadEvent(int epollFd) {
     char buffer[4096];
@@ -121,24 +158,16 @@ int Client::handleReadEvent(int epollFd) {
     this->processRequest();
     if (this->state == READING_DONE || this->state == READING_BAD_REQUEST) {
         this->generateResponse();
-        this->state = SENDING_RESPONSE;
 
-        // Reset sent counters
-        this->headerSent = 0;
-        this->bodySent = 0;
-        this->fileBufferUsed = 0;
-        this->fileBufferSent = 0;
-        this->fileReadOffset = 0;
-
-        struct epoll_event event;
-        memset(&event, 0, sizeof(event));
-        event.data.fd = this->_clientFd;
-        event.events = EPOLLOUT; 
-        // if supporting pipelining: event.events |= EPOLLIN;
-
-        if (epoll_ctl(epollFd, EPOLL_CTL_MOD, this->_clientFd, &event) < 0) {
-            perror("epoll_ctl MOD failed");
-            return DISCONNECTED;
+        if (this->state == SENDING_RESPONSE) {
+            struct epoll_event event = epoll_event();
+            event.data.fd = this->_clientFd;
+            event.events = EPOLLOUT | EPOLLET;
+    
+            if (epoll_ctl(epollFd, EPOLL_CTL_MOD, this->_clientFd, &event) < 0) {
+                perror("epoll_ctl MOD failed");
+                return DISCONNECTED;
+            }
         }
     }
 
@@ -234,4 +263,87 @@ int Client::handleWriteEvent() {
     headerSent = 0;
     bodySent = 0;
     return FINISHED;
+}
+
+
+string	toLower(string& src) {
+	string _new = src;
+	for (size_t i = 0; i < _new.length(); i++)
+		_new[i] = tolower(_new[i]);
+	return (_new);
+}
+
+void	Client::onCgiDone(string& cgiOutput) {
+
+    size_t crlfPos = cgiOutput.find(CRLF CRLF);
+	size_t lfPos = cgiOutput.find("\n\n");
+	string	_headers, _body, line;
+
+	if (crlfPos != string::npos) {
+		_headers = cgiOutput.substr(0, crlfPos);
+		_body = cgiOutput.substr(crlfPos + CRLF_LENGTH + CRLF_LENGTH); 
+	}
+	else if (lfPos != string::npos) {
+		_headers = cgiOutput.substr(0, lfPos);
+		_body = cgiOutput.substr(lfPos + 2); 
+	}
+	else 
+		_body = cgiOutput;
+
+	this->response.setBody(_body);
+
+	stringstream ss(_headers);
+	bool isStatusSet = false;
+
+	while (getline(ss, line)) {
+		if (!line.empty() && line[line.length() - 1] == '\r')
+			line.erase(line.length() - 1);
+		size_t colonPos = line.find(':');
+		if (colonPos != string::npos) {
+			string key = line.substr(0, colonPos);
+			string value = line.substr(colonPos + 1);
+			value.erase(0, value.find_first_not_of(" \t"));
+			if (toLower(key) == "status") {
+				this->httpStatusCode = atoi(value.c_str());
+				isStatusSet = true;
+			}
+			else
+				this->response.setHeader(key, value);
+		}
+	}
+	if (!isStatusSet)
+		this->httpStatusCode = 200;
+
+	this->response.setHeader("Content-Length", toString(this->response.getBodySize()));
+        // --- 2. Serialize the final response into the buffer ---
+    this->responseBuf = this->response.serializeHeadersAndBody();
+    this->response.bodySent = 0;
+
+    // --- 3. CRUCIAL: Transition the client's state to WRITING ---
+    this->state = SENDING_RESPONSE;
+
+    // --- 4. Tell epoll to watch for when this client's socket is ready for writing ---
+    struct epoll_event event = epoll_event();
+    event.data.fd = this->_clientFd;
+    event.events = EPOLLOUT | EPOLLET;
+    epoll_ctl(this->globalConfig->getEpollFd(), EPOLL_CTL_MOD, this->_clientFd, &event);
+    
+}
+
+void    Client::onCgiError() {
+    this->httpStatusCode = 502;
+    this->response.setErrorResponse(this->httpStatusCode);
+
+    // 2. Serialize the error response into the buffer.
+    this->responseBuf = this->response.serializeHeadersAndBody();
+    this->response.bodySent = 0;
+
+    // 3. Transition the client's state to WRITING to send the error page.
+    this->state = SENDING_RESPONSE;
+
+    // 4. Tell epoll to watch for when this client's socket is ready for writing.
+    struct epoll_event event = epoll_event();
+    event.data.fd = this->_clientFd;
+    event.events = EPOLLOUT | EPOLLET;
+    epoll_ctl(this->globalConfig->getEpollFd(), EPOLL_CTL_MOD, this->_clientFd, &event);
 }

@@ -151,14 +151,6 @@ int Response::Get() {
     
     switch (resourceType) {
         case IS_FILE: {
-            vector<cgi_t>::const_iterator handler = searchExtensionHandler(this->request.getPath().substr(request.getPath().find_last_of(".")));
-            if (handler != this->rules->cgiList.end()) {
-                // It's a CGI request. Execute it.
-                CgiHandler _cgi(*this, handler->path); 
-                _cgi.execute();
-                *this = _cgi.exportResponse(); 
-                return (this->statusCode);
-            }
             int fd = open(resourcePath.c_str(), O_RDONLY);
             if (fd < 0) {
                 perror("open");
@@ -193,16 +185,19 @@ int Response::Get() {
                     }
                     indexPath += *it;
                     
-                    vector<cgi_t>::const_iterator handler = searchExtensionHandler(indexPath.substr(indexPath.find_last_of(".")));
-                        if (handler != this->rules->cgiList.end()) {
-                            this->request.setPath(this->request.getPath() + (this->request.getPath()[this->request.getPath().length() - 1] == '/' ? "" : "/") + *it);
-                            this->resourcePath = indexPath; // Update resourcePath for the handler
+                    // should be migrated to the new cgi->start() logic 
+
+                    // vector<cgi_t>::const_iterator handler = searchExtensionHandler(indexPath.substr(indexPath.find_last_of(".")));
+                    //     if (handler != this->rules->cgiList.end()) {
+                    //         this->request.setPath(this->request.getPath() + (this->request.getPath()[this->request.getPath().length() - 1] == '/' ? "" : "/") + *it);
+                    //         this->resourcePath = indexPath; // Update resourcePath for the handler
                             
-                            CgiHandler _cgi(*this, handler->path);
-                            _cgi.execute();
-                            *this = _cgi.exportResponse();
-                            return (this->statusCode);
-                        }
+                    //         CgiHandler _cgi(*this, handler->path);
+                    //         _cgi.execute();
+                    //         *this = _cgi.exportResponse();
+                    //         return (this->statusCode);
+                    //     }
+    
                     struct stat indexStat;
                     if (stat(indexPath.c_str(), &indexStat) == 0 && S_ISREG(indexStat.st_mode)) {
                         int fd = open(indexPath.c_str(), O_RDONLY);

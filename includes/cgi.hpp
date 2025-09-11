@@ -1,23 +1,38 @@
 #pragma once
 
 #include "response.hpp"
+#include "client.hpp"
 
-class CgiHandler : public Response {
+enum CgiState {
+	CGI_IDLE,
+	CGI_READING,
+	CGI_WRITING,
+	CGI_DONE
+};
+
+class CgiHandler {
 	private:
-		const string&		scriptPath;
-
+		Client&				_client;
 		char				**envp;
-		int					pipeIn[2];
-		int					pipeOut[2];
 		pid_t				pid;
+		CgiState			state;
+		int					writePipeFd;
+		int					readPipeFd;
+		string				output;
+		size_t				bytesRecieved;
+
 		void	setupEnv();
-		void	executeChild();
-		void	executeParent();
+		void	executeChild(int *pipeIn, int *pipeOut); 
 		void	populateResponse(const string& output);
 
 	public:
-		CgiHandler(const Response& _response, const string& _scriptPath);
-		void		execute();
+		CgiHandler(Client& client);
+		bool		start();
+		CgiState	getState() { return state; }
+		int	getWriteFd() const { return writePipeFd; }
+		int getReadFd() const { return readPipeFd; }
+		void	manageReadEvent(int epollFd);
+		void	manageWriteEvent(int epollFd);
 		Response	exportResponse();
 };
 

@@ -13,9 +13,10 @@ enum ResourceType {
 class Response {
 	protected:
 		const server*		serverConf;
-		Request&		request;
+		Request&			request;
 		const location_b*	rules;
 		string				resourcePath;
+		string				resourceExtension;
 		string				resourceDir;
 		ResourceType		resourceType;
 		string				resolvedServerName;
@@ -24,10 +25,9 @@ class Response {
 		unsigned short		&statusCode;
 		const location_b&	findLocationConfig();
 		const string		generatefilename();
-		vector<cgi_t>::const_iterator	searchExtensionHandler(const string& extension);
 		string				getReasonPhrase();
-
-	public:
+		
+		public:
 		int					bodyFd;
 		size_t				bodySize;
 		size_t				bodySent;
@@ -46,7 +46,13 @@ class Response {
 		int	Delete();
 		void	setErrorResponse(int code);
 		bool	findHeader(string key) { return headers.find(key) != headers.end(); }
-
+		
+		string	searchCgiHandlerPath();
+		string	getResourcePath() { return resourcePath; }
+		string	getResourceExtension() { return resourceExtension; }
+		string	getresourceDir() { return resourceDir; }
+		const location_b*	getRules() { return rules; }
+		
 };
 
 ResourceType	getResourceType(const char* resource);

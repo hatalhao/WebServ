@@ -4,6 +4,7 @@
 #include "Config.hpp"
 #include "response.hpp"
 #include "manipulators.hpp"
+#include "cgi.hpp"
 
 enum ClientState {
 	READING_REQUEST_LINE,
@@ -11,6 +12,7 @@ enum ClientState {
 	READING_BODY,
 	READING_DONE,
 	READING_BAD_REQUEST,
+	WAITING_FOR_CGI,
 	GENERATING_RESPONSE,
 	SENDING_RESPONSE
 };
@@ -23,7 +25,8 @@ enum ClientState {
 
 class Client {
 	private:
-		server			*_config;
+		Config			*globalConfig;
+		int				serverIdx;
 		int				_clientFd;
 		int				currentPort;
 		string			requestBuf;
@@ -32,6 +35,7 @@ class Client {
 		ClientState     state;
 		Request			request;
 		Response		response;
+		string			cgiHandlerPath;
 		unsigned short	httpStatusCode;
 		void    resetWriteState();
 		
@@ -42,19 +46,27 @@ class Client {
 		size_t fileBufferUsed;   // How much of buffer is used
 		size_t fileBufferSent;   // How much of buffer has been sent
 		size_t fileReadOffset;   // Current file read position
-		Client(int fd, server* serverConfig);
-		Client& operator=(const Client& other);
+		Client(int fd, Config* _g_config, int _serverIdx);
+		// Client& operator=(const Client& other);
 		void	processRequest();
 		void	generateResponse();
 		void	setRequestBuf(const string& buf) { requestBuf = buf; }
 		string	getRequestBuf() const { return requestBuf; }
 		string	getResponseBuf() const { return responseBuf; }
 		ClientState getState() const { return state; }
+
+		Request		getRequest() const { return request; } 
+		Response	getResponse() const { return response; }
 		void	updateState();
 		void	printBuffer() const { cout << "Request Buffer: " << requestBuf << endl; }
 		void	printRequest() const;
 		void	printState() const;
 		int		handleReadEvent(int epollFd);
 		int		handleWriteEvent();
+		
+		void	setStatusCode(unsigned short status) { httpStatusCode = status; }
+		string	getCgiHandlerPath() { return cgiHandlerPath; }
+		void	onCgiDone(string& cgiOutput);
+		void	onCgiError();
 };
 
