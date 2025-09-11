@@ -83,6 +83,7 @@ void    Client::generateResponse() {
         response.setErrorResponse(httpStatusCode);
         responseBuf = response.serializeHeadersAndBody();
         resetWriteState();
+        state = SENDING_RESPONSE;
         return;
     }
 
