@@ -1,7 +1,11 @@
+Fix config file ports doesn't open when there is only a single port 
+
+Fix config file single array elements aren't accepted 
+ 
 add http redirections status codes + send their responses
 
 add timeout for cgi
- 
+
 configure the client to store it's port
 
 implement cookies
