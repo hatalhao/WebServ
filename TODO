@@ -1,3 +1,7 @@
+add http redirections status codes + send their responses
+
+add timeout for cgi
+ 
 configure the client to store it's port
 
 implement cookies
