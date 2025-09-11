@@ -14,7 +14,14 @@ int	Config::acceptConnection(int serverIndex, int socketIndex) {
 		return -1;
 	}
 
-	if (fcntl(clientFd, F_SETFL, O_NONBLOCK) < 0) {
+    // Prevent client sockets from being inherited by exec'ed CGI children
+    int cflags = fcntl(clientFd, F_GETFD);
+    if (cflags >= 0) {
+        fcntl(clientFd, F_SETFD, cflags | FD_CLOEXEC);
+    }
+
+    int nbFlags = fcntl(clientFd, F_GETFL, 0);
+    if (nbFlags < 0 || fcntl(clientFd, F_SETFL, nbFlags | O_NONBLOCK) < 0) {
 		close(clientFd);
 		return -1;
 	}

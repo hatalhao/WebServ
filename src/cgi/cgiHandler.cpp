@@ -58,6 +58,7 @@ void    CgiHandler::executeChild(int *pipeIn, int *pipeOut) {
 
 	dup2(pipeIn[0], STDIN_FILENO);
 	dup2(pipeOut[1], STDOUT_FILENO);
+	dup2(pipeOut[1], STDERR_FILENO);
 
 	closeFds(pipeIn, pipeOut);
 

@@ -23,6 +23,12 @@ void server::createSockets(const struct addrinfo& hint, struct addrinfo **newAdd
 		freeaddrinfo(*newAddr);
 		throw std::runtime_error("Failed to create socket");
 	}
+
+	// Ensure listening sockets are not inherited by exec'ed CGI children
+	int fdflags = fcntl(this->socketFd.back(), F_GETFD);
+	if (fdflags >= 0) {
+		fcntl(this->socketFd.back(), F_SETFD, fdflags | FD_CLOEXEC);
+	}
 	
 	int optval = 1;
 	if (setsockopt(this->socketFd.back(), SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int)) < 0) {
@@ -36,15 +42,17 @@ void server::createSockets(const struct addrinfo& hint, struct addrinfo **newAdd
 		freeaddrinfo(*newAddr);
 		switch (errno) {
 			case EADDRINUSE:
-				throw std::runtime_error("Address already in use");
+				throw std::runtime_error(std::string("Address already in use for ") + host + ":" + port);
 			case EACCES:
-				throw std::runtime_error("Permission denied");
+				throw std::runtime_error(std::string("Permission denied for ") + host + ":" + port);
 			default:
-				throw std::runtime_error("Failed to bind socket");
+				throw std::runtime_error(std::string("Failed to bind socket for ") + host + ":" + port);
 		}
 	}
 
-	if (fcntl(this->socketFd.back(), F_SETFL, O_NONBLOCK) < 0) {
+	// Preserve existing flags when enabling non-blocking
+	int nbFlags = fcntl(this->socketFd.back(), F_GETFL, 0);
+	if (nbFlags < 0 || fcntl(this->socketFd.back(), F_SETFL, nbFlags | O_NONBLOCK) < 0) {
 		close(this->socketFd.back());
 		freeaddrinfo(*newAddr);
 		throw std::runtime_error("Failed to set socket to non-blocking mode");
