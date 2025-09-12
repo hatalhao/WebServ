@@ -2,6 +2,7 @@
 
 #include "origin.hpp"
 #include "networking.hpp"
+#include "cookies.hpp"
 
 typedef enum unit {
 	B = 1,
@@ -26,7 +27,7 @@ class Config {
 		
 		std::vector<Client*>				_clients;
 		std::vector<server>					_servers;
-		
+		SessionManager						_sessionManager;
 		std::map<int, CgiHandler*>			_cgiHandlers;
 		std::set<CgiHandler*>				_cgiSet; // track live CGI handlers for safe cleanup
 		

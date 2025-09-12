@@ -98,6 +98,29 @@ int Response::prepareResponse() {
 	return (0);
 }
 
+string Response::serializeHeaders() {
+    stringstream ss;
+
+    ss << "HTTP/1.1 " << statusCode << " " << getReasonPhrase() << CRLF;
+
+    ss << "Server: Webserv/1.0" << CRLF;
+    ss << "Connection: close" << CRLF;
+
+    for (map<string,string>::iterator it = headers.begin(); it != headers.end(); ++it)
+        ss << it->first << ": " << it->second << CRLF;
+
+    ss << CRLF;
+    return ss.str();
+}
+
+string Response::serializeHeadersAndBody() {
+    stringstream ss;
+    ss << serializeHeaders();
+    if (!body.empty())
+        ss.write(body.data(), body.size());
+    return ss.str();
+}
+
 
 const string	Response::generatefilename() {
 	stringstream ss;

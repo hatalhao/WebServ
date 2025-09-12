@@ -1,7 +1,6 @@
 #include "../../includes/response.hpp"
 #include "../../includes/cgi.hpp"
 
-
 int	Response::Post() {
 	if (this->resourceType == IS_DIR) {
 		if (!this->rules->uploadPath.empty())
@@ -24,27 +23,4 @@ int	Response::Post() {
 			return 500;
 	}
 	return (setHeader("Allow", "GET"), setHeader("Content-Length", "0"), 405);
-}
-
-string Response::serializeHeaders() {
-    stringstream ss;
-
-    ss << "HTTP/1.1 " << statusCode << " " << getReasonPhrase() << CRLF;
-
-    ss << "Server: Webserv/1.0" << CRLF;
-    ss << "Connection: close" << CRLF;
-
-    for (map<string,string>::iterator it = headers.begin(); it != headers.end(); ++it)
-        ss << it->first << ": " << it->second << CRLF;
-
-    ss << CRLF;
-    return ss.str();
-}
-
-string Response::serializeHeadersAndBody() {
-    stringstream ss;
-    ss << serializeHeaders();
-    if (!body.empty())
-        ss.write(body.data(), body.size());
-    return ss.str();
 }
