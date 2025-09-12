@@ -193,12 +193,9 @@ int Request::processRequestLine(string& buffer) {
     return 0;
 }
 
-std::string Request::getHeader(const std::string& key) const {
-    std::map<std::string, std::string>::const_iterator it = headers.find(key);
-    if (it != headers.end()) {
-        return it->second;
-    }
-    return "";
+string Request::getHeader(const string& key) const {
+    map<string, string>::const_iterator it = headers.find(key);
+    return (it != headers.end() ? it->second : "");
 }
 
 int Request::processHeaders(string& buffer) {
@@ -272,7 +269,7 @@ int Request::processBody(string& buffer) {
         }
     }
     else
-        return 400;
+        return (this->state = PARSINGERROR, 400);
     return (0);
 }
 

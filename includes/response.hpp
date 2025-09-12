@@ -11,7 +11,7 @@ enum ResourceType {
 };
 
 class Response {
-	protected:
+	private:
 		const server*		serverConf;
 		Request&			request;
 		const location_b*	rules;
