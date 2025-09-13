@@ -31,6 +31,14 @@ std::string	saveArray(const std::string& line) {
 		end = line.find_first_of(",]", start);
 	}
 	std::string merged;
+	if (end == NPOS && start == 0){
+		value = line;
+		removeInvalidChars(value);
+		if (value.empty()) {
+			throw std::runtime_error("Invalid array value: " + value);
+		}
+		merged = value;
+	}
 	for (size_t i = 0; i < array.size(); ++i) {
 		merged += array[i] + (i < array.size() - 1 ? "," : "");
 	}
