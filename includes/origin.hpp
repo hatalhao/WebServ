@@ -19,11 +19,11 @@
 #include <sys/wait.h>
 
 
-
 class Config;
 class Request;
-class Client;
+class Response;
 class CgiHandler;
+class Client;
 struct server;
 typedef struct location location_b;
 

@@ -145,7 +145,7 @@ bool readFileContent(const string& filePath, string& content) {
 
 int Response::Get() {
 
-    if (!isSafePath(request.getPath())) {
+    if (!isSafePath(this->client->getRequest().getPath())) {
         return (403);
     }
     
@@ -206,7 +206,7 @@ int Response::Get() {
                             return 500;
                         }
                         
-                        this->statusCode = 200;
+                        this->client->setStatusCode(200);
                         this->setHeader("Content-Type", getMimeType(indexPath));
                         this->setHeader("Content-Length", to_string(indexStat.st_size));
 
@@ -222,7 +222,7 @@ int Response::Get() {
             }
 
             if (this->rules->isAutoIndexEnabled) {
-                string listing = generateDirectoryListing(resourcePath, request.getPath());
+                string listing = generateDirectoryListing(resourcePath, this->client->getRequest().getPath());
                 if (listing.empty()) {
                     return 500;
                 }

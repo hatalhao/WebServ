@@ -11,10 +11,11 @@ int	Response::Post() {
 				+ (rules->uploadPath[rules->uploadPath.length() - 1] == '/' ? "" : "/")
 				+ filename).c_str(), ios::binary);
 			if (!outfile.is_open()) return 500;
-			outfile.write(this->request.getBody().data(), this->request.getBody().size());
+			outfile.write(this->client->getRequest().getBody().data(), this->client->getRequest().getBody().size());
 			outfile.close();
-			setHeader("Location", this->request.getPath()
-					+ (this->request.getPath()[request.getPath().length() - 1] == '/' ? "" : "/")
+			setHeader("Location", this->client->getRequest().getPath()
+					+ (this->client->getRequest().getPath()
+						[this->client->getRequest().getPath().length() - 1] == '/' ? "" : "/")
 					+ filename);
 			setHeader("Content-Length", "0");
 			return 201;

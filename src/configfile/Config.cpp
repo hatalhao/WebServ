@@ -197,7 +197,7 @@ Config::Config(const std::string& configFilePath) : _configFilePath(configFilePa
 	if (!configFile.is_open()) {
 		throw std::runtime_error("Could not open configuration file: " + _configFilePath);
 	}
-	(void) this->_maxBodySize ;
+	// (void) this->_maxBodySize ;
 	std::string	line;
 	size_t pos = NPOS;
 	std::string	key;

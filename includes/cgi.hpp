@@ -33,7 +33,6 @@ class CgiHandler {
 		int getReadFd() const { return readPipeFd; }
 		void	manageReadEvent(int epollFd);
 		void	manageWriteEvent(int epollFd);
-		Response	exportResponse();
 };
 
 template <typename T>

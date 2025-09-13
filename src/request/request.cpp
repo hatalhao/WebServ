@@ -1,7 +1,7 @@
 #include "../../includes/request.hpp"
-#include "../../includes/Config.hpp"
+#include "../../includes/client.hpp"
 
-Request::Request(size_t& maxBodySize) : state(PARSINGREQUESTLINE), _maxBodySize(maxBodySize){}
+Request::Request(Client* _client) : client(_client), state(PARSINGREQUESTLINE){}
 
 static int hexVal(unsigned char ch) {
     if (ch >= '0' && ch <= '9') return ch - '0';
@@ -101,7 +101,7 @@ bool    Request::validateHeaderKey(string& key) {
     return true;
 }
 
-bool    Request::validateHostHeader(string& val) {
+bool    Request::validateHostHeader(const string& val) {
     if (val.empty() || val[0] == '.') return false;
     
     size_t colonPos = val.find(':');
@@ -130,6 +130,40 @@ bool    Request::validateHostHeader(string& val) {
     return true;
 }
 
+static string   trim(const string& s) {
+    size_t start = s.find_first_not_of(" \t");
+    if (start == string::npos) return "";
+    size_t end = s.find_last_not_of(" \t");
+    return s.substr(start, (end - start) + 1);
+}
+
+bool Request::validateCookieVal(const string& val) {
+    this->cookies.clear();
+    
+    std::stringstream ss(val);
+    std::string cookie_pair;
+
+    while (getline(ss, cookie_pair, ';')) {
+        size_t equals_pos = cookie_pair.find('=');
+
+        if (equals_pos == string::npos) {
+            if (trim(cookie_pair).empty())
+                continue;
+            return false;
+        }
+        
+        string key = trim(cookie_pair.substr(0, equals_pos));
+        string value = trim(cookie_pair.substr(equals_pos + 1));
+
+        if (key.empty())
+            return false;
+
+        this->cookies[key] = value;
+    }
+    return true;
+}
+
+
 bool    Request::validateHeaderVal(const string& key, string& val) {
     size_t  i = val.find_first_not_of(" \t");
     if (i != string::npos) {
@@ -143,7 +177,9 @@ bool    Request::validateHeaderVal(const string& key, string& val) {
     if (iscntrl(val[k])) return false;
     
     if (key == "host" && !validateHostHeader(val))
-    return false;
+        return false;
+    if (key == "cookie" && !validateCookieVal(val))
+        return false;
     else if (key == "content-length") {
         if (val.empty()) return false;
         for (size_t x = 0; x < val.length(); x++)
@@ -229,12 +265,15 @@ int Request::processHeaders(string& buffer) {
     return 0;
 }
 
+
 int Request::processBody(string& buffer) {
     size_t  contentLen;
 
+    size_t  maxBodySize = this->client->getServer()->maxBodySize;
+
     if (headers.find("content-length") != headers.end()) {
         contentLen = atoll(headers["content-length"].c_str());
-        if (contentLen > this->_maxBodySize)
+        if (contentLen > maxBodySize)
             return (this->state = PARSINGERROR, 413);
         if (buffer.length() < contentLen)
             return 0;
@@ -253,7 +292,7 @@ int Request::processBody(string& buffer) {
 
             if (ss.fail()) return(this->state = PARSINGERROR, 400);
 
-            if (this->body.size() + chunkSize > this->_maxBodySize)
+            if (this->body.size() + chunkSize > maxBodySize)
                 return (this->state = PARSINGERROR, 413);
 
             size_t chunkDataStart = crlf_pos + CRLF_LENGTH;
@@ -273,17 +312,8 @@ int Request::processBody(string& buffer) {
     return (0);
 }
 
-Request& Request::operator=(const Request& other) {
-    if (this != &other) {
-        this->method = other.method;
-        this->uri = other.uri;
-        this->path = other.path;
-        this->queryString = other.queryString;
-        this->version = other.version;
-        this->headers = other.headers;
-        this->body = other.body;
-        this->state = other.state;
-        this->_maxBodySize = other._maxBodySize;
-    }
-    return *this;
+
+string  Request::getCookie(const string& name) {
+    map<string, string>::const_iterator it = cookies.find(name);
+    return (it != cookies.end() ? it->second : "");   
 }

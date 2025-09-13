@@ -1,7 +1,7 @@
 #ifndef RESPONSE_HPP
 #define RESPONSE_HPP
 
-#include "request.hpp"
+#include "origin.hpp"
 
 enum ResourceType {
 	IS_NOT_FOUND = 404,
@@ -12,8 +12,7 @@ enum ResourceType {
 
 class Response {
 	private:
-		const server*		serverConf;
-		Request&			request;
+		Client*				client;
 		const location_b*	rules;
 		string				resourcePath;
 		string				resourceExtension;
@@ -22,7 +21,6 @@ class Response {
 		string				resolvedServerName;
 		map<string, string>	headers;
 		vector<char>		body;
-		unsigned short		&statusCode;
 		const location_b&	findLocationConfig();
 		const string		generatefilename();
 		string				getReasonPhrase();
@@ -33,7 +31,7 @@ class Response {
 		size_t				bodySent;
 		bool				isFileBody;
 		Response& operator=(const Response& other);
-		Response(const server* _serverConf, Request& request, unsigned short& statusCode);
+		Response(Client* _client);
 		Response(const Response& _response);
 		void	setHeader(string key, string value);
 		void	setBody(string& _body);

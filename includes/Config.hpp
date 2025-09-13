@@ -1,6 +1,7 @@
 # pragma once
 
 #include "origin.hpp"
+#include "Webserv.hpp"
 #include "networking.hpp"
 #include "cookies.hpp"
 
@@ -11,6 +12,7 @@ typedef enum unit {
 	GB = 1024 * MB
 } unit;
 
+class Client;
 class CgiHandler; // forward declaration
 
 
@@ -18,7 +20,6 @@ class Config {
 	private:
 		std::string							_configFilePath;
 		std::map<std::string, std::string>	_settings;
-		size_t								_maxBodySize;
 		int									_epollFd;
 
 	public:

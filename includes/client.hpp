@@ -26,8 +26,8 @@ enum ClientState {
 class Client {
 	private:
 		Config			*globalConfig;
-		int				serverIdx;
 		int				_clientFd;
+		server*			serverConfig;
 		int				currentPort;
 		string			requestBuf;
 		string			responseBuf;
@@ -46,24 +46,27 @@ class Client {
 		size_t fileBufferUsed;   // How much of buffer is used
 		size_t fileBufferSent;   // How much of buffer has been sent
 		size_t fileReadOffset;   // Current file read position
-		Client(int fd, Config* _g_config, int _serverIdx);
-		// Client& operator=(const Client& other);
+		Client(int fd, Config* _g_config);
+	
+		string		getRequestBuf() const { return requestBuf; }
+		string		getResponseBuf() const { return responseBuf; }
+		ClientState getState() const { return state; }
+		Request&	getRequest() { return request; } 
+		Response&	getResponse()  { return response; }
+		server*		getServer() { return serverConfig; }
+		const unsigned short&	getStatusCode() { return httpStatusCode; }
+		void	resolveHost();
+		
 		void	processRequest();
 		void	generateResponse();
 		void	setRequestBuf(const string& buf) { requestBuf = buf; }
-		string	getRequestBuf() const { return requestBuf; }
-		string	getResponseBuf() const { return responseBuf; }
-		ClientState getState() const { return state; }
-
-		Request		getRequest() const { return request; } 
-		Response	getResponse() const { return response; }
 		void	updateState();
 		void	printBuffer() const { cout << "Request Buffer: " << requestBuf << endl; }
 		void	printRequest() const;
 		void	printState() const;
 		int		handleReadEvent(int epollFd);
 		int		handleWriteEvent();
-		
+	
 		void	setStatusCode(unsigned short status) { httpStatusCode = status; }
 		string	getCgiHandlerPath() { return cgiHandlerPath; }
 		void	onCgiDone(string& cgiOutput);

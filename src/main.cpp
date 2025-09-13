@@ -1,6 +1,5 @@
 #include "../includes/Webserv.hpp"
 #include "../includes/Config.hpp"
-#include "../includes/request.hpp"
 
 # define BRIGHT_BLUE "\x1b[94m"
 # define BRIGHT_YELLOW "\x1b[93m"

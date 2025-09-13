@@ -27,7 +27,7 @@ int	Config::acceptConnection(int serverIndex, int socketIndex) {
 	}
 
 	// Create client on heap to avoid stack-use-after-return
-	Client* newClient = new Client(clientFd, this, serverIndex);
+	Client* newClient = new Client(clientFd, this);
 	this->_clients.push_back(newClient);
 	int clientIndex = this->_clients.size() - 1;
 
@@ -277,11 +277,17 @@ void	Config::establishConnection() {
 	hint.ai_socktype = SOCK_STREAM;
 	hint.ai_flags = AI_PASSIVE;
 
+    vector<int> registedPorts;
+
 	for (size_t i = 0; i < this->_servers.size(); ++i){
-        
-		for (std::set<int>::const_iterator port = this->_servers[i].port.begin(); port != this->_servers[i].port.end(); ++port) {
-			this->_servers[i].createSockets(hint, &newAddr, to_string(*port), this->_servers[i].host);
-			print "Server listening on " << this->_servers[i].host << ":" << *port << endl;
+     
+		for (std::set<int>::const_iterator port = this->_servers[i].port.begin();
+                port != this->_servers[i].port.end(); ++port) {
+            if (find(registedPorts.begin(), registedPorts.end(), *port) == registedPorts.end()) {
+			    this->_servers[i].createSockets(hint, &newAddr, to_string(*port), this->_servers[i].host);
+                registedPorts.push_back(*port);
+            }
+            print "Server listening on " << this->_servers[i].host << ":" << *port << endl;
 		}
 	}
 	print "All server sockets created and listening" << endl;
