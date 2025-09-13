@@ -1,7 +1,8 @@
 # pragma once
 
 #include "origin.hpp"
-#include "client.hpp"
+#include "networking.hpp"
+#include "cookies.hpp"
 
 typedef enum unit {
 	B = 1,
@@ -10,20 +11,31 @@ typedef enum unit {
 	GB = 1024 * MB
 } unit;
 
+class CgiHandler; // forward declaration
+
 
 class Config {
 	private:
 		std::string							_configFilePath;
 		std::map<std::string, std::string>	_settings;
 		size_t								_maxBodySize;
-		
+		int									_epollFd;
+
 	public:
 		Config(const std::string &configFilePath);
 		~Config();
 		
-		std::vector<Client>					_clients;
+		std::vector<Client*>				_clients;
 		std::vector<server>					_servers;
-		//extracting methods
+		SessionManager						_sessionManager;
+		std::map<int, CgiHandler*>			_cgiHandlers;
+		std::set<CgiHandler*>				_cgiSet; // track live CGI handlers for safe cleanup
+		
+		int									getEpollFd() { return _epollFd; }
+		void								establishConnection();
+		int									acceptConnection(int serverIndex, int socketIndex);
+		void								listenForEvents();
+		
 		std::set<int>						extractPorts() const;
 		std::string							extractHost() const;
 		std::string							extractRoot() const;

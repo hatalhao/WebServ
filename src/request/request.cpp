@@ -3,6 +3,37 @@
 
 Request::Request(size_t& maxBodySize) : state(PARSINGREQUESTLINE), _maxBodySize(maxBodySize){}
 
+static int hexVal(unsigned char ch) {
+    if (ch >= '0' && ch <= '9') return ch - '0';
+    if (ch >= 'A' && ch <= 'F') return 10 + (ch - 'A');
+    if (ch >= 'a' && ch <= 'f') return 10 + (ch - 'a');
+    return -1;
+}
+
+static bool decodeComponent(const std::string& in, std::string& out, bool plusAsSpace) {
+    out.clear();
+    out.reserve(in.size());
+    for (size_t i = 0; i < in.size(); ++i) {
+        unsigned char c = static_cast<unsigned char>(in[i]);
+        if (c == '%') {
+            if (i + 2 >= in.size()) return false;
+            int hi = hexVal(static_cast<unsigned char>(in[i + 1]));
+            int lo = hexVal(static_cast<unsigned char>(in[i + 2]));
+            if (hi < 0 || lo < 0) return false; // invalid hex
+            unsigned char dec = static_cast<unsigned char>((hi << 4) | lo);
+            if (iscntrl(dec)) return false;
+            out.push_back(static_cast<char>(dec));
+            i += 2;
+        } else if (plusAsSpace && c == '+') {
+            out.push_back(' ');
+        } else {
+            if (iscntrl(c)) return false; 
+            out.push_back(static_cast<char>(c));
+        }
+    }
+    return true;
+}
+
 bool    Request::validateMethod(const string& _method, int& code) {
     if (_method == "GET" || _method == "POST" || _method == "DELETE")
         this->method = _method;
@@ -141,14 +172,20 @@ int Request::processRequestLine(string& buffer) {
     string uri = line.substr(methodEndPos + 1, uriEndPos - (methodEndPos + 1));
     uri = uri.substr(0, uri.find('#'));
     size_t queryPos = uri.find('?');
-    if (queryPos != NPOS) {
-        this->path = uri.substr(0, queryPos);
-        this->queryString = uri.substr(queryPos + 1);
-    } else
-        this->path = uri;
+    string rawPath = (queryPos != NPOS) ? uri.substr(0, queryPos) : uri;
+    string rawQuery = (queryPos != NPOS) ? uri.substr(queryPos + 1) : string();
+
+    // Decode path and query
+    string decodedPath;
+    string decodedQuery;
+    if (!decodeComponent(rawPath, decodedPath, /*plusAsSpace=*/false)) { this->state = PARSINGERROR; return 400; }
+    if (!rawQuery.empty() && !decodeComponent(rawQuery, decodedQuery, /*plusAsSpace=*/true)) { this->state = PARSINGERROR; return 400; }
+
+    this->path = decodedPath;
+    this->queryString = decodedQuery;
     this->version = line.substr(uriEndPos + 1);
     if (!validateMethod(line.substr(0, methodEndPos), code)
-    || !validateUri(uri, code) || !validateVersion(code))
+    || !validateUri(this->path, code) || !validateVersion(code))
         {this->state = PARSINGERROR; return code;}
 
     buffer.erase(0, pos + CRLF_LENGTH);
@@ -156,20 +193,15 @@ int Request::processRequestLine(string& buffer) {
     return 0;
 }
 
-std::string Request::getHeader(const std::string& key) const {
-    std::map<std::string, std::string>::const_iterator it = headers.find(key);
-    if (it != headers.end()) {
-        return it->second;
-    }
-    return "";
+string Request::getHeader(const string& key) const {
+    map<string, string>::const_iterator it = headers.find(key);
+    return (it != headers.end() ? it->second : "");
 }
 
 int Request::processHeaders(string& buffer) {
-    if (buffer.find(CRLF CRLF) == NPOS)
-    return 0;
     while (true) {
         size_t pos = buffer.find(CRLF);
-        if (pos == NPOS) {this->state = PARSINGERROR; return 400;}
+        if (pos == NPOS) { return 0; }
 
         string  line = buffer.substr(0, pos);
         
@@ -237,7 +269,7 @@ int Request::processBody(string& buffer) {
         }
     }
     else
-        return 400;
+        return (this->state = PARSINGERROR, 400);
     return (0);
 }
 

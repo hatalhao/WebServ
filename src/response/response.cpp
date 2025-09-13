@@ -2,12 +2,14 @@
 #include "../../includes/cgi.hpp"
 
 Response::Response(const server* _serverConf, Request& _request, unsigned short& _statusCode) :
-        serverConf(_serverConf) , request(_request), rules(NULL), statusCode(_statusCode) {}
+        serverConf(_serverConf) , request(_request), rules(NULL), statusCode(_statusCode),
+		bodyFd(-1), bodySize(0), bodySent(0), isFileBody(false){}
 
 Response::Response(const Response& other) :
 	serverConf(other.serverConf), request(other.request), rules(other.rules),
 	resourcePath(other.resourcePath), resourceDir(other.resourceDir),
-	resourceType(other.resourceType), headers(other.headers), body(other.body), statusCode(other.statusCode){}
+	resourceType(other.resourceType), headers(other.headers), body(other.body),
+	statusCode(other.statusCode){}
 
 const location_b&	Response::findLocationConfig() {
 	const location_b *best = NULL, *root = NULL;
@@ -71,7 +73,7 @@ int Response::prepareResponse() {
 	if (std::find(rules->methods.begin(),
 				rules->methods.end(),
 				this->request.getMethod()) == rules->methods.end())
-		return (405);
+		return (this->statusCode = 405, -1);
 
 	this->resourceDir = this->rules->path.empty() ? this->serverConf->root : this->rules->path;
 	this->resourcePath = this->resourceDir + this->request.getPath();
@@ -82,9 +84,41 @@ int Response::prepareResponse() {
 	while ((pos = this->resourcePath.find("//")) != string::npos)
 		this->resourcePath.replace(pos, 2, "/");
 
+	size_t dotPos = this->request.getPath().find_last_of(".");
+	if (dotPos != string::npos) {
+		this->resourceExtension = this->request.getPath().substr(dotPos);
+	} else {
+		this->resourceExtension = "";
+	}
+
 	this->resourceType = getResourceType(this->resourcePath.c_str());
+	if (this->resourceType == IS_NOT_FOUND || this->resourceType == IS_FORBIDDEN)
+		return (this->statusCode = this->resourceType, -1);
 
 	return (0);
+}
+
+string Response::serializeHeaders() {
+    stringstream ss;
+
+    ss << "HTTP/1.1 " << statusCode << " " << getReasonPhrase() << CRLF;
+
+    ss << "Server: Webserv/1.0" << CRLF;
+    ss << "Connection: close" << CRLF;
+
+    for (map<string,string>::iterator it = headers.begin(); it != headers.end(); ++it)
+        ss << it->first << ": " << it->second << CRLF;
+
+    ss << CRLF;
+    return ss.str();
+}
+
+string Response::serializeHeadersAndBody() {
+    stringstream ss;
+    ss << serializeHeaders();
+    if (!body.empty())
+        ss.write(body.data(), body.size());
+    return ss.str();
 }
 
 
@@ -94,77 +128,64 @@ const string	Response::generatefilename() {
 	return ss.str();
 }
 
+string Response::getReasonPhrase() {
+	switch (this->statusCode) {
+		case 200: return "OK";
+		case 201: return "Created";
+		case 400: return "Bad Request";
+		case 403: return "Forbidden";
+		case 404: return "Not Found";
+		case 405: return "Method Not Allowed";
+		case 408: return "Request Timeout";
+		case 413: return "Request Entity Too Large";
+		case 414: return "Request-URI Too Long";
+		case 500: return "Internal Server Error";
+		case 501: return "Not Implemented";
+		case 505: return "HTTP Version Not Supported";
+		default: return "OK";
+	}
+}
+
+void Response::setErrorResponse(int code) {
+	this->statusCode = code;
+	this->rules = &(this->findLocationConfig());
+
+	map<int, string>::const_iterator it = this->serverConf->errorPageMap.find(code);
+	string content;
+	if (it != this->serverConf->errorPageMap.end()) {
+		ifstream file(it->second.c_str());
+		if (file.is_open()) {
+			content.assign((istreambuf_iterator<char>(file)), istreambuf_iterator<char>());
+			file.close();
+		}
+	}
+	if (content.empty()) {
+		// Default error message
+		stringstream ss;
+		ss << "<html><body><h1>Error " << code << "</h1><p>" << getReasonPhrase() << "</p></body></html>";
+		content = ss.str();
+	}
+	this->setBody(content);
+	this->setHeader("Content-Type", "text/html");
+	stringstream len_ss;
+	len_ss << content.length();
+	this->setHeader("Content-Length", len_ss.str());
+}
 
 void	Response::setHeader(string key, string value)
 	{ this->headers.insert(pair<string, string>(key, value)); }
 
 void	Response::setBody(string& _body)
-	{ this->body.assign(_body.begin(), _body.end()); }
+{
+	this->body.assign(_body.begin(), _body.end());
+	this->bodySize = this->body.size();
+}
 
-vector<cgi_t>::const_iterator	Response::searchExtensionHandler(const string& ext) {
+string	Response::searchCgiHandlerPath() {
 	vector<cgi_t>::const_iterator it = this->rules->cgiList.begin();
 	for (; it != this->rules->cgiList.end(); it++) {
-		if (it->extension == ext)
-				return it;
+		if (it->extension == this->resourceExtension)
+				return it->path;
 	}
-	return it;
-}
-
-int	Response::Post() {
-	if (this->resourceType == IS_DIR) {
-		if (!this->rules->uploadPath.empty())
-		{
-			if (getResourceType(this->rules->uploadPath.c_str()) != IS_DIR) return (500);
-			string	filename = generatefilename();
-			std::ofstream outfile((this->rules->uploadPath
-				+ (rules->uploadPath[rules->uploadPath.length() - 1] == '/' ? "" : "/")
-				+ filename).c_str(), ios::binary);
-			if (!outfile.is_open()) return 500;
-			outfile.write(this->request.getBody().data(), this->request.getBody().size());
-			outfile.close();
-			setHeader("Location", this->request.getPath()
-					+ (this->request.getPath()[request.getPath().length() - 1] == '/' ? "" : "/")
-					+ filename);
-			return 201;
-		}
-		else
-			return 500;
-	}
-	else if (this->resourceType == IS_FILE) {
-		if (this->rules->cgiList.empty() == false) {
-			vector<cgi_t>::const_iterator handler = searchExtensionHandler(this->request.getPath().substr(request.getPath().find_last_of(".")));
-			if (handler != this->rules->cgiList.end()) {
-				// CGI WORK STARTS HERE
-				CgiHandler _cgi(*this, handler->path);
-				_cgi.execute();
-				*this = _cgi.exportResponse();
-				return (this->statusCode);
-			}
-		}
-		else 
-			return (setHeader("Allow", "GET"), 405);
-	}
-	else if (this->resourceType == IS_NOT_FOUND)
-		return 404;
-	return 403;
-}
-
-
-string	Response::serializeResponse() {
-	stringstream	ss;
-	//	waiting to add the status message 
-	ss << "HTTP/1.1 " << this->statusCode << " " <<  "OK" <<  CRLF;
-
-	this->setHeader("Content-Length", toString(this->body.size()));
-	this->setHeader("Server", "Webserv/1.0");
-	this->setHeader("Connection", "keep-alive");
-
-	for (map<string, string>::iterator it = this->headers.begin();
-			it != this->headers.end(); it++)
-	{ ss << it->first << ": " << it->second << CRLF; }
-
-	ss << CRLF;
-
-	ss.write(this->body.data(), this->body.size());
-	return ss.str();
+	return "";
 }

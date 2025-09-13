@@ -23,6 +23,7 @@
 class Config;
 class Request;
 class Client;
+class CgiHandler;
 struct server;
 typedef struct location location_b;
 

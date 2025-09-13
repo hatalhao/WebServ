@@ -1,8 +1,15 @@
-sending the response in chunks (in GET)
+Fix config file ports doesn't open when there is only a single port 
 
-remove MasterClient dependancy
+Fix config file single array elements aren't accepted 
+ 
+add http redirections status codes + send their responses
 
-make the handleClientData() dependant on clientState instead of while true
+configure the client to store it's port
 
-serve error pages
+add timeout for cgi
 
+configure default error pages
+
+implement cookies
+
+clean up code

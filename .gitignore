@@ -5,11 +5,23 @@
 *.o
 
 # vscode config files
-*.vscode
+.vscode/
 
-*config
+config/
 
+*.toml
+
+*tmp
 # tldraw
-.tldr
+*.tldr
 # Executable
-webserv
+*webserv
+
+*.upload
+
+*.txt
+
+#files
+*.md
+*.sh
+*.log

@@ -1,6 +1,7 @@
 #include "../../includes/methods.hpp"
 #include "../../includes/manipulators.hpp"
 #include "../../includes/response.hpp"
+#include "../../includes/cgi.hpp"
 
 string getMimeType(const string& filePath) {
     size_t dotPos = filePath.find_last_of('.');
@@ -150,20 +151,30 @@ int Response::Get() {
     
     switch (resourceType) {
         case IS_FILE: {
-            string content;
-            if (!readFileContent(resourcePath, content)) {
+            int fd = open(resourcePath.c_str(), O_RDONLY);
+            if (fd < 0) {
+                perror("open");
                 return 500;
             }
-            // TODO: Set response headers and body
-            this->statusCode = 200;
-            // response.setStatusMessage("OK");
+
+            struct stat st;
+            if (fstat(fd, &st) < 0) {
+                close(fd);
+                perror("fstat");
+                return 500;
+            }
+
             this->setHeader("Content-Type", getMimeType(resourcePath));
-            this->setHeader("Content-Length", to_string(content.length()));
-            this->setBody(content);
-            
+            this->setHeader("Content-Length", to_string(st.st_size));
+
+            // New: instead of setBody(content), store file descriptor
+            this->bodyFd = fd;              // keep fd for streaming
+            this->bodySize = st.st_size;    // track remaining size
+            this->bodySent = 0;             // how much we already sent
+            this->isFileBody = true;
+
             return 200;
         }
-        
         case IS_DIR: {
             if (!this->rules->index.empty()) {
                 for (vector<string>::const_iterator it = this->rules->index.begin(); 
@@ -174,19 +185,37 @@ int Response::Get() {
                     }
                     indexPath += *it;
                     
+                    // should be migrated to the new cgi->start() logic 
+
+                    // vector<cgi_t>::const_iterator handler = searchExtensionHandler(indexPath.substr(indexPath.find_last_of(".")));
+                    //     if (handler != this->rules->cgiList.end()) {
+                    //         this->request.setPath(this->request.getPath() + (this->request.getPath()[this->request.getPath().length() - 1] == '/' ? "" : "/") + *it);
+                    //         this->resourcePath = indexPath; // Update resourcePath for the handler
+                            
+                    //         CgiHandler _cgi(*this, handler->path);
+                    //         _cgi.execute();
+                    //         *this = _cgi.exportResponse();
+                    //         return (this->statusCode);
+                    //     }
+    
                     struct stat indexStat;
                     if (stat(indexPath.c_str(), &indexStat) == 0 && S_ISREG(indexStat.st_mode)) {
-                        string content;
-                        if (!readFileContent(indexPath, content)) {
+                        int fd = open(indexPath.c_str(), O_RDONLY);
+                        if (fd < 0) {
+                            perror("open");
                             return 500;
                         }
                         
-                        // TODO: Set response headers and body
                         this->statusCode = 200;
-                        // response.setStatusMessage("OK");
                         this->setHeader("Content-Type", getMimeType(indexPath));
-                        this->setHeader("Content-Length", to_string(content.length()));
-                        this->setBody(content);
+                        this->setHeader("Content-Length", to_string(indexStat.st_size));
+
+                        // Use streaming approach for index files too
+                        this->bodyFd = fd;              // keep fd for streaming
+                        this->bodySize = indexStat.st_size;    // track remaining size
+                        this->bodySent = 0;             // how much we already sent
+                        this->isFileBody = true;
+
                         return 200;
                     }
                 }
@@ -198,22 +227,13 @@ int Response::Get() {
                     return 500;
                 }
                 
-                // TODO: Set response headers and body
-                this->statusCode = 200;
-                // response.setStatusMessage("OK");
                 this->setHeader("Content-Type", "text/html");
                 this->setHeader("Content-Length", to_string(listing.length()));
                 this->setBody(listing);
                 return 200;
-            } else {
+            } else
                 return 403;
-            }
         }
-        
-        case IS_NOT_FOUND:
-            return (cout << BRIGHT_GREEN << "NOT_FOUND" << RESET << endl, 404);
-            
-        case IS_FORBIDDEN:
         default:
             return 403;
     }

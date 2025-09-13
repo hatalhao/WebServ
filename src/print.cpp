@@ -16,29 +16,29 @@ void	Client::printRequest() const {
     cout << BRIGHT_GREEN "]" RESET << endl;
 }
 
-void	Client::printState() const {
-    switch (this->state) {
-        case READING_REQUEST_LINE:
-            cout << "State: READING_REQUEST_LINE" << endl;
-            break;
-        case READING_HEADERS:
-            cout << "State: READING_HEADERS" << endl;
-            break;
-        case READING_BODY:
-            cout << "State: READING_BODY" << endl;
-            break;
-        case READING_DONE:
-            cout << "State: READING_DONE" << endl;
-            break;
-        case READING_BAD_REQUEST:
-            cout << "State: READING_BAD_REQUEST" << endl;
-            break;
-        case GENERATING_RESPONSE:
-            cout << "State: GENERATING_RESPONSE" << endl;
-            break;
-        case SENDING_RESPONSE:
-            cout << "State: SENDING_RESPONSE" << endl;
-            break;
-    }
-    cout << BRIGHT_GREEN << this->httpStatusCode << RESET << endl;
-}
+// void	Client::printState() const {
+//     switch (this->state) {
+//         case READING_REQUEST_LINE:
+//             cout << "State: READING_REQUEST_LINE" << endl;
+//             break;
+//         case READING_HEADERS:
+//             cout << "State: READING_HEADERS" << endl;
+//             break;
+//         case READING_BODY:
+//             cout << "State: READING_BODY" << endl;
+//             break;
+//         case READING_DONE:
+//             cout << "State: READING_DONE" << endl;
+//             break;
+//         case READING_BAD_REQUEST:
+//             cout << "State: READING_BAD_REQUEST" << endl;
+//             break;
+//         case GENERATING_RESPONSE:
+//             cout << "State: GENERATING_RESPONSE" << endl;
+//             break;
+//         case SENDING_RESPONSE:
+//             cout << "State: SENDING_RESPONSE" << endl;
+//             break;
+//     }
+//     cout << BRIGHT_GREEN << this->httpStatusCode << RESET << endl;
+// }

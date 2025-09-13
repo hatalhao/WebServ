@@ -2,6 +2,9 @@
 #include "../../includes/identifiers.hpp"
 #include "../../includes/manipulators.hpp"
 #include "../../includes/tokenizer.hpp"
+#include "../../includes/networking.hpp"
+#include "../../includes/client.hpp"
+
 
 bool isValidCgi(std::pair<std::string, std::string> cgi) {
 	if (cgi.first.empty() || cgi.second.empty())
@@ -424,4 +427,10 @@ std::map<int, std::string>	Config::extractErrorPageMap() const {
 	return errorPageMap;
 }
 
-Config::~Config() {}
+Config::~Config() {
+	// Clean up all client pointers
+	for (size_t i = 0; i < this->_clients.size(); ++i) {
+		delete this->_clients[i];
+	}
+	this->_clients.clear();
+}
