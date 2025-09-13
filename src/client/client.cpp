@@ -267,7 +267,7 @@ int Client::handleWriteEvent() {
 }
 
 
-string	toLower(string& src) {
+string	strToLower(string& src) {
 	string _new = src;
 	for (size_t i = 0; i < _new.length(); i++)
 		_new[i] = tolower(_new[i]);
@@ -304,7 +304,7 @@ void	Client::onCgiDone(string& cgiOutput) {
 			string key = line.substr(0, colonPos);
 			string value = line.substr(colonPos + 1);
 			value.erase(0, value.find_first_not_of(" \t"));
-			if (toLower(key) == "status") {
+			if (strToLower(key) == "status") {
 				this->httpStatusCode = atoi(value.c_str());
 				isStatusSet = true;
 			}

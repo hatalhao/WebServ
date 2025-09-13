@@ -158,7 +158,7 @@ bool Request::validateCookieVal(const string& val) {
         if (key.empty())
             return false;
 
-        this->cookies[key] = value;
+        this->cookies[strToLower(key)] = value;
     }
     return true;
 }

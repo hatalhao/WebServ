@@ -2,8 +2,8 @@
 #include "../../includes/client.hpp"
 
 Response::Response(Client* _client) :
-        client(_client) , rules(NULL), bodyFd(-1), bodySize(0),
-		bodySent(0), isFileBody(false) {}
+        client(_client) , rules(NULL), session(NULL),
+		bodyFd(-1), bodySize(0), bodySent(0), isFileBody(false) {}
 
 Response::Response(const Response& other) :
 	client(other.client), rules(other.rules),
@@ -79,6 +79,9 @@ int Response::prepareResponse() {
 	if (this->resourceType == IS_NOT_FOUND || this->resourceType == IS_FORBIDDEN)
 		return (this->client->setStatusCode(this->resourceType), -1);
 
+	string	sid = this->client->getRequest().getCookie("session_id");
+	if (!sid.empty())
+		this->session = this->client->getGlobalConfig()->getSessionManager().getSession(sid);
 	return (0);
 }
 

@@ -38,3 +38,5 @@ using namespace std;
 #define NPOS std::string::npos
 #define print std::cout <<
 
+
+string	strToLower(string& src);
