@@ -1,0 +1,12 @@
+[[server]]
+server_name = ["localhost", "example.com"]
+host = "127.0.0.1"
+listen = ["8080", "8443"]
+root = "/home/hatalhao/42-cc/WebServ"
+max_body_size = "10GB"
+
+[[location]]
+name = "/"
+path = "/home/hatalhao/42-cc/WebServ"
+index = ["index.html", "index.php"]
+autoindex = "on"
