@@ -7,11 +7,10 @@
 # vscode config files
 .vscode/
 
-config/
 
 *.toml
 
-*tmp
+tmp/
 # tldraw
 *.tldr
 # Executable
