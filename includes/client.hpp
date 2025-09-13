@@ -54,6 +54,7 @@ class Client {
 		Request&	getRequest() { return request; } 
 		Response&	getResponse()  { return response; }
 		server*		getServer() { return serverConfig; }
+		Config*		getGlobalConfig() { return globalConfig; }
 		const unsigned short&	getStatusCode() { return httpStatusCode; }
 		void	resolveHost();
 		

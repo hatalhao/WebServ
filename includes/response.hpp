@@ -2,6 +2,7 @@
 #define RESPONSE_HPP
 
 #include "origin.hpp"
+#include "cookies.hpp"
 
 enum ResourceType {
 	IS_NOT_FOUND = 404,
@@ -14,6 +15,7 @@ class Response {
 	private:
 		Client*				client;
 		const location_b*	rules;
+		Session*			session;
 		string				resourcePath;
 		string				resourceExtension;
 		string				resourceDir;

@@ -13,8 +13,7 @@ typedef enum unit {
 } unit;
 
 class Client;
-class CgiHandler; // forward declaration
-
+class CgiHandler;
 
 class Config {
 	private:
@@ -30,7 +29,7 @@ class Config {
 		std::vector<server>					_servers;
 		SessionManager						_sessionManager;
 		std::map<int, CgiHandler*>			_cgiHandlers;
-		std::set<CgiHandler*>				_cgiSet; // track live CGI handlers for safe cleanup
+		std::set<CgiHandler*>				_cgiSet;
 		
 		int									getEpollFd() { return _epollFd; }
 		void								establishConnection();
@@ -46,6 +45,7 @@ class Config {
 		std::map<int, std::string>			extractErrorPageMap() const;
 		size_t								extractMaxBodySize() const;
 
+		SessionManager&						getSessionManager() { return _sessionManager; }
 		void printParams() {
 			std::map<std::string, std::string>::iterator it = _settings.begin();
 			std::map<std::string, std::string>::iterator it1 = _settings.end();
