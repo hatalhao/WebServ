@@ -53,12 +53,28 @@
         <a href="#">Home</a>
         <a href="#">About</a>
         <a href="#">Services</a>
+        <a href="/cgi/login_page.py">Login</a>
+        <a href="/cgi/welcome.py">Profile</a>
         <a href="#">Contact</a>
     </nav>
 
     <main>
         <h2>Hello, World!</h2>
-        <p>This is an example <code>index.html</code> page. You can use it as a base for your own project.</p>
+        <p>This is an example <code>index.html</code> page with session management functionality.</p>
+        <div style="background-color: #d1ecf1; padding: 15px; margin: 20px auto; max-width: 600px; border-radius: 4px;">
+            <h3>Session Management Demo</h3>
+            <p><strong>Features:</strong></p>
+            <ul style="text-align: left; display: inline-block;">
+                <li>Session-aware login system</li>
+                <li>Automatic redirection for authenticated users</li>
+                <li>Secure session management with cookies</li>
+                <li>Proper logout with session cleanup</li>
+            </ul>
+            <p>
+                <a href="/cgi/login_page.py" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; margin: 5px;">Try Login</a>
+                <a href="/cgi/welcome.py" style="background-color: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; margin: 5px;">Check Session</a>
+            </p>
+        </div>
     </main>
 
     <footer>

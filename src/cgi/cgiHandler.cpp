@@ -2,7 +2,8 @@
 
 CgiHandler::CgiHandler(Client& client) :
 	_client(client), envp(NULL), pid(-1), state(CGI_IDLE),
-	writePipeFd(-1), readPipeFd(-1), output(""), bytesRecieved(0) {}
+	writePipeFd(-1), readPipeFd(-1), output(""), bytesRecieved(0),
+	sessionId(""), sessionCreated(false) {}
 
 void    closeFds(int* in, int *out) {
 	if (in) {
@@ -13,6 +14,33 @@ void    closeFds(int* in, int *out) {
 		close(out[0]);
 		close(out[1]);
 	}
+}
+
+void    CgiHandler::addSessionToEnv(vector<string>& env_vars) {
+	Request request = this->_client.getRequest();
+	
+	// Add Cookie header to environment if present
+	string cookieHeader = request.getHeader("cookie");
+	if (!cookieHeader.empty()) {
+		env_vars.push_back("HTTP_COOKIE=" + cookieHeader);
+	}
+	
+	// Get existing session ID from cookies
+	string existingSessionId = request.getCookie("session_id");
+	if (!existingSessionId.empty()) {
+		this->sessionId = existingSessionId;
+		env_vars.push_back("SESSION_ID=" + existingSessionId);
+	}
+	
+	// Add session creation capability flag
+	env_vars.push_back("WEBSERV_SESSION_ENABLED=1");
+}
+
+string CgiHandler::createNewSession() {
+	SessionManager& sessionManager = this->_client.getGlobalConfig()->getSessionManager();
+	this->sessionId = sessionManager.createSession();
+	this->sessionCreated = true;
+	return this->sessionId;
 }
 
 void    CgiHandler::setupEnv() {
@@ -39,6 +67,9 @@ void    CgiHandler::setupEnv() {
 			env_vars.push_back("CONTENT_LENGTH=" + toString(request.getBody().size()));
 		}
 	}
+
+	// Add session management support
+	this->addSessionToEnv(env_vars);
 
 	this->envp = new char*[env_vars.size() + 1];
 	for (size_t i = 0; i < env_vars.size(); i++) {
