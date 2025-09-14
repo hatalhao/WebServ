@@ -3,6 +3,7 @@
 #include "../../includes/manipulators.hpp"
 #include "../../includes/identifiers.hpp"
 // #include "../../includes/networking.hpp"
+
 std::map<int, std::string> getDefaultErrorPages() {
 	std::map<int, std::string> defaultErrorPages;
 	defaultErrorPages[400] = "./default_pages/400.html";
