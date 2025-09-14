@@ -295,6 +295,9 @@ void	Client::onCgiDone(string& cgiOutput) {
 
 	stringstream ss(_headers);
 	bool isStatusSet = false;
+	bool sessionRequested = false;
+	string newSessionId;
+	string deleteSessionId;
 
 	while (getline(ss, line)) {
 		if (!line.empty() && line[line.length() - 1] == '\r')
@@ -304,13 +307,43 @@ void	Client::onCgiDone(string& cgiOutput) {
 			string key = line.substr(0, colonPos);
 			string value = line.substr(colonPos + 1);
 			value.erase(0, value.find_first_not_of(" \t"));
+			
 			if (strToLower(key) == "status") {
 				this->httpStatusCode = atoi(value.c_str());
 				isStatusSet = true;
 			}
+			else if (strToLower(key) == "x-webserv-create-session") {
+				// CGI script requests session creation
+				sessionRequested = true;
+			}
+			else if (strToLower(key) == "x-webserv-session-id") {
+				// CGI script provides session ID to use
+				newSessionId = value;
+			}
+			else if (strToLower(key) == "x-webserv-delete-session") {
+				// CGI script requests session deletion
+				deleteSessionId = value;
+			}
 			else
 				this->response.setHeader(key, value);
 		}
+	}
+	
+	// Handle session creation if requested
+	if (sessionRequested) {
+		if (newSessionId.empty()) {
+			SessionManager& sessionManager = this->globalConfig->getSessionManager();
+			newSessionId = sessionManager.createSession();
+		}
+		// Set session cookie
+		string cookieValue = "session_id=" + newSessionId + "; HttpOnly; Path=/";
+		this->response.setHeader("Set-Cookie", cookieValue);
+	}
+	
+	// Handle session deletion if requested
+	if (!deleteSessionId.empty()) {
+		SessionManager& sessionManager = this->globalConfig->getSessionManager();
+		sessionManager.deleteSession(deleteSessionId);
 	}
 	if (!isStatusSet)
 		this->httpStatusCode = 200;

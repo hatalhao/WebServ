@@ -21,9 +21,10 @@ def main():
 
     # demo auth: accept user=admin, pass=admin
     if user == 'admin' and pwd == 'admin':
-        # on success, redirect to welcome page
+        # on success, create session and redirect to welcome page
         print('Status: 302 Found')
-        print('Location: /welcome.html')
+        print('Location: /cgi/welcome.py')
+        print('X-WebServ-Create-Session: true')
         print('Content-Length: 0')
         print()
         return
@@ -31,7 +32,7 @@ def main():
     # failure
     print('Status: 401 Unauthorized')
     print('Content-Type: text/html; charset=utf-8')
-    body = '<h1>Login failed</h1><a href="/login.html">Try again</a>'
+    body = '<h1>Login failed</h1><p>Invalid username or password.</p><a href="/cgi/login_page.py">Try again</a>'
     print('Content-Length: %d' % len(body))
     print()
     sys.stdout.write(body)

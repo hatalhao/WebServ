@@ -2,6 +2,7 @@
 
 #include "response.hpp"
 #include "client.hpp"
+#include "cookies.hpp"
 
 enum CgiState {
 	CGI_IDLE,
@@ -20,10 +21,13 @@ class CgiHandler {
 		int					readPipeFd;
 		string				output;
 		size_t				bytesRecieved;
+		string				sessionId;
+		bool				sessionCreated;
 
 		void	setupEnv();
-		void	executeChild(int *pipeIn, int *pipeOut); 
-		void	populateResponse(const string& output);
+		void	executeChild(int *pipeIn, int *pipeOut);
+		void	addSessionToEnv(vector<string>& env_vars);
+		string	createNewSession(); 
 
 	public:
 		CgiHandler(Client& client);
@@ -33,6 +37,8 @@ class CgiHandler {
 		int getReadFd() const { return readPipeFd; }
 		void	manageReadEvent(int epollFd);
 		void	manageWriteEvent(int epollFd);
+		string	getSessionId() const { return sessionId; }
+		bool	wasSessionCreated() const { return sessionCreated; }
 };
 
 template <typename T>

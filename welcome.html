@@ -2,11 +2,60 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Welcome</title>
+  <title>Welcome Redirect</title>
+  <meta http-equiv="refresh" content="0; url=/cgi/welcome.py">
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      margin: 40px; 
+      text-align: center; 
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 400px;
+      margin: 50px auto;
+      background-color: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #28a745;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .info {
+      background-color: #d4edda;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+  </style>
 </head>
 <body>
-  <h1>Welcome!</h1>
-  <p>You are logged in. Session cookie should be present.</p>
-  <a href="/login.html">Back to login</a>
+  <div class="container">
+    <h2>Redirecting to Session-Aware Welcome...</h2>
+    <div class="spinner"></div>
+    <div class="info">
+      <strong>Session Validation:</strong><br>
+      Checking your authentication status and redirecting accordingly.
+    </div>
+    <p>If you are not redirected automatically, <a href="/cgi/welcome.py">click here</a>.</p>
+  </div>
+  <script>
+    // JavaScript redirect as backup
+    setTimeout(function() {
+      window.location.href = '/cgi/welcome.py';
+    }, 1000);
+  </script>
 </body>
 </html>
