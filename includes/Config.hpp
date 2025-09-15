@@ -44,7 +44,8 @@ class Config {
 		std::map<std::string, std::string>	extractLocations() const;
 		std::map<int, std::string>			extractErrorPageMap() const;
 		size_t								extractMaxBodySize() const;
-
+		void								checkCgiTimeouts();
+		void								cleanupFinishedCgi();
 		SessionManager&						getSessionManager() { return _sessionManager; }
 		void printParams() {
 			std::map<std::string, std::string>::iterator it = _settings.begin();

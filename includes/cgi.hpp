@@ -11,6 +11,9 @@ enum CgiState {
 	CGI_DONE
 };
 
+
+#define CGI_TIMEOUT_SECONDS 5
+
 class CgiHandler {
 	private:
 		Client&				_client;
@@ -23,6 +26,7 @@ class CgiHandler {
 		size_t				bytesRecieved;
 		string				sessionId;
 		bool				sessionCreated;
+		time_t				startTime;
 
 		void	setupEnv();
 		void	executeChild(int *pipeIn, int *pipeOut);
@@ -31,14 +35,18 @@ class CgiHandler {
 
 	public:
 		CgiHandler(Client& client);
-		bool		start();
 		CgiState	getState() { return state; }
-		int	getWriteFd() const { return writePipeFd; }
-		int getReadFd() const { return readPipeFd; }
-		void	manageReadEvent(int epollFd);
-		void	manageWriteEvent(int epollFd);
-		string	getSessionId() const { return sessionId; }
-		bool	wasSessionCreated() const { return sessionCreated; }
+		int			getWriteFd() const { return writePipeFd; }
+		int 		getReadFd() const { return readPipeFd; }
+		string		getSessionId() const { return sessionId; }
+		time_t		getStartTime() const { return startTime; }
+		pid_t		getPid() const { return pid; }
+		Client&		getClient() { return _client; }
+		void		setState(CgiState _state) { state = _state; }
+		bool		start();
+		void		manageReadEvent(int epollFd);
+		void		manageWriteEvent(int epollFd);
+		bool		wasSessionCreated() const { return sessionCreated; }
 };
 
 template <typename T>

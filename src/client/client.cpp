@@ -12,7 +12,6 @@ void    Client::resolveHost() {
 	size_t colon = this->request.getHeader("host").find(':');
 	if (colon != string::npos)
     	requestServerName = this->request.getHeader("host").substr(0, colon);
-	cout << BRIGHT_GREEN << "requested serverName: " + requestServerName + " " << RESET << endl; 
 	for (vector<server>::iterator it = this->globalConfig->_servers.begin();
 								it != this->globalConfig->_servers.end(); ++it) {
 		if (find(it->serverName.begin(),
@@ -33,7 +32,6 @@ void    Client::updateState() {
 			this->state = (this->request.getMethod() == "POST") ?
 							READING_BODY : READING_DONE;
 			this->resolveHost();
-			printServer(*this->serverConfig);
 			break;
 		case PARSINGCOMPLETE:
 			this->state = READING_DONE; break;
@@ -157,7 +155,6 @@ int Client::handleReadEvent(int epollFd) {
 
 	this->processRequest();
 	if (this->state == READING_DONE || this->state == READING_BAD_REQUEST) {
-		// printRequest();
 		this->generateResponse();
 
 		if (this->state == SENDING_RESPONSE) {
@@ -364,8 +361,8 @@ void	Client::onCgiDone(string& cgiOutput) {
 	
 }
 
-void    Client::onCgiError() {
-	this->httpStatusCode = 502;
+void    Client::onCgiError(unsigned short code) {
+	this->httpStatusCode = code;
 	this->response.setErrorResponse(this->httpStatusCode);
 
 	// 2. Serialize the error response into the buffer.

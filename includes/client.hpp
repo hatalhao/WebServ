@@ -71,6 +71,6 @@ class Client {
 		void	setStatusCode(unsigned short status) { httpStatusCode = status; }
 		string	getCgiHandlerPath() { return cgiHandlerPath; }
 		void	onCgiDone(string& cgiOutput);
-		void	onCgiError();
+		void	onCgiError(unsigned short code);
 };
 

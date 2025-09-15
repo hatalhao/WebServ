@@ -92,7 +92,27 @@ void Config::listenForEvents() {
     struct epoll_event events[MAXEVENTS];
 
     while (true) {
-        int eventCount = epoll_wait(this->_epollFd, events, MAXEVENTS, -1);
+        // Compute epoll_wait timeout so we can trigger CGI timeouts even when idle
+        int waitTimeoutMs = -1; // -1 => wait indefinitely when no active CGI
+        if (!this->_cgiSet.empty()) {
+            time_t now = time(NULL);
+            bool hasActive = false;
+            for (std::set<CgiHandler*>::iterator sit = this->_cgiSet.begin(); sit != this->_cgiSet.end(); ++sit) {
+                CgiHandler* h = *sit;
+                if (h->getState() == CGI_DONE)
+                    continue;
+                hasActive = true;
+                double elapsed = difftime(now, h->getStartTime());
+                double remaining = CGI_TIMEOUT_SECONDS - elapsed;
+                int remMs = (remaining <= 0) ? 0 : static_cast<int>(remaining * 1000);
+                if (waitTimeoutMs == -1 || remMs < waitTimeoutMs)
+                    waitTimeoutMs = remMs;
+            }
+            if (!hasActive)
+                waitTimeoutMs = -1;
+        }
+
+        int eventCount = epoll_wait(this->_epollFd, events, MAXEVENTS, waitTimeoutMs);
         if (eventCount < 0) {
             if (errno == EINTR) continue;
             break;
@@ -244,26 +264,8 @@ void Config::listenForEvents() {
             }
         }
 
-        // Cleanup finished CGI handlers using the tracked set to avoid UAF
-        for (std::set<CgiHandler*>::iterator sit = this->_cgiSet.begin(); sit != this->_cgiSet.end(); ) {
-            CgiHandler* h = *sit;
-            if (h->getState() == CGI_DONE) {
-                // Remove all fds registered for this handler
-                std::vector<int> keys;
-                for (std::map<int, CgiHandler*>::iterator jt = this->_cgiHandlers.begin(); jt != this->_cgiHandlers.end(); ++jt) {
-                    if (jt->second == h) keys.push_back(jt->first);
-                }
-                for (size_t k = 0; k < keys.size(); ++k) {
-                    epoll_ctl(this->_epollFd, EPOLL_CTL_DEL, keys[k], NULL);
-                    this->_cgiHandlers.erase(keys[k]);
-                }
-                // Reap child with waitpid(WNOHANG) could be added here
-                delete h;
-                this->_cgiSet.erase(sit++);
-            } else {
-                ++sit;
-            }
-        }
+    this->checkCgiTimeouts();
+    this->cleanupFinishedCgi();
 
     }
 
@@ -293,4 +295,74 @@ void	Config::establishConnection() {
 	print "All server sockets created and listening" << endl;
 	
 	this->listenForEvents();
+}
+
+void Config::checkCgiTimeouts() {
+    time_t currentTime = time(NULL);
+
+    // Iterate over unique handler set to avoid processing the same handler twice
+    for (std::set<CgiHandler*>::iterator sit = _cgiSet.begin(); sit != _cgiSet.end(); ++sit) {
+        CgiHandler* handler = *sit;
+        if (!handler)
+            continue;
+        if (handler->getState() == CGI_DONE)
+            continue;
+
+        if (difftime(currentTime, handler->getStartTime()) > CGI_TIMEOUT_SECONDS) {
+            // Kill timed-out CGI child process
+            pid_t pid = handler->getPid();
+            if (pid > 0)
+                kill(pid, SIGKILL);
+
+            // Send 504 Gateway Timeout to the client
+            handler->getClient().onCgiError(504);
+
+            // Mark handler done
+            handler->setState(CGI_DONE);
+
+            // Remove any epoll registrations for this handler's fds and close them
+            int rfd = handler->getReadFd();
+            int wfd = handler->getWriteFd();
+            if (rfd >= 0) {
+                epoll_ctl(_epollFd, EPOLL_CTL_DEL, rfd, NULL);
+                close(rfd);
+            }
+            if (wfd >= 0) {
+                epoll_ctl(_epollFd, EPOLL_CTL_DEL, wfd, NULL);
+                close(wfd);
+            }
+        }
+    }
+}
+
+void Config::cleanupFinishedCgi() {
+    // Clean up finished CGI handlers exactly once, removing all their fd registrations
+    for (std::set<CgiHandler*>::iterator sit = _cgiSet.begin(); sit != _cgiSet.end(); ) {
+        CgiHandler* handler = *sit;
+        if (!handler || handler->getState() != CGI_DONE) {
+            ++sit;
+            continue;
+        }
+
+        int status = 0;
+        pid_t result = waitpid(handler->getPid(), &status, WNOHANG);
+        if (result == 0) { // child not reaped yet
+            ++sit;
+            continue;
+        }
+
+        // Remove all epoll registrations for this handler and erase from map
+        std::vector<int> keys;
+        for (std::map<int, CgiHandler*>::iterator it = _cgiHandlers.begin(); it != _cgiHandlers.end(); ++it) {
+            if (it->second == handler) keys.push_back(it->first);
+        }
+        for (size_t i = 0; i < keys.size(); ++i) {
+            epoll_ctl(_epollFd, EPOLL_CTL_DEL, keys[i], NULL);
+            _cgiHandlers.erase(keys[i]);
+        }
+
+        // Finally, delete handler and erase from the set
+        delete handler;
+        _cgiSet.erase(sit++);
+    }
 }
