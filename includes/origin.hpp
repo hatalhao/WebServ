@@ -17,6 +17,7 @@
 #include <cerrno>
 #include <cstring>
 #include <sys/wait.h>
+#include <ctime>
 
 
 class Config;

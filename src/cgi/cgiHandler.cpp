@@ -3,7 +3,7 @@
 CgiHandler::CgiHandler(Client& client) :
 	_client(client), envp(NULL), pid(-1), state(CGI_IDLE),
 	writePipeFd(-1), readPipeFd(-1), output(""), bytesRecieved(0),
-	sessionId(""), sessionCreated(false) {}
+	sessionId(""), sessionCreated(false), startTime(0){}
 
 void    closeFds(int* in, int *out) {
 	if (in) {
@@ -146,6 +146,7 @@ bool	CgiHandler::start() {
 			writePipeFd = -1;
 			this->state = CGI_READING;
 		}
+		this->startTime = time(NULL);
 	} catch (...) {
 		for (int i = 0; i < 2; ++i) {
 			if (pipeIn[i] != -1) close(pipeIn[i]);
@@ -185,7 +186,7 @@ void	CgiHandler::manageReadEvent(int epollFd) {
 		epoll_ctl(epollFd, EPOLL_CTL_DEL, this->readPipeFd, NULL);
 		close(this->readPipeFd);
 		this->readPipeFd = -1;
-		this->_client.onCgiError();
+		this->_client.onCgiError(502);
 	}
 }
 
@@ -224,7 +225,7 @@ void	CgiHandler::manageWriteEvent(int epollFd) {
 			epoll_ctl(epollFd, EPOLL_CTL_DEL, this->writePipeFd, 0);
 			close(this->writePipeFd);
 			this->writePipeFd = -1;
-			this->_client.onCgiError();
+			this->_client.onCgiError(502);
 			return;
 		}
 	}

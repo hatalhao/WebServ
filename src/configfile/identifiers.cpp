@@ -98,7 +98,7 @@ int isValidStatusCode(long statusCode) {
 	if (statusCode != BAD_REQUEST && statusCode != FORBIDDEN && statusCode != NOT_FOUND && \
 		statusCode != REQUEST_TIMEOUT && statusCode != REQUEST_ENTITY_TOO_LARGE && \
 		statusCode != REQUEST_URI_TOO_LONG && statusCode != INTERNAL_SERVER_ERROR && \
-		statusCode != NOT_IMPLEMENTED)
+		statusCode != NOT_IMPLEMENTED && statusCode != GATEWAY_TIMEOUT_ERROR)
 		return -1;
 	return static_cast<int>(statusCode);
 }
