@@ -50,3 +50,4 @@ void	printServer(const server &serv);
 void	fillServer(server &serv, const Config &config);
 void	printLocation(const std::vector<location_b> &location);
 void	initialiseServer(Config& config);
+std::map<int, std::string>	getDefaultErrorPages();

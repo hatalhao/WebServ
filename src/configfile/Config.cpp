@@ -59,8 +59,48 @@ cgi_t	getCgi(std::ifstream& configFile, std::string& line) {
 	return cgi;
 }
 
+int	getStatusCode(const std::string& line) {
+	long statusCode = 0;
+	size_t pos = NPOS;
+
+	pos = line.find_first_not_of("0123456789");
+	if (pos != 3 && (line[pos] != '=' || line[pos] != ' ')) {
+		return -1;
+	}
+	statusCode = std::strtol(line.substr(0, pos).c_str(), 0, 10);
+	return (isValidStatusCode(statusCode));
+}
+
+// Will Need to Change This to start modifying on the preexisting map, not overwrite it 
+std::map<int, std::string> getPages(std::ifstream& configFile, std::string& line, std::map<int, std::string>& existingMap) {
+	// std::map<int, std::string> errorPageMap;
+	int token = 5;
+	while (std::getline(configFile, line)) {
+		if (skipLine(line))
+			continue;
+		size_t pos = line.find('=');
+		token = isValidBlock(line);
+		if (pos == NPOS && (token == ERROR_TOKEN || token == LOCATION_TOKEN || token == SERVER_TOKEN)) {
+			break ;
+		}
+
+		if (pos == NPOS && token == UNKNOWN_TOKEN) {
+			throw std::runtime_error("Invalid error page line: " + line);
+		}
+		int statusCode = getStatusCode(line.substr(line.find_first_not_of(" \t"), pos));
+		if (statusCode == -1) {
+			throw std::runtime_error("Invalid status code in error page directive: " + line);
+		}
+		std::string filePath = line.substr(pos + 1);
+		removeInvalidChars(filePath);
+		existingMap[statusCode] = filePath;
+	}
+	return existingMap;
+}
+
 location_b	getLocation(std::ifstream& configFile, std::string& line, const std::string& root) {
 	location_b location;
+	location.errorPageMap = getDefaultErrorPages();
 	while (std::getline(configFile, line)) {
 		if (skipLine(line))
 			continue ;
@@ -85,6 +125,14 @@ location_b	getLocation(std::ifstream& configFile, std::string& line, const std::
 			}
 			continue ;
 		}
+		if (pos == NPOS && token == ERROR_TOKEN) {
+			location.errorPageMap = getPages(configFile, line, location.errorPageMap);
+			if (isValidBlock(line) == LOCATION_TOKEN \
+			|| isValidBlock(line) == SERVER_TOKEN) {
+				break ;
+			}
+			continue ;
+		}
 
 		if (!isKeyValue(line)) {
 			throw std::runtime_error("Invalid location directive: " + line);
@@ -96,7 +144,6 @@ location_b	getLocation(std::ifstream& configFile, std::string& line, const std::
 			std::string value = line.substr(pos + 1 + (line[pos + 1] == ' '));
 			if (isArrayKey(key) && isArray(value)) {
 				std::vector<std::string> method;
-				std::vector<std::string> redirection;
 				if (key == "allow") {
 					value = saveArray(value);
 					stringstream ss(value);
@@ -127,15 +174,7 @@ location_b	getLocation(std::ifstream& configFile, std::string& line, const std::
 				else if (key == "path") { location.path = value; }
 				else if (key == "name") { location.name = value; }
 				else if (key == "autoindex") { location.isAutoIndexEnabled = (value == "on"); }
-				else if (key == "error_page") {
-					size_t errorPos = value.find('=');
-					if (errorPos != NPOS) {
-						int errorCode = std::atoi(value.substr(0, errorPos).c_str());
-						std::string errorPagePath = value.substr(errorPos + 1);
-						removeInvalidChars(errorPagePath);
-						location.errorPageMap[errorCode] = errorPagePath;
-					}
-				} else if (isValidBlock(line) == CGI_TOKEN) {
+				else if (isValidBlock(line) == CGI_TOKEN) {
 					location.isCgiEnabled = (value == "on");
 					try {
 						location.cgiList.push_back(getCgi(configFile, line));
@@ -152,44 +191,6 @@ location_b	getLocation(std::ifstream& configFile, std::string& line, const std::
 		throw std::runtime_error("Invalid location configuration: " + location.name + " -> " + location.path);
 	}
 	return location;
-}
-
-int	getStatusCode(const std::string& line) {
-	long statusCode = 0;
-	size_t pos = NPOS;
-
-	pos = line.find_first_not_of("0123456789");
-	if (pos != 3 && (line[pos] != '=' || line[pos] != ' ')) {
-		return -1;
-	}
-	statusCode = std::strtol(line.substr(0, pos).c_str(), 0, 10);
-	return (isValidStatusCode(statusCode));
-}
-
-std::map<int, std::string> getPages(std::ifstream& configFile, std::string& line) {
-	std::map<int, std::string> errorPageMap;
-	int token = 5;
-	while (std::getline(configFile, line)) {
-		if (skipLine(line))
-			continue;
-		size_t pos = line.find('=');
-		token = isValidBlock(line);
-		if (pos == NPOS && (token == ERROR_TOKEN || token == LOCATION_TOKEN || token == SERVER_TOKEN)) {
-			break ;
-		}
-
-		if (pos == NPOS && token == UNKNOWN_TOKEN) {
-			throw std::runtime_error("Invalid error page line: " + line);
-		}
-		int statusCode = getStatusCode(line.substr(line.find_first_not_of(" \t"), pos));
-		if (statusCode == -1) {
-			throw std::runtime_error("Invalid status code in error page directive: " + line);
-		}
-		std::string filePath = line.substr(pos + 1);
-		removeInvalidChars(filePath);
-		errorPageMap[statusCode] = filePath;
-	}
-	return errorPageMap;
 }
 
 Config::Config(const std::string& configFilePath) : _configFilePath(configFilePath) {
@@ -213,7 +214,7 @@ Config::Config(const std::string& configFilePath) : _configFilePath(configFilePa
 
 	while (lastLine == "[[server]]") {
 		server serv;
-
+		serv.errorPageMap = getDefaultErrorPages();
 		do {
 			if (skipLine(line))
 				continue;
@@ -226,7 +227,7 @@ Config::Config(const std::string& configFilePath) : _configFilePath(configFilePa
 			}
 			if (pos == NPOS && token == ERROR_TOKEN) {
 				try {
-					serv.errorPageMap = getPages(configFile, line);
+					serv.errorPageMap = getPages(configFile, line, serv.errorPageMap);
 					token = isValidBlock(line);
 					lastLine = line;
 					if (token == SERVER_TOKEN)
@@ -279,6 +280,7 @@ Config::Config(const std::string& configFilePath) : _configFilePath(configFilePa
 		} while (std::getline(configFile, line) && isValidBlock(line) != 1);
 		fillServer(serv, *this);
 		this->_servers.insert(this->_servers.end(), serv);
+		printServer(this->_servers.back());
 		this->_settings.clear();
 	}
 	configFile.close();

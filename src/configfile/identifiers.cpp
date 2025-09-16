@@ -103,7 +103,7 @@ int isValidStatusCode(long statusCode) {
 	return static_cast<int>(statusCode);
 }
 
-bool	isdefaultLocationFound(const server* serv) {
+bool	b(const server* serv) {
 	for (size_t i = 0; i < serv->locations.size(); i++) {
 		if (serv->locations[i].name == "/")
 			return true;

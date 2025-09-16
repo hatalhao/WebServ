@@ -23,7 +23,6 @@ void server::createSockets(const struct addrinfo& hint, struct addrinfo **newAdd
 		freeaddrinfo(*newAddr);
 		throw std::runtime_error("Failed to create socket");
 	}
-
 	// Ensure listening sockets are not inherited by exec'ed CGI children
 	int fdflags = fcntl(this->socketFd.back(), F_GETFD);
 	if (fdflags >= 0) {

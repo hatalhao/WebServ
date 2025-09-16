@@ -4,6 +4,18 @@
 #include "../../includes/identifiers.hpp"
 // #include "../../includes/networking.hpp"
 
+std::map<int, std::string> getDefaultErrorPages() {
+	std::map<int, std::string> defaultErrorPages;
+	defaultErrorPages[400] = "./default_pages/400.html";
+	defaultErrorPages[403] = "./default_pages/403.html";
+	defaultErrorPages[404] = "./default_pages/404.html";
+	defaultErrorPages[405] = "./default_pages/405.html";
+	defaultErrorPages[408] = "./default_pages/408.html";
+	defaultErrorPages[500] = "./default_pages/500.html";
+	defaultErrorPages[501] = "./default_pages/501.html";
+	defaultErrorPages[502] = "./default_pages/502.html";
+	return defaultErrorPages;
+}
 void	checkAttributes(server &serv) {
 	if (serv.host.empty())
 		throw std::invalid_argument("Host cannot be empty");
@@ -22,20 +34,19 @@ void	checkAttributes(server &serv) {
 		throw std::invalid_argument("Max body size cannot be zero");
 }
 
-
 void	fillServer(server &serv, const Config &config) {
 	serv.port = config.extractPorts();
 	serv.host = config.extractHost();
 	serv.root = config.extractRoot();
 	serv.serverName = config.extractServerName();
 	serv.maxBodySize = config.extractMaxBodySize();
-
-	if (serv.locations.empty() || !isdefaultLocationFound(&serv)) {
+	if (serv.locations.empty()) {
 		location_b defaultLocation;
 		defaultLocation.path = serv.root;
 		defaultLocation.name = "/";
 		defaultLocation.methods.push_back("GET");
-		defaultLocation.isAutoIndexEnabled = false;
+		defaultLocation.errorPageMap = getDefaultErrorPages();
+		defaultLocation.isAutoIndexEnabled = true;
 		defaultLocation.isCgiEnabled = false;
 		serv.locations.push_back(defaultLocation);
 	}
@@ -65,6 +76,9 @@ void	printLocation(const std::vector<location_b> &location) {
 		std::cout << (!(location[i].redirection.empty()) ? "Redirection: " : "");
 		std::cout << location[i].redirection << std::endl;
 		print endl;
+		for (std::map<int, std::string>::const_iterator it = location[i].errorPageMap.begin(); it != location[i].errorPageMap.end(); ++it) {
+			std::cout << "  " << it->first << ": " << it->second << std::endl;
+		}
 	}
 }
 
