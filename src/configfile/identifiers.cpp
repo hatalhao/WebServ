@@ -4,6 +4,14 @@
 #include "../../includes/Webserv.hpp"
 #include "../../includes/Config.hpp"
 
+bool	isdefaultLocationFound(const server& serv) {
+	for (size_t i = 0; i < serv.locations.size(); i++) {
+		if (serv.locations[i].name == "/")
+			return true;
+	}
+	return false;
+}
+
 std::string ServerNameExists(const std::string& serverName, Config& config) {
 	if (serverName.find_first_not_of("1234567890.") == NPOS)
 		return (serverName);

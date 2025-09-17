@@ -11,7 +11,7 @@ max_body_size = "1GB"
 413 = "./pages/413.html"
 
 [[location]]
-name = "/"
+name = "/awdaw"
 path = "/home/hatalhao/"
 index = ["index.html", "images.php", "imagesFile.html"]
 autoindex = ["on"]

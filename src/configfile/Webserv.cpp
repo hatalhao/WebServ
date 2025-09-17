@@ -40,14 +40,16 @@ void	fillServer(server &serv, const Config &config) {
 	serv.root = config.extractRoot();
 	serv.serverName = config.extractServerName();
 	serv.maxBodySize = config.extractMaxBodySize();
-	if (serv.locations.empty()) {
+	if (serv.locations.empty() || !isdefaultLocationFound(serv)) {
 		location_b defaultLocation;
 		defaultLocation.path = serv.root;
 		defaultLocation.name = "/";
 		defaultLocation.methods.push_back("GET");
 		defaultLocation.errorPageMap = getDefaultErrorPages();
 		defaultLocation.isAutoIndexEnabled = true;
+		defaultLocation.index = serv.index;
 		defaultLocation.isCgiEnabled = false;
+		defaultLocation.errorPageMap = serv.errorPageMap;
 		serv.locations.push_back(defaultLocation);
 	}
 	// printServer(serv);

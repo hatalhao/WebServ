@@ -30,6 +30,7 @@ typedef struct	location {
 }				location_b;
 
 typedef struct	server {
+	std::vector<std::string>	index;
 	size_t						maxBodySize;
 	std::set<int>				port;
 	std::string					host;
@@ -38,7 +39,8 @@ typedef struct	server {
 	std::vector<std::string>	serverName;
 	std::vector<location_b>		locations;
 	std::map<int, std::string>	errorPageMap;
-	server() : maxBodySize(0), port(), host(), root(), socketFd(), serverName(), locations(), errorPageMap() {};
+	server() : index(), maxBodySize(0), port(), host(), root(), socketFd(), serverName(), locations(), errorPageMap() {};
+	
 	
 	// Member functions
 	void	createSockets(const struct addrinfo& hint, struct addrinfo **newAddr, const std::string& port, const std::string& host);

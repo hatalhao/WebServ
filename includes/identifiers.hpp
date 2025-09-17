@@ -13,6 +13,6 @@ bool	isArray(const std::string& line);
 bool	isArrayKey(const std::string& key);
 bool 	isValidMethod(const std::string& method);
 int		isValidStatusCode(long statusCode);
-bool	isdefaultLocationFound(const server* serv);
+bool	isdefaultLocationFound(const server& serv);
 
 std::string ServerNameExists(const std::string& serverName, Config& config);
