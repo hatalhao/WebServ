@@ -27,6 +27,7 @@ class Client {
 	private:
 		Worker			*globalConfig;
 		int				_clientFd;
+		set<int>		condidateServersIndices;// Indexes of servers this client could belong to
 		server*			serverConfig;
 		int				currentPort;
 		string			requestBuf;
@@ -46,7 +47,9 @@ class Client {
 		size_t fileBufferUsed;   // How much of buffer is used
 		size_t fileBufferSent;   // How much of buffer has been sent
 		size_t fileReadOffset;   // Current file read position
-		Client(int fd, Worker* _g_config);
+		Client(int fd, Worker* _g_config, pair<string, int>& hostPort);
+		// Changed hostPort parameter to const reference to allow binding rvalues (e.g., std::make_pair)
+		Client(int fd, Worker* _g_config, const pair<string, int>& hostPort);
 	
 		string		getRequestBuf() const { return requestBuf; }
 		string		getResponseBuf() const { return responseBuf; }

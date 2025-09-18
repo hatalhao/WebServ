@@ -27,7 +27,9 @@ int	Worker::acceptConnection(int serverIndex, int socketIndex) {
 	}
 
 	// Create client on heap to avoid stack-use-after-return
-	Client* newClient = new Client(clientFd, this);
+	Client* newClient = new Client(clientFd, this,
+        std::make_pair(this->_servers[serverIndex].host, 
+            this->socketToPort[this->_servers[serverIndex].socketFd[socketIndex]]) );
 	this->_clients.push_back(newClient);
 	int clientIndex = this->_clients.size() - 1;
 
@@ -276,8 +278,10 @@ void	Worker::establishConnection() {
     // Track which ports we've already created sockets for and to implement Virtual Hosting
 	for (size_t i = 0; i < this->_servers.size(); ++i){
         for (std::set<int>::const_iterator port = this->_servers[i].port.begin(); port != this->_servers[i].port.end(); ++port) {
-            if (this->hostToIndex[make_pair(this->_servers[i].host, *port)].empty())
+            if (this->hostToIndex[make_pair(this->_servers[i].host, *port)].empty()) {
                 this->_servers[i].createSockets(hint, &newAddr, to_string(*port), this->_servers[i].host);
+                this->socketToPort[this->_servers[i].socketFd.back()] = *port;
+            }
             this->hostToIndex[make_pair(this->_servers[i].host, *port)].insert(i);
             print "Server listening on " << this->_servers[i].host << ":" << *port << endl;
 		}

@@ -20,6 +20,7 @@ class Worker {
 		std::map<int, std::pair<int, int> > socketToServer;
 		std::map<int, int> clientToServer;
 		std::map<int, int> fdToClientIndex;
+		std::map<int, int> socketToPort; // Map socket fd to port number for Virtual Hosting
 
 
 		Worker(const Worker &other){
@@ -47,5 +48,7 @@ class Worker {
 		void								listenForEvents();
 		void								checkCgiTimeouts();
 		void								cleanupFinishedCgi();
+
+	set<int>&							getCondidateServersIndices(const pair<string, int>& hostPort) { return hostToIndex[hostPort]; }
 
 };

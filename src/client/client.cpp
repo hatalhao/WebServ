@@ -1,7 +1,10 @@
 #include "../../includes/client.hpp"
 
-Client::Client(int fd, Worker* _g_config) :
-	globalConfig(_g_config), _clientFd(fd), serverConfig(NULL),
+Client::Client(int fd, Worker* _g_config, const pair<string, int>& hostPort) :
+	globalConfig(_g_config), _clientFd(fd),
+	condidateServersIndices(_g_config->getCondidateServersIndices(hostPort)),
+	serverConfig(&_g_config->getServers()[*condidateServersIndices.begin()]),
+	currentPort(hostPort.second),
 	requestBuf(""), responseBuf(""), contentLen(0), state(READING_REQUEST_LINE),
 	request(this), response(this), cgiHandlerPath(""),
 	httpStatusCode(0), bodySent(0), headerSent(0),
@@ -12,14 +15,13 @@ void    Client::resolveHost() {
 	size_t colon = this->request.getHeader("host").find(':');
 	if (colon != string::npos)
     	requestServerName = this->request.getHeader("host").substr(0, colon);
-	for (vector<server>::iterator it = this->globalConfig->getServers().begin();
-								it != this->globalConfig->getServers().end(); ++it) {
-		if (find(it->serverName.begin(),
-				it->serverName.end(),
-				requestServerName) != it->serverName.end())
-		{	this->serverConfig = &*it; return; }
+	vector<server>& servers = this->globalConfig->getServers();
+	for (set<int>::iterator it = condidateServersIndices.begin(); it != condidateServersIndices.end(); ++it) {
+		if (find(servers[*it].serverName.begin(),
+				servers[*it].serverName.end(),
+				requestServerName) != servers[*it].serverName.end())
+		{	this->serverConfig = &servers[*it]; return; }
 	}
-	this->serverConfig = &this->globalConfig->getServers()[0];
 }
 
 void    Client::updateState() {
