@@ -1,7 +1,7 @@
 # pragma once
 
 #include "request.hpp"
-#include "Config.hpp"
+#include "worker.hpp"
 #include "response.hpp"
 #include "manipulators.hpp"
 #include "cgi.hpp"
@@ -25,7 +25,7 @@ enum ClientState {
 
 class Client {
 	private:
-		Config			*globalConfig;
+		Worker			*globalConfig;
 		int				_clientFd;
 		server*			serverConfig;
 		int				currentPort;
@@ -46,7 +46,7 @@ class Client {
 		size_t fileBufferUsed;   // How much of buffer is used
 		size_t fileBufferSent;   // How much of buffer has been sent
 		size_t fileReadOffset;   // Current file read position
-		Client(int fd, Config* _g_config);
+		Client(int fd, Worker* _g_config);
 	
 		string		getRequestBuf() const { return requestBuf; }
 		string		getResponseBuf() const { return responseBuf; }
@@ -54,7 +54,7 @@ class Client {
 		Request&	getRequest() { return request; } 
 		Response&	getResponse()  { return response; }
 		server*		getServer() { return serverConfig; }
-		Config*		getGlobalConfig() { return globalConfig; }
+		Worker*		getGlobalConfig() { return globalConfig; }
 		const unsigned short&	getStatusCode() { return httpStatusCode; }
 		void	resolveHost();
 		

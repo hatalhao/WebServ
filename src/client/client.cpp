@@ -1,6 +1,6 @@
 #include "../../includes/client.hpp"
 
-Client::Client(int fd, Config* _g_config) :
+Client::Client(int fd, Worker* _g_config) :
 	globalConfig(_g_config), _clientFd(fd), serverConfig(NULL),
 	requestBuf(""), responseBuf(""), contentLen(0), state(READING_REQUEST_LINE),
 	request(this), response(this), cgiHandlerPath(""),
@@ -12,14 +12,14 @@ void    Client::resolveHost() {
 	size_t colon = this->request.getHeader("host").find(':');
 	if (colon != string::npos)
     	requestServerName = this->request.getHeader("host").substr(0, colon);
-	for (vector<server>::iterator it = this->globalConfig->_servers.begin();
-								it != this->globalConfig->_servers.end(); ++it) {
+	for (vector<server>::iterator it = this->globalConfig->getServers().begin();
+								it != this->globalConfig->getServers().end(); ++it) {
 		if (find(it->serverName.begin(),
 				it->serverName.end(),
 				requestServerName) != it->serverName.end())
 		{	this->serverConfig = &*it; return; }
 	}
-	this->serverConfig = &this->globalConfig->_servers[0];
+	this->serverConfig = &this->globalConfig->getServers()[0];
 }
 
 void    Client::updateState() {
@@ -89,7 +89,7 @@ void    Client::generateResponse() {
 		CgiHandler* cgi = new CgiHandler(*this);
 		if (cgi->start()) {
 			// Track handler lifetime to avoid dangling pointers during cleanup
-			this->globalConfig->_cgiSet.insert(cgi);
+			this->globalConfig->getCgiSet().insert(cgi);
 			struct epoll_event ev = epoll_event();
 			// Level-triggered events by default
 			ev.events = 0;
@@ -98,12 +98,12 @@ void    Client::generateResponse() {
 			if (cgi->getState() == CGI_WRITING) {
 				ev.events |= EPOLLOUT; // watch write readiness
 				ev.data.fd = cgi->getWriteFd();
-				this->globalConfig->_cgiHandlers[ev.data.fd] = cgi;
+				this->globalConfig->getCgiHandlers()[ev.data.fd] = cgi;
 				epoll_ctl(this->globalConfig->getEpollFd(), EPOLL_CTL_ADD, ev.data.fd, &ev);
 			}
 			ev.events = EPOLLIN; // watch read readiness
 			ev.data.fd = cgi->getReadFd();
-			this->globalConfig->_cgiHandlers[ev.data.fd] = cgi;
+			this->globalConfig->getCgiHandlers()[ev.data.fd] = cgi;
 			epoll_ctl(this->globalConfig->getEpollFd(), EPOLL_CTL_ADD, ev.data.fd, &ev);
 
 			this->state = WAITING_FOR_CGI;

@@ -45,11 +45,11 @@ typedef struct	server {
 	// Member functions
 	void	createSockets(const struct addrinfo& hint, struct addrinfo **newAddr, const std::string& port, const std::string& host);
 	void	fileDescriptorDisposal();
+	void	checkAttributes(server &serv);
+	void	printServer(const server &serv);
+	void	fillServer(server &serv, const Config &config);
 
 }			 server;
-void	checkAttributes(server &serv);
-void	printServer(const server &serv);
-void	fillServer(server &serv, const Config &config);
+
 void	printLocation(const std::vector<location_b> &location);
-void	initialiseServer(Config& config);
 std::map<int, std::string>	getDefaultErrorPages();

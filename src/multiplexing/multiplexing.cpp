@@ -1,9 +1,9 @@
-#include "../../includes/Config.hpp"
+#include "../../includes/worker.hpp"
 #include "../../includes/Webserv.hpp"
 #include "../../includes/networking.hpp"
 #include "../../includes/client.hpp"
 
-int	Config::acceptConnection(int serverIndex, int socketIndex) {
+int	Worker::acceptConnection(int serverIndex, int socketIndex) {
 	if (serverIndex >= static_cast<int>(this->_servers.size()) || 
 		socketIndex >= static_cast<int>(this->_servers[serverIndex].socketFd.size())) {
 		return -1;
@@ -48,7 +48,7 @@ int	Config::acceptConnection(int serverIndex, int socketIndex) {
 }
 
 
-void Config::listenForEvents() {
+void Worker::listenForEvents() {
     print "Starting epoll-based event loop" << endl;
 
     if (this->_servers.empty()) {
@@ -59,11 +59,6 @@ void Config::listenForEvents() {
     if (this->_epollFd < 0) {
         throw std::runtime_error("Failed to create epoll instance");
     }
-
-    std::map<int, std::pair<int, int> > socketToServer;  // serverSocket → (serverIndex, socketFdIndex)
-    std::map<int, int> clientToServer;                   // clientFd → serverIndex
-    std::map<int, int> fdToClientIndex;                  // clientFd → client index in _clients
-
     // Use the shared CGI handlers map from Config to track pipe FDs
     
     // Register server sockets
@@ -85,7 +80,7 @@ void Config::listenForEvents() {
                 throw std::runtime_error("Failed to add server socket to epoll");
             }
 
-            socketToServer[serverSocket] = std::make_pair(serverIndex, socketFdIndex);
+            this->socketToServer[serverSocket] = std::make_pair(serverIndex, socketFdIndex);
         }
     }
 
@@ -122,8 +117,8 @@ void Config::listenForEvents() {
             int fd = events[i].data.fd;
 
             // New incoming connection?
-            if (socketToServer.find(fd) != socketToServer.end()) {
-                std::pair<int, int> serverInfo = socketToServer[fd];
+            if (this->socketToServer.find(fd) != this->socketToServer.end()) {
+                std::pair<int, int> serverInfo = this->socketToServer[fd];
                 int serverIndex = serverInfo.first;
                 int socketIndex = serverInfo.second;
 
@@ -154,8 +149,8 @@ void Config::listenForEvents() {
                         }
                     }
 
-                    clientToServer[clientFd] = serverIndex;
-                    fdToClientIndex[clientFd] = this->_clients.size() - 1;
+                    this->clientToServer[clientFd] = serverIndex;
+                    this->fdToClientIndex[clientFd] = this->_clients.size() - 1;
                 }
             }
             // new cgi case
@@ -169,8 +164,8 @@ void Config::listenForEvents() {
             }
             // Existing client activity
             else {
-                std::map<int, int>::iterator clientIt = fdToClientIndex.find(fd);
-                if (clientIt != fdToClientIndex.end()) {
+                std::map<int, int>::iterator clientIt = this->fdToClientIndex.find(fd);
+                if (clientIt != this->fdToClientIndex.end()) {
                     int clientIndex = clientIt->second;
                     Client* client = this->_clients[clientIndex];
 
@@ -178,14 +173,14 @@ void Config::listenForEvents() {
                     if (events[i].events & (EPOLLERR | EPOLLHUP)) {
                         epoll_ctl(this->_epollFd, EPOLL_CTL_DEL, fd, NULL);
                         close(fd);
-                        clientToServer.erase(fd);
-                        fdToClientIndex.erase(clientIt);
+                        this->clientToServer.erase(fd);
+                        this->fdToClientIndex.erase(clientIt);
 
                         delete this->_clients[clientIndex];
                         this->_clients.erase(this->_clients.begin() + clientIndex);
 
-                        for (std::map<int, int>::iterator mapIt = fdToClientIndex.begin();
-                             mapIt != fdToClientIndex.end(); ++mapIt) {
+                        for (std::map<int, int>::iterator mapIt = this->fdToClientIndex.begin();
+                             mapIt != this->fdToClientIndex.end(); ++mapIt) {
                             if (mapIt->second > clientIndex) {
                                 mapIt->second--;
                             }
@@ -200,14 +195,14 @@ void Config::listenForEvents() {
                         if (result == DISCONNECTED || result == FINISHED) {
                             epoll_ctl(this->_epollFd, EPOLL_CTL_DEL, fd, NULL);
                             close(fd);
-                            clientToServer.erase(fd);
-                            fdToClientIndex.erase(clientIt);
+                            this->clientToServer.erase(fd);
+                            this->fdToClientIndex.erase(clientIt);
 
                             delete this->_clients[clientIndex];
                             this->_clients.erase(this->_clients.begin() + clientIndex);
 
-                            for (std::map<int, int>::iterator mapIt = fdToClientIndex.begin();
-                                 mapIt != fdToClientIndex.end(); ++mapIt) {
+                            for (std::map<int, int>::iterator mapIt = this->fdToClientIndex.begin();
+                                 mapIt != this->fdToClientIndex.end(); ++mapIt) {
                                 if (mapIt->second > clientIndex) {
                                     mapIt->second--;
                                 }
@@ -231,12 +226,12 @@ void Config::listenForEvents() {
                                 // Close connection on error
                                 epoll_ctl(this->_epollFd, EPOLL_CTL_DEL, fd, NULL);
                                 close(fd);
-                                clientToServer.erase(fd);
-                                fdToClientIndex.erase(clientIt);
+                                this->clientToServer.erase(fd);
+                                this->fdToClientIndex.erase(clientIt);
                                 delete this->_clients[clientIndex];
                                 this->_clients.erase(this->_clients.begin() + clientIndex);
-                                for (std::map<int, int>::iterator mapIt = fdToClientIndex.begin();
-                                     mapIt != fdToClientIndex.end(); ++mapIt) {
+                                for (std::map<int, int>::iterator mapIt = this->fdToClientIndex.begin();
+                                     mapIt != this->fdToClientIndex.end(); ++mapIt) {
                                     if (mapIt->second > clientIndex) {
                                         mapIt->second--;
                                     }
@@ -246,12 +241,12 @@ void Config::listenForEvents() {
                         } else if (result == DISCONNECTED) {
                             epoll_ctl(this->_epollFd, EPOLL_CTL_DEL, fd, NULL);
                             close(fd);
-                            clientToServer.erase(fd);
-                            fdToClientIndex.erase(clientIt);
+                            this->clientToServer.erase(fd);
+                            this->fdToClientIndex.erase(clientIt);
                             delete this->_clients[clientIndex];
                             this->_clients.erase(this->_clients.begin() + clientIndex);
-                            for (std::map<int, int>::iterator mapIt = fdToClientIndex.begin();
-                                 mapIt != fdToClientIndex.end(); ++mapIt) {
+                            for (std::map<int, int>::iterator mapIt = this->fdToClientIndex.begin();
+                                 mapIt != this->fdToClientIndex.end(); ++mapIt) {
                                 if (mapIt->second > clientIndex) {
                                     mapIt->second--;
                                 }
@@ -272,32 +267,35 @@ void Config::listenForEvents() {
     close(this->_epollFd);
 }
 
-
-void	Config::establishConnection() {
+void	Worker::establishConnection() {
 	struct addrinfo hint = addrinfo(), *newAddr;
 	hint.ai_family = AF_INET;
 	hint.ai_socktype = SOCK_STREAM;
 	hint.ai_flags = AI_PASSIVE;
 
-    vector<int> registedPorts;
-
+    // Track which ports we've already created sockets for and to implement Virtual Hosting
 	for (size_t i = 0; i < this->_servers.size(); ++i){
-     
-		for (std::set<int>::const_iterator port = this->_servers[i].port.begin();
-                port != this->_servers[i].port.end(); ++port) {
-            if (find(registedPorts.begin(), registedPorts.end(), *port) == registedPorts.end()) {
-			    this->_servers[i].createSockets(hint, &newAddr, to_string(*port), this->_servers[i].host);
-                registedPorts.push_back(*port);
-            }
+        for (std::set<int>::const_iterator port = this->_servers[i].port.begin(); port != this->_servers[i].port.end(); ++port) {
+            if (this->hostToIndex[make_pair(this->_servers[i].host, *port)].empty())
+                this->_servers[i].createSockets(hint, &newAddr, to_string(*port), this->_servers[i].host);
+            this->hostToIndex[make_pair(this->_servers[i].host, *port)].insert(i);
             print "Server listening on " << this->_servers[i].host << ":" << *port << endl;
 		}
 	}
+
+    for (map< pair<string,int>, set<int> >::iterator it = this->hostToIndex.begin(); it != this->hostToIndex.end(); ++it) {
+        print "Host " << it->first.first << " Port " << it->first.second << " serves servers: ";
+        for (set<int>::iterator sit = it->second.begin(); sit != it->second.end(); ++sit) {
+            print *sit << " ";
+        }
+        print endl;
+    }
 	print "All server sockets created and listening" << endl;
 	
 	this->listenForEvents();
 }
 
-void Config::checkCgiTimeouts() {
+void Worker::checkCgiTimeouts() {
     time_t currentTime = time(NULL);
 
     // Iterate over unique handler set to avoid processing the same handler twice
@@ -335,7 +333,7 @@ void Config::checkCgiTimeouts() {
     }
 }
 
-void Config::cleanupFinishedCgi() {
+void Worker::cleanupFinishedCgi() {
     // Clean up finished CGI handlers exactly once, removing all their fd registrations
     for (std::set<CgiHandler*>::iterator sit = _cgiSet.begin(); sit != _cgiSet.end(); ) {
         CgiHandler* handler = *sit;
