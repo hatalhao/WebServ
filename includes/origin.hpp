@@ -25,6 +25,7 @@ class Request;
 class Response;
 class CgiHandler;
 class Client;
+class Worker;
 struct server;
 typedef struct location location_b;
 

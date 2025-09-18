@@ -193,12 +193,11 @@ location_b	getLocation(std::ifstream& configFile, std::string& line, const std::
 	return location;
 }
 
-Config::Config(const std::string& configFilePath) : _configFilePath(configFilePath) {
-	std::ifstream configFile(_configFilePath.c_str());
+Config::Config(const std::string& configFilePath) {
+	std::ifstream configFile(configFilePath.c_str());
 	if (!configFile.is_open()) {
-		throw std::runtime_error("Could not open configuration file: " + _configFilePath);
+		throw std::runtime_error("Could not open configuration file: " + configFilePath);
 	}
-	// (void) this->_maxBodySize ;
 	std::string	line;
 	size_t pos = NPOS;
 	std::string	key;
@@ -278,9 +277,9 @@ Config::Config(const std::string& configFilePath) : _configFilePath(configFilePa
 				_settings[key] = value;
 			}
 		} while (std::getline(configFile, line) && isValidBlock(line) != 1);
-		fillServer(serv, *this);
+		serv.fillServer(serv, *this);
 		this->_servers.insert(this->_servers.end(), serv);
-		printServer(this->_servers.back());
+		// printServer(this->_servers.back());
 		this->_settings.clear();
 	}
 	configFile.close();
@@ -430,9 +429,4 @@ std::map<int, std::string>	Config::extractErrorPageMap() const {
 }
 
 Config::~Config() {
-	// Clean up all client pointers
-	for (size_t i = 0; i < this->_clients.size(); ++i) {
-		delete this->_clients[i];
-	}
-	this->_clients.clear();
 }

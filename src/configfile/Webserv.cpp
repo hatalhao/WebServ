@@ -16,7 +16,7 @@ std::map<int, std::string> getDefaultErrorPages() {
 	defaultErrorPages[502] = "./default_pages/502.html";
 	return defaultErrorPages;
 }
-void	checkAttributes(server &serv) {
+void	server::checkAttributes(server &serv) {
 	if (serv.host.empty())
 		throw std::invalid_argument("Host cannot be empty");
 	if (serv.port.size() == 0)
@@ -34,7 +34,7 @@ void	checkAttributes(server &serv) {
 		throw std::invalid_argument("Max body size cannot be zero");
 }
 
-void	fillServer(server &serv, const Config &config) {
+void	server::fillServer(server &serv, const Config &config) {
 	serv.port = config.extractPorts();
 	serv.host = config.extractHost();
 	serv.root = config.extractRoot();
@@ -84,7 +84,7 @@ void	printLocation(const std::vector<location_b> &location) {
 	}
 }
 
-void	printServer(const server &serv) {
+void	server::printServer(const server &serv) {
 	std::cout << "Server Configuration:" << std::endl;
 	std::cout << "Host: " << serv.host << std::endl;
 	for (set<int>::const_iterator it = serv.port.begin(); it != serv.port.end(); ++it) {
@@ -102,13 +102,4 @@ void	printServer(const server &serv) {
 		std::cout << "  " << it->first << ": " << it->second << std::endl;
 	}
 	printLocation(serv.locations);
-}
-
-void    initialiseServer(Config& config) {
-	try {
-		config.establishConnection();
-		print "All servers initialized successfully" << endl;
-	} catch (const std::exception& e) {
-		throw std::runtime_error("Error establishing connection: " + std::string(e.what()));
-	}
 }

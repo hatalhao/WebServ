@@ -1,34 +1,40 @@
 #pragma once
 
-#include "origin.hpp"
+#include "Config.hpp"
 #include "Webserv.hpp"
+#include "client.hpp"
 #include "cookies.hpp"
 #include "networking.hpp"
 
 
 class Worker {
 	private:
-		Worker(const std::string& filename) : _epollFd(-1), _servers(Config(filename)._servers){};
-
-		~Worker(){ delete instance; };
-		Worker(const Worker &other){};
-		Worker &operator=(const Worker &other){};
-		static Worker* instance;
-
 		int									_epollFd;
 		std::vector<Client*>				_clients;
 		std::vector<server>					_servers;
 		std::map<int, CgiHandler*>			_cgiHandlers;
 		std::set<CgiHandler*>				_cgiSet;
 		SessionManager						_sessionManager;
+		static Worker*						instance;
+		std::map< std::pair<std::string,int>, std::set<int> > hostToIndex;
+		std::map<int, std::pair<int, int> > socketToServer;
+		std::map<int, int> clientToServer;
+		std::map<int, int> fdToClientIndex;
 
+
+		Worker(const Worker &other){
+			(void) other;
+		};
+		Worker &operator=(const Worker &other){
+			(void) other;
+			return *this;
+		};
+		Worker(const std::string& filename) : _epollFd(-1), _servers(Config(filename).getServers()){};
+		~Worker();
+	
 	public:
-		static Worker* getInstance(const std::string& filename) {
-			if (!instance)
-				instance = new Worker(filename);
-			return instance;
-		}
-
+		static Worker*						getInstance(const std::string& filename);
+		static void							cleanup();
 		int									getEpollFd() { return _epollFd; }
 		SessionManager&						getSessionManager() { return _sessionManager; }
 		std::vector<Client*>&				getClients() { return _clients; }
@@ -41,6 +47,5 @@ class Worker {
 		void								listenForEvents();
 		void								checkCgiTimeouts();
 		void								cleanupFinishedCgi();
-		SessionManager&						getSessionManager() { return _sessionManager; }
 
 };

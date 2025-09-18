@@ -15,7 +15,7 @@ CXXFLAGS = -Wall -Werror -Wextra -std=c++98 -g3
 
 CXXFLAGS += -MMD -MP
 
-CXXFLAGS += -fsanitize=address
+# CXXFLAGS += -fsanitize=address
 
 MAKEFLAGS = -j --no-print-directory
 

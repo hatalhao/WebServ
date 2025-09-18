@@ -11,7 +11,7 @@ max_body_size = "1GB"
 413 = "./pages/413.html"
 
 [[location]]
-name = "/awdaw"
+name = "/"
 path = "/home/hatalhao/"
 index = ["index.html", "images.php", "imagesFile.html"]
 autoindex = ["on"]
@@ -40,7 +40,7 @@ handler = "/usr/bin/python3"
 [[server]]
 server_name = "hatalhao"
 host = "127.0.0.1"
-listen = "8082"
+listen = "8080"
 root = "/home/hatalhao/webserv"
 max_body_size = "10GB"
 # index = ["index.html"]

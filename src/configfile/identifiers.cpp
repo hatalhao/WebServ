@@ -15,10 +15,10 @@ bool	isdefaultLocationFound(const server& serv) {
 std::string ServerNameExists(const std::string& serverName, Config& config) {
 	if (serverName.find_first_not_of("1234567890.") == NPOS)
 		return (serverName);
-	for (size_t i = 0; i < config._servers.size(); ++i) {
-		for (size_t j = 0; j < config._servers[i].serverName.size(); ++j) {
-			if (config._servers[i].serverName[j] == serverName)
-				return (config._servers[i].host);
+	for (size_t i = 0; i < config.getServers().size(); ++i) {
+		for (size_t j = 0; j < config.getServers()[i].serverName.size(); ++j) {
+			if (config.getServers()[i].serverName[j] == serverName)
+				return (config.getServers()[i].host);
 		}
 	}
 	return "";
