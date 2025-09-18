@@ -262,7 +262,8 @@ int Client::handleWriteEvent() {
 	state = READING_REQUEST_LINE;
 	headerSent = 0;
 	bodySent = 0;
-	return FINISHED;
+	// we should return FINISHED with keep-alive
+	return DISCONNECTED;
 }
 
 
