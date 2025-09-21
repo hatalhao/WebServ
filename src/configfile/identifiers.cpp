@@ -51,11 +51,13 @@ bool skipLine(const std::string& line) {
 	return (pos == NPOS || line[pos] == '#');
 }
 
-bool	isKeyValue(const std::string& line) {
+bool	isKeyValue(const std::string& line, int token) {
 	std::string trimmedLine = line;
 	removeInvalidChars(trimmedLine);
 	size_t pos = trimmedLine.find('=');
-	return (pos != NPOS && pos > 0 && pos < trimmedLine.length() - 1 && std::count(trimmedLine.begin(), trimmedLine.end(), '=') == 1);
+	return (pos != NPOS && pos > 0 && pos < trimmedLine.length() - 1 && \
+	std::count(trimmedLine.begin(), trimmedLine.end(), '=') == 1 && \
+	isValidKey(trimmedLine.substr(0, pos - (trimmedLine[pos - 1] == ' ')), token));
 }
 
 void	minimumRequirement(std::string &line, std::ifstream& configFile) {
@@ -77,6 +79,18 @@ bool	isArray(const std::string& line) {
 bool	isArrayKey(const std::string& key) {
 	return (key == "server_name" || key == "listen" || key == "index" \
 		|| key == "allow");
+}
+
+bool isValidValue(const std::string& value) {
+	stringstream ss(value);
+	// int counter = 0;
+	char firstChar = value[value.find_first_not_of("\t ")];
+	char lastChar = value[value.find_last_not_of("\t ")];
+	if (firstChar == ']' || firstChar == '[' || lastChar == '[' || lastChar == ']')
+		return false;
+	string tmp;
+	ss >> tmp;
+	return (ss.eof() && !tmp.empty());
 }
 
 bool isValidMethod(const std::string& method) {
@@ -111,10 +125,48 @@ int isValidStatusCode(long statusCode) {
 	return static_cast<int>(statusCode);
 }
 
-bool	b(const server* serv) {
-	for (size_t i = 0; i < serv->locations.size(); i++) {
-		if (serv->locations[i].name == "/")
-			return true;
+bool isValidKey(const std::string& key, int context) {
+	switch (context) {
+		case SERVER_TOKEN:
+			if (key == "server_name" || key == "host" || key == "listen" || key == "root" || key == "index" || \
+			key == "error_pages" || key == "location" || key == "cgi" || key == "max_body_size")
+				return true;
+			break;
+		case LOCATION_TOKEN:
+			if (key == "name" || key == "path" || key == "index" || key == "allow" || key == "autoindex" || \
+			key == "upload_path" || key == "return")
+				return true;
+			break;
+		case CGI_TOKEN:
+			if (key == "extension" || key == "handler")
+				return true;
+			break;
+		case ERROR_TOKEN:
+			if (key == "400" || key == "403" || key == "404" || key == "405" || \
+			key == "408" || key == "413" || key == "414" || key == "500" || \
+			key == "501" || key == "504")
+				return true;
+			break;
+		default:
+			return false;
 	}
 	return false;
+}
+
+bool	isValidHost(const std::string& host) {
+	std::stringstream ss(host);
+	int16_t octet;
+	int count = 0;
+	while (ss >> octet) {
+		if (octet > 255 || octet < 0) {
+			return false;
+		}
+		count++;
+		if (ss.peek() == '.') {
+			ss.ignore();
+		} else if (ss.peek() != EOF) {
+			return false;
+		}
+	}
+	return (count == 4 && ss.eof());
 }
