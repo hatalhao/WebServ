@@ -9,6 +9,6 @@ const std::string to_string(const T& value) {
 	return oss.str();
 }
 
-void		clearStruct(location_b &location);
+size_t		parseSize(const std::string& sizeStr);
 void		removeInvalidChars(std::string &str);
 std::string	saveArray(const std::string& line);

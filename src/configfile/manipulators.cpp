@@ -3,7 +3,32 @@
 #include "../../includes/identifiers.hpp"
 #include "../../includes/manipulators.hpp"
 
-
+size_t parseSize(const std::string& sizeStr) {
+	if (sizeStr.empty()) {
+		throw std::runtime_error("Size string is empty");
+	}
+	size_t size = 0;
+	size_t pos = sizeStr.find_first_not_of("0123456789");
+	std::string numberStr = sizeStr.substr(0, pos);
+	if (pos != NPOS) {
+		std::string unitStr = sizeStr.substr(pos);
+		std::transform(unitStr.begin(), unitStr.end(), unitStr.begin(), ::toupper);
+		if (unitStr == "B") {
+			size = std::atoll(numberStr.c_str());
+		} else if (unitStr == "KB") {
+			size = std::atoll(numberStr.c_str()) * KB;
+		} else if (unitStr == "MB") {
+			size = std::atoll(numberStr.c_str()) * MB;
+		} else if (unitStr == "GB") {
+			size = std::atoll(numberStr.c_str()) * GB;
+		} else {
+			throw std::runtime_error("Invalid size unit: " + unitStr);
+		}
+	} else {
+		size = std::atoll(sizeStr.c_str());
+	}
+	return size;
+}
 
 void removeInvalidChars(std::string &str) {
 	if (str.empty())

@@ -16,23 +16,6 @@ std::map<int, std::string> getDefaultErrorPages() {
 	defaultErrorPages[502] = "./default_pages/502.html";
 	return defaultErrorPages;
 }
-void	server::checkAttributes(server &serv) {
-	if (serv.host.empty())
-		throw std::invalid_argument("Host cannot be empty");
-	if (serv.port.size() == 0)
-		throw std::invalid_argument("Port cannot be empty");
-
-	for (std::set<int>::iterator it = serv.port.begin(); it != serv.port.end(); ++it) {
-		if (*it < 1 || *it > 65535)
-			throw std::invalid_argument("Invalid port number: " + to_string(*it));
-	}
-
-	if (serv.root.empty())
-		throw std::invalid_argument("Root cannot be empty");
-
-	if (serv.maxBodySize == 0)
-		throw std::invalid_argument("Max body size cannot be zero");
-}
 
 void	server::fillServer(server &serv, const Config &config) {
 	serv.port = config.extractPorts();
@@ -40,6 +23,7 @@ void	server::fillServer(server &serv, const Config &config) {
 	serv.root = config.extractRoot();
 	serv.serverName = config.extractServerName();
 	serv.maxBodySize = config.extractMaxBodySize();
+	serv.index = config.extractIndex();
 	if (serv.locations.empty() || !isdefaultLocationFound(serv)) {
 		location_b defaultLocation;
 		defaultLocation.path = serv.root;
@@ -81,6 +65,8 @@ void	printLocation(const std::vector<location_b> &location) {
 		for (std::map<int, std::string>::const_iterator it = location[i].errorPageMap.begin(); it != location[i].errorPageMap.end(); ++it) {
 			std::cout << "  " << it->first << ": " << it->second << std::endl;
 		}
+		std::cout << "Autoindex: " << (location[i].isAutoIndexEnabled ? "on" : "off") << std::endl;
+		print "==================================================================================\n";
 	}
 }
 

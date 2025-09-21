@@ -6,15 +6,18 @@
 #include "../../includes/client.hpp"
 
 
-bool isValidCgi(std::pair<std::string, std::string> cgi) {
-	if (cgi.first.empty() || cgi.second.empty())
+bool isValidCgi(std::string extension, std::string path) {
+	if (extension.empty() || path.empty())
 		return false;
-	if (cgi.first == ".php" && cgi.second != "/usr/bin/php")
-		return false;
-	if (cgi.first == ".py" && cgi.second != "/usr/bin/python3"){
+	if (extension != ".php" && extension != ".py"){
 		return false;
 	}
-	if (access(cgi.second.c_str(), F_OK | X_OK) == -1)
+	if (extension == ".php" && path != "/usr/bin/php")
+		return false;
+	if (extension == ".py" && path != "/usr/bin/python3"){
+		return false;
+	}
+	if (access(path.c_str(), F_OK | X_OK) == -1)
 		return false;
 	return true;
 }
@@ -29,37 +32,42 @@ cgi_t	getCgi(std::ifstream& configFile, std::string& line) {
 			continue;
 		if (isValidBlock(line) == CGI_TOKEN || isValidBlock(line) == LOCATION_TOKEN || isValidBlock(line) == SERVER_TOKEN)
 			break;
-		if (!isKeyValue(line)) {
+		if (!isKeyValue(line, CGI_TOKEN)) {
 			throw std::runtime_error("Invalid CGI directive: " + line);
 		}
 		pos = line.find('=');
 		if (pos == NPOS) {
 			throw std::runtime_error("Invalid CGI directive: " + line);
 		}
+		
 		key = line.substr(0, pos - (line[pos - 1] == ' '));
 		removeInvalidChars(key);
-		if (key == "extension")
+
+		if (key == "extension" && cgi.extension.empty())
 			cgi.extension = line.substr(pos + 1 + (line[pos + 1] == ' '));
-		else if (key == "handler")
+		else if (key == "handler" && cgi.path.empty())
 			cgi.path = line.substr(pos + 1 + (line[pos + 1] == ' '));
 		else {
-			throw std::runtime_error("Unknown CGI directive: " + key);
+			throw std::runtime_error("Unknown/Duplicate CGI directive: " + key);
 		}
+		
 		value = line.substr(pos + 1 + (line[pos + 1] == ' '));
+		if (!isValidValue(value)) {
+			throw std::runtime_error("Invalid CGI value: " + line);
+		}
 		removeInvalidChars(value);
-
-		if (key == "extension" )
+		if (key == "extension")
 			cgi.extension = value;
 		else if (key == "handler")
 			cgi.path = value;
 	}
-	if (!isValidCgi(std::make_pair(cgi.extension, cgi.path))) {
+	if (!isValidCgi(cgi.extension, cgi.path)) {
 		throw std::runtime_error("Invalid CGI configuration: " + cgi.extension + " -> " + cgi.path);
 	}
 	return cgi;
 }
 
-int	getStatusCode(const std::string& line) {
+inline int	getStatusCode(const std::string& line) {
 	long statusCode = 0;
 	size_t pos = NPOS;
 
@@ -71,9 +79,7 @@ int	getStatusCode(const std::string& line) {
 	return (isValidStatusCode(statusCode));
 }
 
-// Will Need to Change This to start modifying on the preexisting map, not overwrite it 
-std::map<int, std::string> getPages(std::ifstream& configFile, std::string& line, std::map<int, std::string>& existingMap) {
-	// std::map<int, std::string> errorPageMap;
+inline std::map<int, std::string> getPages(std::ifstream& configFile, std::string& line, std::map<int, std::string>& existingMap) {
 	int token = 5;
 	while (std::getline(configFile, line)) {
 		if (skipLine(line))
@@ -92,10 +98,60 @@ std::map<int, std::string> getPages(std::ifstream& configFile, std::string& line
 			throw std::runtime_error("Invalid status code in error page directive: " + line);
 		}
 		std::string filePath = line.substr(pos + 1);
+		if (isValidValue(filePath) == false) {
+			throw std::runtime_error("Invalid file path in error page directive: " + line);
+		}
 		removeInvalidChars(filePath);
 		existingMap[statusCode] = filePath;
 	}
 	return existingMap;
+}
+
+inline std::vector<std::string> extractArray(const std::string& value, bool context) {
+	std::vector<std::string> array;
+	std::string splitValue = saveArray(value);
+	stringstream ss(splitValue);
+	splitValue.clear();
+	while (std::getline(ss, splitValue, ',')) {
+		removeInvalidChars(splitValue);
+		if (context && !isValidMethod(splitValue))
+			throw std::runtime_error("Invalid method in allow directive: " + splitValue);
+		array.push_back(splitValue);
+	}
+	return array;
+}
+
+bool	setValue(const std::string& key, const std::string& value, location_b& location) {
+	if (key == "path" && location.path.empty()) {
+		location.path = value;
+		return true;
+	}
+	else if (key == "name" && location.name.empty()) {
+		location.name = value;
+		return true;
+	}
+	else if (key == "autoindex") {
+		if (value == "on") {
+			location.isAutoIndexEnabled = true;
+			return true;
+		}
+		else if (value == "off") {
+			location.isAutoIndexEnabled = false;
+			return true;
+		}
+		else {
+			throw std::runtime_error("Invalid autoindex value: " + value);
+		}
+	}
+	else if (key == "upload_path" && location.uploadPath.empty()) {
+		location.uploadPath = value;
+		return true;
+	}
+	else if (key == "return" && location.redirection.empty()) {
+		location.redirection = value;
+		return true;
+	}
+	return false;
 }
 
 location_b	getLocation(std::ifstream& configFile, std::string& line, const std::string& root) {
@@ -134,7 +190,7 @@ location_b	getLocation(std::ifstream& configFile, std::string& line, const std::
 			continue ;
 		}
 
-		if (!isKeyValue(line)) {
+		if (!isKeyValue(line, LOCATION_TOKEN)) {
 			throw std::runtime_error("Invalid location directive: " + line);
 		}
 		
@@ -143,46 +199,28 @@ location_b	getLocation(std::ifstream& configFile, std::string& line, const std::
 			removeInvalidChars(key);
 			std::string value = line.substr(pos + 1 + (line[pos + 1] == ' '));
 			if (isArrayKey(key) && isArray(value)) {
-				std::vector<std::string> method;
-				if (key == "allow") {
-					value = saveArray(value);
-					stringstream ss(value);
-					value.clear();
-					while (std::getline(ss, value, ',')) {
-						removeInvalidChars(value);
-						if (!isValidMethod(value))
-							throw std::runtime_error("Invalid method in allow directive: " + value);
-						method.push_back(value);
-					}
-					location.methods = method;
-				}
-
-				if (key == "index") {
-					value = saveArray(value);
-					stringstream ss(value);
-					value.clear();
-					while (std::getline(ss, value, ',')) {
-						removeInvalidChars(value);
-						location.index.push_back(value);
-					}
-				}
+				if (key == "allow" && location.methods.empty())
+					location.methods = extractArray(value, true);
+				else if (key == "index" && location.index.empty())
+					location.index = extractArray(value, false);
+				else
+					throw std::runtime_error("Duplicate array directive: " + line);
 			}
 			else {
+				if (!isArrayKey(key) && !isValidValue(value))
+					throw std::runtime_error("Invalid array directive: " + line);
+
 				removeInvalidChars(value);
-				if (key == "return") {location.redirection = value; }
-				else if (key == "upload_path") { location.uploadPath = value; }
-				else if (key == "path") { location.path = value; }
-				else if (key == "name") { location.name = value; }
-				else if (key == "autoindex") { location.isAutoIndexEnabled = (value == "on"); }
+				if (isKeyValue(line, LOCATION_TOKEN) && !setValue(key, value, location))
+					throw std::runtime_error("Duplicate or unknown location directive: " + line);
+
 				else if (isValidBlock(line) == CGI_TOKEN) {
-					location.isCgiEnabled = (value == "on");
+					location.isCgiEnabled = true;
 					try {
 						location.cgiList.push_back(getCgi(configFile, line));
 					} catch (const std::runtime_error& e) {
 						throw std::runtime_error("Failed to parse CGI configuration: " + std::string(e.what()));
 					}
-				} else {
-					throw std::runtime_error("Unknown location directive: " + key);
 				}
 			}
 		}
@@ -194,6 +232,7 @@ location_b	getLocation(std::ifstream& configFile, std::string& line, const std::
 }
 
 Config::Config(const std::string& configFilePath) {
+	
 	std::ifstream configFile(configFilePath.c_str());
 	if (!configFile.is_open()) {
 		throw std::runtime_error("Could not open configuration file: " + configFilePath);
@@ -208,8 +247,8 @@ Config::Config(const std::string& configFilePath) {
 		configFile.close();
 		throw std::runtime_error("Invalid configuration file: " + line);
 	}
-	static int	token = SERVER_TOKEN;
-	static std::string	lastLine = line;
+	int	token = SERVER_TOKEN;
+	std::string	lastLine = line;
 
 	while (lastLine == "[[server]]") {
 		server serv;
@@ -220,9 +259,9 @@ Config::Config(const std::string& configFilePath) {
 
 			pos = line.find('=');
 			token = (pos == NPOS) ? isValidBlock(line) : token;
-			if (pos == NPOS && token == UNKNOWN_TOKEN) {
+			if (pos == NPOS && (token == UNKNOWN_TOKEN || token == CGI_TOKEN)) {
 				configFile.close();
-				throw std::runtime_error("Invalid configuration directive: " + line);
+				throw std::runtime_error("Invalid configuration directive in the server block: " + line);
 			}
 			if (pos == NPOS && token == ERROR_TOKEN) {
 				try {
@@ -255,7 +294,7 @@ Config::Config(const std::string& configFilePath) {
 				}
 			}
 
-			if (pos != NPOS && !isKeyValue(line)) {
+			if (pos != NPOS && !isKeyValue(line, SERVER_TOKEN)) {
 				configFile.close();
 				throw std::runtime_error("Invalid key-value pair: " + line);
 			}
@@ -273,13 +312,17 @@ Config::Config(const std::string& configFilePath) {
 					_settings[key] = saveArray(value);
 					continue;
 				}
+				if (!isArrayKey(key) && !isValidValue(value)) {
+					configFile.close();
+					throw std::runtime_error("Invalid value for key " + key + ": " + value);
+				}
 				removeInvalidChars(value);
 				_settings[key] = value;
 			}
 		} while (std::getline(configFile, line) && isValidBlock(line) != 1);
 		serv.fillServer(serv, *this);
 		this->_servers.insert(this->_servers.end(), serv);
-		// printServer(this->_servers.back());
+		// serv.printServer(this->_servers.back());
 		this->_settings.clear();
 	}
 	configFile.close();
@@ -300,24 +343,6 @@ std::set<int> Config::extractPorts() const {
 	return ports;
 }
 
-bool	isValidHost(const std::string& host) {
-	std::stringstream ss(host);
-	int16_t octet;
-	int count = 0;
-	while (ss >> octet) {
-		if (octet > 255 || octet < 0) {
-			return false;
-		}
-		count++;
-		if (ss.peek() == '.') {
-			ss.ignore();
-		} else if (ss.peek() != EOF) {
-			return false;
-		}
-	}
-	return (count == 4 && ss.eof());
-}
-
 std::string	Config::extractHost() const {
 	std::map<std::string, std::string>::const_iterator it = _settings.find("host");
 	if (it == _settings.end())
@@ -326,33 +351,6 @@ std::string	Config::extractHost() const {
 		throw std::runtime_error("Invalid host format: " + it->second);
 	}
 	return it->second;
-}
-
-size_t parseSize(const std::string& sizeStr) {
-	if (sizeStr.empty()) {
-		throw std::runtime_error("Size string is empty");
-	}
-	size_t size = 0;
-	size_t pos = sizeStr.find_first_not_of("0123456789");
-	std::string numberStr = sizeStr.substr(0, pos);
-	if (pos != NPOS) {
-		std::string unitStr = sizeStr.substr(pos);
-		std::transform(unitStr.begin(), unitStr.end(), unitStr.begin(), ::toupper);
-		if (unitStr == "B") {
-			size = std::atoll(numberStr.c_str());
-		} else if (unitStr == "KB") {
-			size = std::atoll(numberStr.c_str()) * KB;
-		} else if (unitStr == "MB") {
-			size = std::atoll(numberStr.c_str()) * MB;
-		} else if (unitStr == "GB") {
-			size = std::atoll(numberStr.c_str()) * GB;
-		} else {
-			throw std::runtime_error("Invalid size unit: " + unitStr);
-		}
-	} else {
-		size = std::atoll(sizeStr.c_str());
-	}
-	return size;
 }
 
 size_t	Config::extractMaxBodySize() const {
@@ -399,33 +397,6 @@ std::vector<std::string> Config::extractServerName() const {
 	}
 
 	return serverNames;
-}
-
-std::map<std::string, std::string> Config::extractLocations() const {
-	std::map<std::string, std::string> locations;
-	for (std::map<std::string, std::string>::const_iterator it = _settings.begin(); it != _settings.end(); ++it) {
-		if (it->first.find("location") != NPOS) {
-			locations[it->first] = it->second;
-		}
-	}
-	return locations;
-}
-
-std::map<int, std::string>	Config::extractErrorPageMap() const {
-	std::map<int, std::string> errorPageMap;
-	int errorCode = 0;
-	size_t pos = NPOS;
-	for (std::map<std::string, std::string>::const_iterator it = _settings.begin(); it != _settings.end(); ++it) {
-		if (it->first.find("error_page") != NPOS) {
-			pos = it->first.find('=');
-			if (pos != NPOS) {
-				errorCode = atoi(it->first.substr(pos - 1).c_str());
-				print "Error Code == " << errorCode << endl;
-				errorPageMap[errorCode] = it->second;
-			}
-		}
-	}
-	return errorPageMap;
 }
 
 Config::~Config() {
