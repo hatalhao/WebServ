@@ -7,3 +7,8 @@ client timeouts should send error responses before closing the connection
 configure default error pages
 
 clean up code
+
+
+no perms on cgi script doesn't return error response
+
+some cgi cases hanging ? 

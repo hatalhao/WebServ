@@ -10,14 +10,52 @@ Response::Response(const Response& other) :
 	resourcePath(other.resourcePath), resourceDir(other.resourceDir),
 	resourceType(other.resourceType), headers(other.headers), body(other.body){}
 
+// void printSingleLocation(const location_b& loc) {
+// 	cout << "Location Block:" << endl;
+// 	cout << "  name: " << loc.name << endl;
+// 	cout << "  path: " << loc.path << endl;
+// 	cout << "  index: ";
+// 	for (size_t i = 0; i < loc.index.size(); i++) {
+// 		cout << loc.index[i];
+// 		if (i < loc.index.size() - 1)
+// 			cout << ", ";
+// 	}
+// 	cout << endl;
+// 	cout << "  errorPageMap: ";
+// 	for (map<int, string>::const_iterator it = loc.errorPageMap.begin(); it !=
+// 			loc.errorPageMap.end(); ++it) {
+// 		cout << it->first << " -> " << it->second << "; ";
+// 	}
+// 	cout << endl;
+// 	cout << "  methods: ";
+// 	for (size_t i = 0; i < loc.methods.size(); i++) {
+// 		cout << loc.methods[i];
+// 		if (i < loc.methods.size() - 1)
+// 			cout << ", ";
+// 	}
+// 	cout << endl;
+// 	cout << "  redirection: " << loc.redirection << endl;
+// 	cout << "  uploadPath: " << loc.uploadPath << endl;
+// 	cout << "  isAutoIndexEnabled: " << (loc.isAutoIndexEnabled ? "true" : "false") << endl;
+// 	cout << "  isCgiEnabled: " << (loc.isCgiEnabled ? "true" : "false") << endl;
+// 	cout << "  cgiList: ";
+// 	for (size_t i = 0; i < loc.cgiList.size(); i++) {
+// 		cout << "{" << loc.cgiList[i].extension << " -> " << loc.cgiList[i].path << "}";
+// 		if (i < loc.cgiList.size() - 1)
+// 			cout << ", ";
+// 	}
+// 	cout << endl;
+// }
+
 const location_b&	Response::findLocationConfig() {
 	const location_b *best = NULL, *root = NULL;
 	size_t	bestLen = 0;	
-	for (vector<location_b>::const_iterator it = this->client->getServer()->locations.begin();
+	for (vector<location_b>::iterator it = this->client->getServer()->locations.begin();
 		it != this->client->getServer()->locations.end(); it++)
 	{
 		if (it->name == "/")
 			root = &(*it);
+		if (it->name[0] != '/') it->name.insert(0, "/");
 		if (this->client->getRequest().getPath().find(it->name) == 0) {
 			if(bestLen < it->name.length() || !best) {
 				bestLen = it->name.length();
@@ -69,15 +107,44 @@ int Response::prepareResponse() {
 		this->resourcePath.replace(pos, 2, "/");
 
 	size_t dotPos = this->client->getRequest().getPath().find_last_of(".");
-	if (dotPos != string::npos) {
+	if (dotPos != string::npos)
 		this->resourceExtension = this->client->getRequest().getPath().substr(dotPos);
-	} else {
+	else
 		this->resourceExtension = "";
-	}
 
 	this->resourceType = getResourceType(this->resourcePath.c_str());
 	if (this->resourceType == IS_NOT_FOUND || this->resourceType == IS_FORBIDDEN)
 		return (this->client->setStatusCode(this->resourceType), -1);
+
+	// If resource is a directory and we're doing a GET request, check for index files
+	if (this->resourceType == IS_DIR && 
+		this->client->getRequest().getMethod() == "GET" && 
+		!this->rules->index.empty()) {
+		
+		for (vector<string>::const_iterator it = this->rules->index.begin(); 
+			 it != this->rules->index.end(); ++it) {
+			string indexPath = this->resourcePath;
+			if (!indexPath.empty() && indexPath[indexPath.length() - 1] != '/') {
+				indexPath += "/";
+			}
+			indexPath += *it;
+			
+			ResourceType indexType = getResourceType(indexPath.c_str());
+			if (indexType == IS_FILE) {
+				// Found a valid index file, update resource path and type
+				this->resourcePath = indexPath;
+				this->resourceType = IS_FILE;
+				
+				// Update resource extension
+				size_t dotPos = indexPath.find_last_of(".");
+				if (dotPos != string::npos)
+					this->resourceExtension = indexPath.substr(dotPos);
+				else
+					this->resourceExtension = "";
+				break;
+			}
+		}
+	}
 
 	string	sid = this->client->getRequest().getCookie("session_id");
 	if (!sid.empty())

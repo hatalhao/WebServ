@@ -6,8 +6,18 @@ def parse_body():
     data = sys.stdin.read(length) if length > 0 else ''
     return urllib.parse.parse_qs(data)
 
+def serve_login_form():
+    """Serve the login HTML form for GET requests"""
+    print('Status: 302 Found')
+    print('Location: /index.html')
+    print('Content-Length: 0')
+    print()
+
 def main():
     method = os.environ.get('REQUEST_METHOD','GET')
+    if method == 'GET':
+        serve_login_form()
+        return
     if method != 'POST':
         print('Status: 405 Method Not Allowed')
         print('Content-Type: text/plain')
@@ -32,7 +42,7 @@ def main():
     # failure
     print('Status: 401 Unauthorized')
     print('Content-Type: text/html; charset=utf-8')
-    body = '<h1>Login failed</h1><p>Invalid username or password.</p><a href="/cgi/login_page.py">Try again</a>'
+    body = '<h1>Login failed</h1><p>Invalid username or password.</p><a href="/index.html">Try again</a>'
     print('Content-Length: %d' % len(body))
     print()
     sys.stdout.write(body)
