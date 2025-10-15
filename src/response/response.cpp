@@ -11,7 +11,7 @@ Response::Response(const Response& other) :
 	resourceType(other.resourceType), headers(other.headers), body(other.body){}
 
 // void printSingleLocation(const location_b& loc) {
-// 	cout << "Location Block:" << endl;
+// 	cout << "--Location Block:" << endl;
 // 	cout << "  name: " << loc.name << endl;
 // 	cout << "  path: " << loc.path << endl;
 // 	cout << "  index: ";
@@ -47,31 +47,83 @@ Response::Response(const Response& other) :
 // 	cout << endl;
 // }
 
-const location_b&	Response::findLocationConfig() {
-	const location_b *best = NULL, *root = NULL;
-	size_t	bestLen = 0;	
-	for (vector<location_b>::iterator it = this->client->getServer()->locations.begin();
-		it != this->client->getServer()->locations.end(); it++)
-	{
-		if (it->name == "/")
-			root = &(*it);
-		if (it->name[0] != '/') it->name.insert(0, "/");
-		if (this->client->getRequest().getPath().find(it->name) == 0) {
-			if(bestLen < it->name.length() || !best) {
-				bestLen = it->name.length();
-				best = &(*it);
-			}
-		}
-	}
-	if (!best)
-		best = root;
-	return *best;
+const location_b& Response::findLocationConfig(const string& path) {
+    const location_b* bestMatch = NULL, *root = NULL;
+    size_t longestMatchLen = 0;
+    string normalizedPath(path);
+
+    if (normalizedPath.empty() || normalizedPath[0] != '/')
+        normalizedPath.insert(0, "/");
+
+    string pathWithSlash = normalizedPath;
+    if (pathWithSlash[pathWithSlash.length() - 1] != '/')
+        pathWithSlash += '/';
+
+    for (vector<location_b>::const_iterator it = this->client->getServer()->locations.begin();
+         it != this->client->getServer()->locations.end(); ++it) {
+		if (it->name == "/") root = &(*it);
+
+        string normalizedLocName = it->name;
+        if (normalizedLocName.empty() || normalizedLocName[0] != '/')
+            normalizedLocName.insert(0, "/");
+        if (normalizedLocName.length() > 1 && normalizedLocName[normalizedLocName.length() - 1] != '/')
+            normalizedLocName.push_back('/');
+
+        bool matches = (normalizedPath.rfind(normalizedLocName, 0) == 0) ||
+                      (pathWithSlash.rfind(normalizedLocName, 0) == 0);
+
+        if (matches) {
+            if (normalizedLocName.length() > longestMatchLen) {
+                longestMatchLen = normalizedLocName.length();
+                bestMatch = &(*it);
+            }
+        }
+    }
+
+    if (!bestMatch)
+        bestMatch = root;
+    return *bestMatch;
+}
+
+string Response::resolveRedirect(const string& redirectTarget, const string& locationName) {
+    string resolvedPath;
+
+    if (redirectTarget.empty() || redirectTarget[0] == '/')
+        resolvedPath = redirectTarget;
+    else {
+        string locName(locationName);
+        if (locName.empty() || locName[0] != '/')
+            locName.insert(0, "/");
+        if (locName.length() > 1 && locName[locName.length() - 1] != '/')
+            locName += '/';
+
+        resolvedPath = locName + redirectTarget;
+
+        size_t pos;
+        while ((pos = resolvedPath.find("//")) != string::npos)
+            resolvedPath.replace(pos, 2, "/");
+    }
+
+    return resolvedPath;
+}
+
+bool Response::detectRedirectLoop(const string& startPath, int maxDepth,
+									set<string>& visitedPaths) {
+    if (maxDepth <= 0 || visitedPaths.count(startPath)) return true;
+
+    const location_b* loc = &findLocationConfig(startPath);
+    if (!loc || loc->redirection.empty()) return false;
+
+    string nextPath = resolveRedirect(loc->redirection, loc->name);
+
+    visitedPaths.insert(startPath);
+    return detectRedirectLoop(nextPath, maxDepth - 1, visitedPaths);
 }
 
 
 ResourceType	getResourceType(const char* resource) {
 	struct stat statBuf;
-	
+
 	if (stat(resource, &statBuf) != 0)
 		return (errno == ENOENT) ? IS_NOT_FOUND : IS_FORBIDDEN;
 	else if (S_ISDIR(statBuf.st_mode)) return IS_DIR;
@@ -81,17 +133,26 @@ ResourceType	getResourceType(const char* resource) {
 }
 
 int Response::prepareResponse() {
-    this->rules = &(this->findLocationConfig());
-    /**
-	 * check for redirections here
-	 * 
-	 * if (rules.returnCode != 0) {
-	 * 	if (rules.returnCode >= 300 && rules.returnCode < 400) {
-	 * 		// add Location Header
-	 * 	}
-	 * 	return rules.returnCode;
-	 * }
-	**/
+    this->rules = &(this->findLocationConfig(this->client->getRequest().getPath()));
+	// printSingleLocation(*this->rules);
+	if (rules->redirection.empty() == false) {
+	 	string currentPath = this->client->getRequest().getPath();
+
+	 	std::set<string> visitedPaths;
+
+        if (detectRedirectLoop(currentPath, 10, visitedPaths))
+            return (this->client->setStatusCode(508), -1);
+
+		string resolvedPath = resolveRedirect(rules->redirection, rules->name);
+
+		if (resolvedPath.empty())
+			return (this->client->setStatusCode(500), -1);
+
+	 	this->setHeader("Location", resolvedPath);
+		this->client->setStatusCode(301);
+	 	return -1;
+	 }
+
 	if (find(rules->methods.begin(),
 				rules->methods.end(),
 				this->client->getRequest().getMethod()) == rules->methods.end())
@@ -99,6 +160,10 @@ int Response::prepareResponse() {
 
 	this->resourceDir = this->rules->path.empty() ? this->client->getServer()->root : this->rules->path;
 	this->resourcePath = this->resourceDir + this->client->getRequest().getPath();
+
+	if (!this->resourceDir.empty() && this->resourceDir[this->resourceDir.length() - 1] != '/'
+		&& !this->rules->name.empty() && this->rules->name[0] != '/')
+				this->resourceDir += "/";
 
 	this->resourceDir += this->rules->name;
 
@@ -116,26 +181,23 @@ int Response::prepareResponse() {
 	if (this->resourceType == IS_NOT_FOUND || this->resourceType == IS_FORBIDDEN)
 		return (this->client->setStatusCode(this->resourceType), -1);
 
-	// If resource is a directory and we're doing a GET request, check for index files
-	if (this->resourceType == IS_DIR && 
-		this->client->getRequest().getMethod() == "GET" && 
+	if (this->resourceType == IS_DIR &&
+		this->client->getRequest().getMethod() == "GET" &&
 		!this->rules->index.empty()) {
-		
-		for (vector<string>::const_iterator it = this->rules->index.begin(); 
+
+		for (vector<string>::const_iterator it = this->rules->index.begin();
 			 it != this->rules->index.end(); ++it) {
 			string indexPath = this->resourcePath;
 			if (!indexPath.empty() && indexPath[indexPath.length() - 1] != '/') {
 				indexPath += "/";
 			}
 			indexPath += *it;
-			
+
 			ResourceType indexType = getResourceType(indexPath.c_str());
 			if (indexType == IS_FILE) {
-				// Found a valid index file, update resource path and type
 				this->resourcePath = indexPath;
 				this->resourceType = IS_FILE;
-				
-				// Update resource extension
+
 				size_t dotPos = indexPath.find_last_of(".");
 				if (dotPos != string::npos)
 					this->resourceExtension = indexPath.substr(dotPos);
@@ -186,6 +248,8 @@ string Response::getReasonPhrase() {
 	switch (this->client->getStatusCode()) {
 		case 200: return "OK";
 		case 201: return "Created";
+		case 301: return "Moved Permanently";
+		case 302: return "Found";
 		case 400: return "Bad Request";
 		case 403: return "Forbidden";
 		case 404: return "Not Found";
@@ -196,13 +260,14 @@ string Response::getReasonPhrase() {
 		case 500: return "Internal Server Error";
 		case 501: return "Not Implemented";
 		case 505: return "HTTP Version Not Supported";
+		case 508: return "Loop Detected";
 		default: return "OK";
 	}
 }
 
 void Response::setErrorResponse(int code) {
 	this->client->setStatusCode(code);
-	this->rules = &(this->findLocationConfig());
+	this->rules = &(this->findLocationConfig(this->client->getRequest().getPath()));
 
 	map<int, string>::const_iterator it = this->client->getServer()->errorPageMap.find(code);
 	string content;
