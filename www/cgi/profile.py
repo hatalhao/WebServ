@@ -26,7 +26,7 @@ def load_template(path):
     except Exception as e:
         return '<html><body><h1>Template load error</h1><p>{}</p></body></html>'.format(str(e))
 
-def render_page(title, content, session_id):
+def render_page(title, content):
     template = load_template(TEMPLATE_PATH)
     page = template.replace('{{title}}', title).replace('{{content}}', content)
     return page
@@ -37,7 +37,6 @@ def main():
         print('Status: 302 Found')
         print('Location: /cgi/login.py')
         if session_id and not is_session_valid():
-            # Clear invalid session cookie
             print('Set-Cookie: session_id=; HttpOnly; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT')
         print()
         return
@@ -61,8 +60,8 @@ def main():
             <button type="submit" class="btn">Save Changes</button>
         </form>
     '''
-    
-    body = render_page(title, content, session_id)
+
+    body = render_page(title, content)
     body_bytes = body.encode('utf-8')
     print('Content-Type: text/html; charset=utf-8')
     print(f'Content-Length: {len(body_bytes)}')
