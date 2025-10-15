@@ -214,7 +214,6 @@ void Response::setErrorResponse(int code) {
 		}
 	}
 	if (content.empty()) {
-		// Default error message
 		stringstream ss;
 		ss << "<html><body><h1>Error " << code << "</h1><p>" << getReasonPhrase() << "</p></body></html>";
 		content = ss.str();

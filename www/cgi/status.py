@@ -2,6 +2,8 @@
 import os
 import sys
 
+TEMPLATE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'html', 'status.html')
+
 def get_session_id():
     """Extract session ID from cookies"""
     cookies = os.environ.get('HTTP_COOKIE', '')
@@ -13,149 +15,30 @@ def get_session_id():
             return cookie.split('=', 1)[1]
     return None
 
+def is_session_valid():
+    """Check if the session is valid on the server"""
+    return os.environ.get('SESSION_VALID', '0') == '1'
+
+def load_template(path):
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            return f.read()
+    except Exception as e:
+        return '<html><body><h1>Template load error</h1><p>{}</p></body></html>'.format(str(e))
+
 def render_page(title, content, session_id):
-    """Renders the common page structure with specific content."""
-    return f'''<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{title}</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {{
-            --text-color: #f0f0f0;
-            --text-muted-color: #a0a0a0;
-            --glass-bg: rgba(22, 22, 22, 0.4);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --status-ok: #28a745;
-            --status-degraded: #ffc107;
-            --status-offline: #dc3545;
-        }}
-        body {{
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            background-color: #050505;
-            color: var(--text-color);
-            background-image: radial-gradient(circle at 10% 10%, #007bff 0%, transparent 40%),
-                              radial-gradient(circle at 85% 90%, #8a2be2 0%, transparent 40%);
-            background-attachment: fixed;
-            overflow-y: auto;
-        }}
-        .page-wrapper {{
-            opacity: 0;
-            animation: fadeIn 1s ease-out forwards;
-        }}
-        .header {{
-            position: sticky;
-            top: 20px;
-            margin: 20px auto;
-            max-width: 1200px;
-            padding: 15px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            z-index: 10;
-        }}
-        .header a {{
-            color: var(--text-color);
-            text-decoration: none;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-        }}
-        .header svg {{
-            width: 20px;
-            height: 20px;
-            margin-right: 8px;
-        }}
-        .main-container {{
-            padding: 0 40px 40px 40px;
-            max-width: 900px;
-            margin: 0 auto;
-        }}
-        .content-card {{
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-radius: 20px;
-            padding: 40px;
-            border: 1px solid var(--glass-border);
-        }}
-        h2 {{
-            font-size: 2.2rem;
-            font-weight: 700;
-            margin-top: 0;
-            margin-bottom: 30px;
-        }}
-        .status-list {{
-            list-style: none;
-            padding: 0;
-        }}
-        .status-item {{
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px 0;
-            border-bottom: 1px solid var(--glass-border);
-        }}
-        .status-item:last-child {{
-            border-bottom: none;
-        }}
-        .status-name {{
-            font-size: 1.1rem;
-            font-weight: 600;
-        }}
-        .status-indicator {{
-            display: flex;
-            align-items: center;
-            font-weight: 600;
-        }}
-        .status-indicator span {{
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            margin-right: 10px;
-        }}
-        .status-ok {{ color: var(--status-ok); }}
-        .status-ok span {{ background-color: var(--status-ok); }}
-        .status-degraded {{ color: var(--status-degraded); }}
-        .status-degraded span {{ background-color: var(--status-degraded); }}
-        .status-offline {{ color: var(--status-offline); }}
-        .status-offline span {{ background-color: var(--status-offline); }}
-        @keyframes fadeIn {{ to {{ opacity: 1; }} }}
-    </style>
-</head>
-<body>
-<div class="page-wrapper">
-    <header class="header">
-        <a href="/cgi/welcome.py">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
-            Back to Dashboard
-        </a>
-        <span>{title}</span>
-    </header>
-    <main class="main-container">
-        <div class="content-card">
-            {content}
-        </div>
-    </main>
-</div>
-</body>
-</html>'''
+    template = load_template(TEMPLATE_PATH)
+    page = template.replace('{{title}}', title).replace('{{content}}', content)
+    return page
 
 def main():
     session_id = get_session_id()
-    if not session_id:
+    if not session_id or not is_session_valid():
         print('Status: 302 Found')
         print('Location: /cgi/login.py')
+        if session_id and not is_session_valid():
+            # Clear invalid session cookie
+            print('Set-Cookie: session_id=; HttpOnly; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT')
         print()
         return
 
@@ -173,7 +56,7 @@ def main():
             </li>
             <li class="status-item">
                 <span class="status-name">API Gateway</span>
-                <span class="status-indicator status-degraded"><span></span>Degraded Performance</span>
+                <span class="status-indicator status-ok"><span></span>Operational</span>
             </li>
             <li class="status-item">
                 <span class="status-name">Authentication Service</span>
@@ -191,6 +74,7 @@ def main():
     print('Content-Type: text/html; charset=utf-8')
     print(f'Content-Length: {len(body_bytes)}')
     print()
+    sys.stdout.flush()
     sys.stdout.buffer.write(body_bytes)
 
 if __name__ == '__main__':
