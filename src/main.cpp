@@ -7,7 +7,7 @@
 # define BRIGHT_YELLOW "\x1b[93m"
 
 void    signalHandler(int signum) {
-    std::cerr << BRIGHT_YELLOW "Signal " << signum << " received. Cleaning up..." RESET << std::endl;
+    // std::cerr << BRIGHT_YELLOW "Signal " << signum << " received. Cleaning up..." RESET << std::endl;
     Worker::cleanup();
     exit(signum);
 }

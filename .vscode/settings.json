@@ -120,6 +120,7 @@
     "list": "cpp",
     "variant": "cpp",
     "typeindex": "cpp",
-    "cerrno": "cpp"
+    "cerrno": "cpp",
+    "csignal": "cpp"
   }
 }

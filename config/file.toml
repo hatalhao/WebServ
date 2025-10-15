@@ -4,6 +4,7 @@ host = "127.0.0.1"
 listen = ["8989", "8080"]
 root = "/home/hatalhao/WebServ"
 max_body_size = "1GB"
+index = ["accueil.html", "welcoome.php", "indexFile.html"]
 
 [[error_pages]]
 403 = "./pages/403.html"
@@ -11,10 +12,10 @@ max_body_size = "1GB"
 413 = "./pages/413.html"
 
 [[location]]
-name = "/"
+name = "/sda"
 path = "/home/hatalhao/"
 index = ["index.html", "images.php", "imagesFile.html"]
-autoindex = ["on"]
+autoindex = "on"
 allow = ["GET", "DELETE", "POST"]
 upload_path = "/home/hatalhao/WebServ/"
 return = "/home/hatalhao/WebServ/"
@@ -40,10 +41,13 @@ handler = "/usr/bin/python3"
 [[server]]
 server_name = "hatalhao"
 host = "127.0.0.1"
-listen = "8080"
+listen = '8080'
 root = "/home/hatalhao/webserv"
 max_body_size = "10GB"
-# index = ["index.html"]
+index = ["welcome.html"]
+# [[cgi]]
+# extension = ".php"
+# handler = "/usr/bin/php"
 # [[location]]
 # name = "/images"
 # path = "/home/hatalhao/WebServ"
