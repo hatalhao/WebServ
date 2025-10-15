@@ -19,6 +19,7 @@
         body {
             font-family: 'Inter', sans-serif;
             margin: 0;
+            min-height: 100vh;
             background-color: #050505;
             color: var(--text-color);
             background-image: radial-gradient(circle at 10% 10%, #007bff 0%, transparent 40%),
@@ -30,10 +31,14 @@
             opacity: 0;
             animation: fadeIn 1s ease-out forwards;
         }
-        .header {
+        .header-container {
             position: sticky;
-            top: 20px;
-            margin: 20px auto;
+            top: 0;
+            z-index: 10;
+            padding: 20px 0;
+        }
+        .header {
+            margin: 0 auto;
             max-width: 1200px;
             padding: 15px 30px;
             display: flex;
@@ -44,7 +49,6 @@
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--glass-border);
             border-radius: 16px;
-            z-index: 10;
         }
         .header h1 {
             font-size: 1.5rem;
@@ -124,7 +128,7 @@
         .footer {
             text-align: center;
             padding: 30px;
-            margin-top: 40px;
+            margin-top: 20px;
             color: var(--text-muted-color);
             font-size: 0.8rem;
         }
@@ -137,10 +141,12 @@
 </head>
 <body>
 <div class="page-wrapper">
-    <header class="header">
-        <h1>Webserv</h1>
-        <a href="/cgi/logout.py" class="logout-btn">Logout</a>
-    </header>
+    <div class="header-container">
+        <header class="header">
+            <h1>Webserv</h1>
+            <a href="/cgi/logout.py" class="logout-btn">Logout</a>
+        </header>
+    </div>
 
     <main class="main-container">
         <div class="welcome-message">

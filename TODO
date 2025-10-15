@@ -1,5 +1,5 @@
 client timeouts should send error responses before closing the connection
 
-add http redirections status codes + send their responses
+ConfigFile should accept all valid erropages codes 400-599
 
 clean up code

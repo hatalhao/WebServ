@@ -23,10 +23,13 @@ class Response {
 		string				resolvedServerName;
 		map<string, string>	headers;
 		vector<char>		body;
-		const location_b&	findLocationConfig();
+		const location_b&	findLocationConfig(const string& path);
+		bool				detectRedirectLoop(const string& startPath, int maxDepth,
+												set<string>& visitedPaths);
+		string				resolveRedirect(const string& redirectTarget, const string& locationName);
 		const string		generatefilename();
 		string				getReasonPhrase();
-		
+
 		public:
 		int					bodyFd;
 		size_t				bodySize;
@@ -46,13 +49,13 @@ class Response {
 		int	Delete();
 		void	setErrorResponse(int code);
 		bool	findHeader(string key) { return headers.find(key) != headers.end(); }
-		
+
 		string	searchCgiHandlerPath();
 		string	getResourcePath() { return resourcePath; }
 		string	getResourceExtension() { return resourceExtension; }
 		string	getresourceDir() { return resourceDir; }
 		const location_b*	getRules() { return rules; }
-		
+
 };
 
 ResourceType	getResourceType(const char* resource);

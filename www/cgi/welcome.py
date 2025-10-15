@@ -32,20 +32,16 @@ def main():
     session_id = get_session_id()
 
     if session_id and is_session_valid():
-        # User is logged in with valid session - read template from disk and substitute session id
         body_template = load_template(TEMPLATE_PATH)
         body = body_template.replace('{{session_id}}', session_id)
 
-        # Print headers then body
         print('Content-Type: text/html; charset=utf-8')
         print(f'Content-Length: {len(body.encode("utf-8"))}')
         print()
         sys.stdout.flush()
         sys.stdout.buffer.write(body.encode('utf-8'))
     else:
-        # User is not logged in or session is invalid - redirect to login
         if session_id and not is_session_valid():
-            # Clear invalid session cookie
             print('Status: 302 Found')
             print('Location: /cgi/login.py')
             print('Set-Cookie: session_id=; HttpOnly; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT')

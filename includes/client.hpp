@@ -39,7 +39,7 @@ class Client {
 		string			cgiHandlerPath;
 		unsigned short	httpStatusCode;
 		void    resetWriteState();
-		
+
 	public:
     	size_t bodySent;
 		size_t headerSent;
@@ -50,17 +50,16 @@ class Client {
 		Client(int fd, Worker* _g_config, pair<string, int>& hostPort);
 		// Changed hostPort parameter to const reference to allow binding rvalues (e.g., std::make_pair)
 		Client(int fd, Worker* _g_config, const pair<string, int>& hostPort);
-	
+
 		string		getRequestBuf() const { return requestBuf; }
 		string		getResponseBuf() const { return responseBuf; }
 		ClientState getState() const { return state; }
-		Request&	getRequest() { return request; } 
+		Request&	getRequest() { return request; }
 		Response&	getResponse()  { return response; }
 		server*		getServer() { return serverConfig; }
 		Worker*		getGlobalConfig() { return globalConfig; }
 		const unsigned short&	getStatusCode() { return httpStatusCode; }
 		void	resolveHost();
-		
 		void	processRequest();
 		void	generateResponse();
 		void	setRequestBuf(const string& buf) { requestBuf = buf; }
@@ -70,10 +69,9 @@ class Client {
 		void	printState() const;
 		int		handleReadEvent(int epollFd);
 		int		handleWriteEvent();
-	
-		void	setStatusCode(unsigned short status) { httpStatusCode = status; }
-		string	getCgiHandlerPath() { return cgiHandlerPath; }
-		void	onCgiDone(string& cgiOutput);
-		void	onCgiError(unsigned short code);
-};
 
+	void	setStatusCode(unsigned short status) { httpStatusCode = status; }
+	string	getCgiHandlerPath() { return cgiHandlerPath; }
+	void	onCgiDone(string& cgiOutput);
+	void	onCgiError(unsigned short code);
+};
