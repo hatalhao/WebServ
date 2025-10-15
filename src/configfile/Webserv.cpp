@@ -6,14 +6,14 @@
 
 std::map<int, std::string> getDefaultErrorPages() {
 	std::map<int, std::string> defaultErrorPages;
-	defaultErrorPages[400] = "./default_pages/400.html";
-	defaultErrorPages[403] = "./default_pages/403.html";
-	defaultErrorPages[404] = "./default_pages/404.html";
-	defaultErrorPages[405] = "./default_pages/405.html";
-	defaultErrorPages[408] = "./default_pages/408.html";
-	defaultErrorPages[500] = "./default_pages/500.html";
-	defaultErrorPages[501] = "./default_pages/501.html";
-	defaultErrorPages[502] = "./default_pages/502.html";
+	defaultErrorPages[400] = "./www/html/errors/400.html";
+	defaultErrorPages[403] = "./www/html/errors/403.html";
+	defaultErrorPages[404] = "./www/html/errors/404.html";
+	defaultErrorPages[405] = "./www/html/errors/405.html";
+	defaultErrorPages[408] = "./www/html/errors/408.html";
+	defaultErrorPages[500] = "./www/html/errors/500.html";
+	defaultErrorPages[501] = "./www/html/errors/501.html";
+	defaultErrorPages[502] = "./www/html/errors/502.html";
 	return defaultErrorPages;
 }
 

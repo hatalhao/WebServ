@@ -30,6 +30,15 @@ void    CgiHandler::addSessionToEnv(vector<string>& env_vars) {
 	if (!existingSessionId.empty()) {
 		this->sessionId = existingSessionId;
 		env_vars.push_back("SESSION_ID=" + existingSessionId);
+		
+		// Validate if the session exists on the server
+		SessionManager& sessionManager = this->_client.getGlobalConfig()->getSessionManager();
+		Session* session = sessionManager.getSession(existingSessionId);
+		if (session) {
+			env_vars.push_back("SESSION_VALID=1");
+		} else {
+			env_vars.push_back("SESSION_VALID=0");
+		}
 	}
 	
 	// Add session creation capability flag
@@ -49,10 +58,6 @@ void    CgiHandler::setupEnv() {
 	env_vars.push_back("GATEWAY_INTERFACE=CGI/1.1");
 	env_vars.push_back("SERVER_SOFTWARE=WebServ/1.0");
 	env_vars.push_back("SERVER_PROTOCOL=HTTP/1.1");
-
-	// env_vars.push_back("SERVER_NAME=" + this->serverConf->serverName);
-	// env_vars.push_back("SERVER_PORT=" + this->currentPort);
-
 	env_vars.push_back("REQUEST_METHOD=" + request.getMethod());
 	env_vars.push_back("QUERY_STRING=" + request.getQueryString());
 	env_vars.push_back("SCRIPT_NAME=" + this->_client.getResponse().getResourcePath());
@@ -68,7 +73,6 @@ void    CgiHandler::setupEnv() {
 		}
 	}
 
-	// Add session management support
 	this->addSessionToEnv(env_vars);
 
 	this->envp = new char*[env_vars.size() + 1];
@@ -111,6 +115,12 @@ void    CgiHandler::executeChild(int *pipeIn, int *pipeOut) {
 bool	CgiHandler::start() {
 	int pipeIn[2] = {-1}, pipeOut[2] = {-1};
 	try {
+		string resourcePath = this->_client.getResponse().getResourcePath();
+		if (access(resourcePath.c_str(), X_OK) != 0) {
+			this->_client.onCgiError(403);
+			return false;
+		}
+
 		if (this->_client.getCgiHandlerPath().empty())
 			return false;
 

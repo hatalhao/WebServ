@@ -20,7 +20,7 @@ def main():
     
     # Clear the session cookie and redirect to login
     print('Status: 302 Found')
-    print('Location: /cgi/login_page.py')
+    print('Location: /cgi/login.py')
     print('Set-Cookie: session_id=; HttpOnly; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT')
     
     # Optional: Signal to the server to delete the session

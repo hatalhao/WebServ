@@ -112,7 +112,7 @@ void    Client::generateResponse() {
 		}
 		else {
 			delete cgi;
-			httpStatusCode = 500;
+			if (!httpStatusCode) httpStatusCode = 500;
 			response.setErrorResponse(httpStatusCode);
 			responseBuf = response.serializeHeadersAndBody();
 			state = SENDING_RESPONSE;
@@ -262,7 +262,8 @@ int Client::handleWriteEvent() {
 	state = READING_REQUEST_LINE;
 	headerSent = 0;
 	bodySent = 0;
-	return FINISHED;
+	// we should return FINISHED with keep-alive
+	return DISCONNECTED;
 }
 
 
@@ -278,17 +279,25 @@ void	Client::onCgiDone(string& cgiOutput) {
 	size_t crlfPos = cgiOutput.find(CRLF CRLF);
 	size_t lfPos = cgiOutput.find("\n\n");
 	string	_headers, _body, line;
+    bool    headersFound = false; // ADDED: Flag to track if headers were parsed
 
 	if (crlfPos != string::npos) {
 		_headers = cgiOutput.substr(0, crlfPos);
 		_body = cgiOutput.substr(crlfPos + CRLF_LENGTH + CRLF_LENGTH); 
+        headersFound = true; // ADDED
 	}
 	else if (lfPos != string::npos) {
 		_headers = cgiOutput.substr(0, lfPos);
 		_body = cgiOutput.substr(lfPos + 2); 
+        headersFound = true; // ADDED
 	}
-	else 
-		_body = cgiOutput;
+	else {
+        // --- START: FIX FOR MALFORMED RESPONSE ---
+        // If no header separator is found, the CGI response is invalid.
+        onCgiError(502); // Trigger a 502 Bad Gateway error
+        return;          // Stop processing
+        // --- END: FIX FOR MALFORMED RESPONSE ---
+    }
 
 	this->response.setBody(_body);
 
@@ -345,7 +354,7 @@ void	Client::onCgiDone(string& cgiOutput) {
 		sessionManager.deleteSession(deleteSessionId);
 	}
 	if (!isStatusSet)
-		this->httpStatusCode = 200;
+		this->httpStatusCode = (headersFound ? 200 : 403);
 
 	this->response.setHeader("Content-Length", toString(this->response.getBodySize()));
 		// --- 2. Serialize the final response into the buffer ---

@@ -1,9 +1,5 @@
-add http redirections status codes + send their responses
-
-configure the client to store it's port
-
 client timeouts should send error responses before closing the connection
 
-configure default error pages
+add http redirections status codes + send their responses
 
 clean up code
