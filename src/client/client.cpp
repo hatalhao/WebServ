@@ -7,7 +7,8 @@ Client::Client(int fd, Worker* _g_config, const pair<string, int>& hostPort) :
 	currentPort(hostPort.second),
 	requestBuf(""), responseBuf(""), contentLen(0), state(READING_REQUEST_LINE),
 	request(this), response(this), cgiHandlerPath(""),
-	httpStatusCode(0), bodySent(0), headerSent(0),
+	httpStatusCode(0), keepAlive(false), lastActivity(time(NULL)),
+	bodySent(0), headerSent(0),
 	fileBufferUsed(0), fileBufferSent(0), fileReadOffset(0) {}
 
 void    Client::resolveHost() {
@@ -67,6 +68,19 @@ void    Client::processRequest() {
 	if (this->state != previousState && this->state != READING_DONE
 		&& this->state != READING_BAD_REQUEST)
 		this->processRequest();
+	
+	// After request parsing is complete, determine keep-alive
+	// Default behavior: close connection unless "Connection: keep-alive" is explicitly sent
+	if (this->state == READING_DONE) {
+		string connectionHeader = this->request.getHeader("connection");
+		
+		// Convert to lowercase for comparison
+		for (size_t i = 0; i < connectionHeader.length(); i++)
+			connectionHeader[i] = tolower(connectionHeader[i]);
+		
+		// Only keep alive if explicitly requested
+		this->keepAlive = (connectionHeader == "keep-alive");
+	}
 }
 
 void    Client::resetWriteState() {
@@ -75,6 +89,29 @@ void    Client::resetWriteState() {
 	this->fileBufferUsed = 0;
 	this->fileBufferSent = 0;
 	this->fileReadOffset = 0;
+}
+
+void    Client::resetForNextRequest() {
+	// Clear buffers and state for next request
+	this->requestBuf.clear();
+	this->responseBuf.clear();
+	this->cgiHandlerPath.clear();
+	this->httpStatusCode = 0;
+	this->contentLen = 0;
+	this->state = READING_REQUEST_LINE;
+	
+	// Reset write state
+	this->resetWriteState();
+	
+	// Reconstruct request and response objects using placement new
+	this->request.~Request();
+	new (&this->request) Request(this);
+	
+	this->response.~Response();
+	new (&this->response) Response(this);
+	
+	// Update activity timestamp
+	this->lastActivity = time(NULL);
 }
 
 void    Client::generateResponse() {
@@ -146,6 +183,7 @@ int Client::handleReadEvent(int epollFd) {
 	bytesRead = recv(this->_clientFd, buffer, sizeof(buffer), 0);
 	if (bytesRead > 0) {
 		this->requestBuf.append(buffer, bytesRead);
+		this->updateActivity();  // Update activity timestamp on successful read
 	} else if (bytesRead == 0) {
 		return DISCONNECTED; // client closed
 	} else if (bytesRead < 0) {
@@ -178,7 +216,6 @@ int Client::handleReadEvent(int epollFd) {
 int Client::handleWriteEvent() {
 	ssize_t sent;
 
-	// First, send remaining headers
 	if (headerSent < responseBuf.size()) {
 		const char* buf = responseBuf.c_str() + headerSent;
 		size_t toSend = responseBuf.size() - headerSent;
@@ -190,8 +227,9 @@ int Client::handleWriteEvent() {
 		}
 
 		headerSent += sent;
+		this->updateActivity();
 		if (headerSent < responseBuf.size())
-			return CONTINUE; // still sending headers
+			return CONTINUE;
 	}
 	// If it's a file, stream it in chunks
 	if (response.isFileBody) {
@@ -202,13 +240,14 @@ int Client::handleWriteEvent() {
 				// All data sent
 				close(response.bodyFd);
 				response.isFileBody = false;
-				state = READING_REQUEST_LINE;
-				headerSent = 0;
-				bodySent = 0;
-				fileBufferUsed = 0;
-				fileBufferSent = 0;
-				fileReadOffset = 0;
-				return FINISHED;
+				
+				// Decide whether to keep connection alive or close
+				if (keepAlive) {
+					resetForNextRequest();
+					return FINISHED;  // Signal to switch back to reading
+				} else {
+					return DISCONNECTED;  // Close connection
+				}
 			}
 
 			size_t chunk = remaining < sizeof(fileBuffer) ? remaining : sizeof(fileBuffer);
@@ -222,13 +261,14 @@ int Client::handleWriteEvent() {
 				if (response.bodySent >= response.bodySize) {
 					close(response.bodyFd);
 					response.isFileBody = false;
-					state = READING_REQUEST_LINE;
-					headerSent = 0;
-					bodySent = 0;
-					fileBufferUsed = 0;
-					fileBufferSent = 0;
-					fileReadOffset = 0;
-					return FINISHED;
+					
+					// Decide whether to keep connection alive or close
+					if (keepAlive) {
+						resetForNextRequest();
+						return FINISHED;  // Signal to switch back to reading
+					} else {
+						return DISCONNECTED;  // Close connection
+					}
 				}
 				return DISCONNECTED; // Unexpected EOF
 			}
@@ -238,7 +278,6 @@ int Client::handleWriteEvent() {
 			fileReadOffset += bytesRead;
 		}
 
-		// Send remaining data from buffer
 		size_t toSend = fileBufferUsed - fileBufferSent;
 		sent = send(_clientFd, fileBuffer + fileBufferSent, toSend, 0);
 		
@@ -249,8 +288,8 @@ int Client::handleWriteEvent() {
 
 		fileBufferSent += sent;
 		response.bodySent += sent;
+		this->updateActivity();
 
-		// If buffer not fully sent, continue next time
 		if (fileBufferSent < fileBufferUsed)
 			return CONTINUE;
 
@@ -258,12 +297,14 @@ int Client::handleWriteEvent() {
 		return CONTINUE;
 	}
 
-	// If not a file and headers were already sent
-	state = READING_REQUEST_LINE;
-	headerSent = 0;
-	bodySent = 0;
-	// we should return FINISHED with keep-alive
-	return DISCONNECTED;
+	// If not a file and headers+body were already sent
+	// Decide whether to keep connection alive or close
+	if (keepAlive) {
+		resetForNextRequest();
+		return FINISHED;  // Signal to switch back to reading for next request
+	} else {
+		return DISCONNECTED;  // Close the connection
+	}
 }
 
 

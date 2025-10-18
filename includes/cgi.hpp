@@ -11,7 +11,6 @@ enum CgiState {
 	CGI_DONE
 };
 
-
 #define CGI_TIMEOUT_SECONDS 5
 
 class CgiHandler {

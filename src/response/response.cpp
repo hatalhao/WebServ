@@ -220,7 +220,14 @@ string Response::serializeHeaders() {
     ss << "HTTP/1.1 " << this->client->getStatusCode() << " " << getReasonPhrase() << CRLF;
 
     ss << "Server: Webserv/1.0" << CRLF;
-    ss << "Connection: close" << CRLF;
+    
+    // Set Connection header based on keep-alive status
+    if (this->client->shouldKeepAlive()) {
+        ss << "Connection: keep-alive" << CRLF;
+        ss << "Keep-Alive: timeout=5" << CRLF;  // 5 second timeout, max 100 requests
+    } else {
+        ss << "Connection: close" << CRLF;
+    }
 
     for (map<string,string>::iterator it = headers.begin(); it != headers.end(); ++it)
         ss << it->first << ": " << it->second << CRLF;

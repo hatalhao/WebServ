@@ -6,6 +6,8 @@
 #include "manipulators.hpp"
 #include "cgi.hpp"
 
+#define KEEP_ALIVE_TIMEOUT 5  // 5 seconds
+
 enum ClientState {
 	READING_REQUEST_LINE,
 	READING_HEADERS,
@@ -38,7 +40,10 @@ class Client {
 		Response		response;
 		string			cgiHandlerPath;
 		unsigned short	httpStatusCode;
+		bool			keepAlive;		// Whether to keep connection alive
+		time_t			lastActivity;	// Last activity timestamp for timeout
 		void    resetWriteState();
+		void    resetForNextRequest();	// Reset state for next request on same connection
 
 	public:
     	size_t bodySent;
@@ -59,6 +64,10 @@ class Client {
 		server*		getServer() { return serverConfig; }
 		Worker*		getGlobalConfig() { return globalConfig; }
 		const unsigned short&	getStatusCode() { return httpStatusCode; }
+		bool		shouldKeepAlive() const { return keepAlive; }
+		void		setKeepAlive(bool ka) { keepAlive = ka; }
+		time_t		getLastActivity() const { return lastActivity; }
+		void		updateActivity() { lastActivity = time(NULL); }
 		void	resolveHost();
 		void	processRequest();
 		void	generateResponse();

@@ -18,20 +18,17 @@ void    closeFds(int* in, int *out) {
 
 void    CgiHandler::addSessionToEnv(vector<string>& env_vars) {
 	Request request = this->_client.getRequest();
-	
-	// Add Cookie header to environment if present
+
 	string cookieHeader = request.getHeader("cookie");
 	if (!cookieHeader.empty()) {
 		env_vars.push_back("HTTP_COOKIE=" + cookieHeader);
 	}
-	
-	// Get existing session ID from cookies
+
 	string existingSessionId = request.getCookie("session_id");
 	if (!existingSessionId.empty()) {
 		this->sessionId = existingSessionId;
 		env_vars.push_back("SESSION_ID=" + existingSessionId);
-		
-		// Validate if the session exists on the server
+
 		SessionManager& sessionManager = this->_client.getGlobalConfig()->getSessionManager();
 		Session* session = sessionManager.getSession(existingSessionId);
 		if (session) {
@@ -40,8 +37,7 @@ void    CgiHandler::addSessionToEnv(vector<string>& env_vars) {
 			env_vars.push_back("SESSION_VALID=0");
 		}
 	}
-	
-	// Add session creation capability flag
+
 	env_vars.push_back("WEBSERV_SESSION_ENABLED=1");
 }
 
@@ -97,7 +93,6 @@ void    CgiHandler::executeChild(int *pipeIn, int *pipeOut) {
 
 	closeFds(pipeIn, pipeOut);
 
-	// Store strings to prevent use-after-free
 	string handlerPath = this->_client.getCgiHandlerPath();
 	string resourcePath = response.getResourcePath();
 
@@ -127,7 +122,7 @@ bool	CgiHandler::start() {
 		this->setupEnv();
 		if (pipe(pipeIn) < 0 || pipe(pipeOut) < 0)
 			throw exception();
-		
+
 		for (int i = 0; i < 2; ++i) {
 			fcntl(pipeIn[i], F_SETFL, O_NONBLOCK);
 			fcntl(pipeOut[i], F_SETFL, O_NONBLOCK); }
@@ -137,7 +132,7 @@ bool	CgiHandler::start() {
 
 		if (this->pid == 0)
 			this->executeChild(pipeIn, pipeOut);
-		
+
 		close(pipeIn[0]);
 		close(pipeOut[1]);
 
@@ -172,7 +167,7 @@ bool	CgiHandler::start() {
 void	CgiHandler::manageReadEvent(int epollFd) {
 	if (this->state != CGI_READING || this->readPipeFd < 0)
 		return;
-	
+
 	char	buffer[8192];
 	ssize_t	bytesRead;
 
@@ -203,7 +198,7 @@ void	CgiHandler::manageReadEvent(int epollFd) {
 void	CgiHandler::manageWriteEvent(int epollFd) {
 	if (this->state != CGI_WRITING || this->writePipeFd < 0)
 		return ;
-	
+
 	const Request& request = this->_client.getRequest();
 	const vector<char>& body = request.getBody();
 	size_t	bytesLeft = body.size() - this->bytesRecieved;
@@ -218,10 +213,8 @@ void	CgiHandler::manageWriteEvent(int epollFd) {
 		}
 
 		if (sent < 0) {
-			if (errno == EAGAIN || errno == EWOULDBLOCK) {
-				// Try again on next EPOLLOUT
+			if (errno == EAGAIN || errno == EWOULDBLOCK)
 				return;
-			}
 			if (errno == EPIPE) {
 				// Child closed stdin early; stop writing and switch to reading
 				epoll_ctl(epollFd, EPOLL_CTL_DEL, this->writePipeFd, 0);
