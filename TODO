@@ -1,5 +1,3 @@
 client timeouts should send error responses before closing the connection
 
-ConfigFile should accept all valid erropages codes 400-599
-
 clean up code

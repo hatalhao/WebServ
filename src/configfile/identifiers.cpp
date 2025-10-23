@@ -12,23 +12,11 @@ bool	isdefaultLocationFound(const server& serv) {
 	return false;
 }
 
-std::string ServerNameExists(const std::string& serverName, Config& config) {
-	if (serverName.find_first_not_of("1234567890.") == NPOS)
-		return (serverName);
-	for (size_t i = 0; i < config.getServers().size(); ++i) {
-		for (size_t j = 0; j < config.getServers()[i].serverName.size(); ++j) {
-			if (config.getServers()[i].serverName[j] == serverName)
-				return (config.getServers()[i].host);
-		}
-	}
-	return "";
-}
-
-bool notValidChar(char c) {
+bool notValidChar(const char c) {
 	return (c == '\"' || c == '\'' || c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '[' || c == ']');
 }
 
-bool trimmableChar(char c) {
+bool trimmableChar(const char c) {
 	return (c == ' ' || c == '\t' || c == '[' || c == ']');
 }
 
@@ -51,7 +39,7 @@ bool skipLine(const std::string& line) {
 	return (pos == NPOS || line[pos] == '#');
 }
 
-bool	isKeyValue(const std::string& line, int token) {
+bool	isKeyValue(const std::string& line, const int token) {
 	std::string trimmedLine = line;
 	removeInvalidChars(trimmedLine);
 	size_t pos = trimmedLine.find('=');
@@ -83,7 +71,6 @@ bool	isArrayKey(const std::string& key) {
 
 bool isValidValue(const std::string& value) {
 	stringstream ss(value);
-	// int counter = 0;
 	char firstChar = value[value.find_first_not_of("\t ")];
 	char lastChar = value[value.find_last_not_of("\t ")];
 	if (firstChar == ']' || firstChar == '[' || lastChar == '[' || lastChar == ']')
@@ -116,16 +103,15 @@ bool	isValidLocation(location_b& location, const std::string& root) {
 	return true;
 }
 
-int isValidStatusCode(long statusCode) {
-	if (statusCode != BAD_REQUEST && statusCode != FORBIDDEN && statusCode != NOT_FOUND && \
-		statusCode != REQUEST_TIMEOUT && statusCode != REQUEST_ENTITY_TOO_LARGE && \
-		statusCode != REQUEST_URI_TOO_LONG && statusCode != INTERNAL_SERVER_ERROR && \
-		statusCode != NOT_IMPLEMENTED && statusCode != GATEWAY_TIMEOUT_ERROR)
+int isValidStatusCode(const long statusCode) {
+	if (statusCode < 400 || statusCode > 599)
 		return -1;
 	return static_cast<int>(statusCode);
 }
 
-bool isValidKey(const std::string& key, int context) {
+bool isValidKey(const std::string& key, const int context) {
+	long code = 0;
+
 	switch (context) {
 		case SERVER_TOKEN:
 			if (key == "server_name" || key == "host" || key == "listen" || key == "root" || key == "index" || \
@@ -142,9 +128,8 @@ bool isValidKey(const std::string& key, int context) {
 				return true;
 			break;
 		case ERROR_TOKEN:
-			if (key == "400" || key == "403" || key == "404" || key == "405" || \
-			key == "408" || key == "413" || key == "414" || key == "500" || \
-			key == "501" || key == "504")
+			code = std::strtol(key.c_str(), 0, 10);
+			if (code >= 400 && code <= 599)
 				return true;
 			break;
 		default:
