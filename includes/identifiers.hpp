@@ -8,15 +8,12 @@ bool	isValidLocation(location_b& location, const std::string& root);
 bool	notValidChar(char c);
 bool	trimmableChar(char c);
 bool	skipLine(const std::string& line);
-bool	isKeyValue(const std::string& line, int token);
+bool	isKeyValue(const std::string& line, const int token);
 bool	isArray(const std::string& line);
 bool	isArrayKey(const std::string& key);
 bool 	isValidMethod(const std::string& method);
 int		isValidStatusCode(long statusCode);
 bool	isdefaultLocationFound(const server& serv);
-bool	isValidKey(const std::string& key, int context);
+bool	isValidKey(const std::string& key, const int context);
 bool	isValidHost(const std::string& host);
 bool	isValidValue(const std::string& value);
-
-
-std::string ServerNameExists(const std::string& serverName, Config& config);
