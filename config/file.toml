@@ -13,13 +13,13 @@ index = ["accueil.html", "welcome.html", "indexFile.html"]
 513 = "./pages/513.html"
 
 [[location]]
-name = "/sda"
+name = "/"
 path = "/home/hatalhao/"
 index = ["index.html", "images.php", "imagesFile.html"]
 autoindex = "on"
 allow = ["GET", "DELETE", "POST"]
-upload_path = "/home/hatalhao/webserv/"
-return = "/home/hatalhao/webserv/"
+upload_path = "/home/hatalhao/42-cc"
+# return = ""
 [[cgi]]
 extension = ".py"
 handler = "/usr/bin/python3"
