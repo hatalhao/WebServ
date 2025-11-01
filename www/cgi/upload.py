@@ -2,6 +2,9 @@
 import os
 import sys
 import html
+import cgi
+import shutil
+import uuid
 
 TEMPLATE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'html', 'upload.html')
 
@@ -81,17 +84,17 @@ def handle_status_response(status_code):
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l-3.75 3.75M12 9.75l3.75 3.75M3.75 12h16.5" />
                         </svg>
                     </div>
-                    <div class="text" id="uploadText">Click to browse or drag & drop files</div>
-                    <div class="subtext">Max file size: 50MB</div>
+                    <div class="text" id="uploadText">Click to select a file</div>
+                    <div class="subtext">Select a file to upload</div>
                 </div>
                 <input type="file" id="fileInput" name="uploadedFile" required>
                 <button type="submit" class="btn">Upload File</button>
             </form>
             <script>
+                const form = document.getElementById('uploadForm');
                 const uploadArea = document.getElementById('uploadArea');
                 const fileInput = document.getElementById('fileInput');
                 const uploadText = document.getElementById('uploadText');
-                const form = document.getElementById('uploadForm');
 
                 // Click to upload
                 uploadArea.addEventListener('click', () => fileInput.click());
@@ -107,19 +110,21 @@ def handle_status_response(status_code):
                         submitButton.textContent = 'Uploading...';
                         submitButton.disabled = true;
                         
-                        const response = await fetch(form.action, {
+                        const formData = new FormData(form);
+                        const response = await fetch('/uploads/', {
                             method: 'POST',
-                            body: new FormData(form)
+                            body: formData
                         });
 
+                        // Redirect based on server response
                         if (response.ok) {
                             window.location.href = '/cgi/upload.py?status=201';
                         } else {
                             const statusMap = {
-                                413: '413', // File too large
-                                409: '409', // Conflict/Save error
-                                500: '500', // Server error
-                                400: '400'  // Bad request
+                                413: '413',  // File too large
+                                409: '409',  // Conflict/Save error
+                                500: '500',  // Server error
+                                400: '400'   // Bad request
                             };
                             window.location.href = `/cgi/upload.py?status=${statusMap[response.status] || '500'}`;
                         }
@@ -128,22 +133,14 @@ def handle_status_response(status_code):
                     } finally {
                         submitButton.textContent = originalButtonText;
                         submitButton.disabled = false;
-                    }
+                    }                    // No error handler needed here since fetch() errors are caught above
                 };
 
-                // File input change handler
+                // File input change handler (no client-side filesize checks)
                 fileInput.addEventListener('change', () => {
                     if (fileInput.files.length > 0) {
                         const file = fileInput.files[0];
-                        const maxSize = 50 * 1024 * 1024; // 50MB
-
-                        if (file.size > maxSize) {
-                            alert('File size exceeds 50MB limit. Please select a smaller file.');
-                            fileInput.value = '';
-                            uploadText.textContent = 'Click to browse or drag & drop files';
-                        } else {
-                            uploadText.textContent = `File selected: ${file.name}`;
-                        }
+                        uploadText.textContent = `File selected: ${file.name}`;
                     }
                 });
 
@@ -171,19 +168,12 @@ def handle_status_response(status_code):
                     });
                 });
 
-                // Handle dropped files
+                // Handle dropped files (no client-side filesize checks)
                 uploadArea.addEventListener('drop', (e) => {
                     const dt = e.dataTransfer;
-                    const file = dt.files[0];
-                    
-                    if (file) {
-                        const maxSize = 50 * 1024 * 1024; // 50MB
-                        if (file.size > maxSize) {
-                            alert('File size exceeds 50MB limit. Please select a smaller file.');
-                        } else {
-                            fileInput.files = dt.files;
-                            uploadText.textContent = `File selected: ${file.name}`;
-                        }
+                    if (dt && dt.files && dt.files.length > 0) {
+                        fileInput.files = dt.files;
+                        uploadText.textContent = `File selected: ${dt.files[0].name}`;
                     }
                 });
             </script>
@@ -199,18 +189,8 @@ def handle_get_request(session_id):
     return render_page(title, content, session_id)
 
 def handle_post_request(session_id):
-    """Handle file upload POST requests."""
-    # This function will be implemented when we handle the actual file upload
-    return render_page("Upload Error", '''
-        <div class="message-icon error">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-            </svg>
-        </div>
-        <h2>Not Implemented</h2>
-        <p class="message-text">Direct POST handling is not implemented. Please use the form submission.</p>
-            <a href="/cgi/upload.py" class="btn">Try Again</a>
-    ''', session_id)
+    """Handle POST requests - redirect back to form since uploads are handled by /uploads/"""
+    return handle_get_request(session_id)
 
 if __name__ == "__main__":
     try:
