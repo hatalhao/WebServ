@@ -22,6 +22,8 @@ upload_path = "/home/aderraj/Desktop/WebServ/www/uploads"
 [[location]]
 name = "/cgi"
 path = "/home/aderraj/Desktop/WebServ/www/cgi"
+allow = ["GET", "POST"]
+upload_path = "/home/aderraj/Desktop/WebServ/www/uploads"
 index = ["welcome.py"]
 autoindex = "on"
 [[cgi]]

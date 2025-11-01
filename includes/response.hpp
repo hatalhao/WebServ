@@ -20,6 +20,7 @@ class Response {
 		string				resourceExtension;
 		string				resourceDir;
 		ResourceType		resourceType;
+		bool                isCgiRequest;
 		string				resolvedServerName;
 		map<string, string>	headers;
 		vector<char>		body;
@@ -27,7 +28,6 @@ class Response {
 		bool				detectRedirectLoop(const string& startPath, int maxDepth,
 												set<string>& visitedPaths);
 		string				resolveRedirect(const string& redirectTarget, const string& locationName);
-		const string		getfilename();
 		string				getReasonPhrase();
 
 		public:
@@ -58,6 +58,7 @@ class Response {
 		void	resolveResourcePath(bool isPOST);
 		bool	checkRedirections();
 		void	handleIndexFile();
+		bool	checkCgiRequest() { return isCgiRequest; }
 
 };
 

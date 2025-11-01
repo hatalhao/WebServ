@@ -171,7 +171,6 @@ void	CgiHandler::manageReadEvent(int epollFd) {
 	char	buffer[8192];
 	ssize_t	bytesRead;
 
-	// Read available data; under level-triggered epoll we'll get called again if more remains
 	while ((bytesRead = read(this->readPipeFd, buffer, sizeof(buffer))) > 0)
 		this->output.append(buffer, bytesRead);
 

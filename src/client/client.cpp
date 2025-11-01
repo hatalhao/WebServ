@@ -117,7 +117,7 @@ void    Client::generateResponse() {
 		return;
 	}
 
-	if (this->response.searchCgiHandlerPath().empty() == false) {
+	if (this->response.checkCgiRequest() ) {
 		this->cgiHandlerPath = this->response.searchCgiHandlerPath();
 		CgiHandler* cgi = new CgiHandler(*this);
 		if (cgi->start()) {

@@ -2,7 +2,7 @@
 #include "../../includes/client.hpp"
 
 Response::Response(Client* _client) :
-        client(_client) , rules(NULL), session(NULL),
+        client(_client) , rules(NULL), session(NULL), isCgiRequest(false),
 		bodyFd(-1), bodySize(0), bodySent(0), isFileBody(false) {}
 
 Response::Response(const Response& other) :
@@ -142,11 +142,11 @@ ResourceType	getResourceType(const char* resource) {
 
 
 void	Response::resolveResourcePath(bool isPOST) {
-	if (isPOST)
-		this->resourceDir = rules->uploadPath;
-	else
+	if (this->isCgiRequest || !isPOST)
 		this->resourceDir = rules->path.empty() ?
 				client->getServer()->root : rules->path;
+	else
+		this->resourceDir = rules->uploadPath;
 
 	string requestPath = client->getRequest().getPath().length() > rules->name.length() ?
 		client->getRequest().getPath().substr(rules->name.length()) : "";
@@ -215,6 +215,16 @@ int Response::prepareResponse() {
 	if (find(rules->methods.begin(), rules->methods.end(),
 			request.getMethod() ) == rules->methods.end() )
 		return (this->client->setStatusCode(405), -1);
+
+	this->resourceExtension = getFileExtension(request.getPath());
+	this->isCgiRequest = false;
+	for (vector<cgi_t>::const_iterator it = rules->cgiList.begin(); it != rules->cgiList.end(); ++it) {
+
+		if (it->extension == this->resourceExtension) {
+			this->isCgiRequest = true;
+			break;
+		}
+	}
 
 	const string& requestMethod = request.getMethod();
 
