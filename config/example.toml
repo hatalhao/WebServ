@@ -1,0 +1,30 @@
+[[server]]
+server_name = ["server1", "name1"]
+host = "127.0.0.1"
+listen = ["8989", "8080"]
+root = "/home/aderraj/Desktop/WebServ/www/"
+max_body_size = "1GB"
+index = ["accueil.html", "welcome.html", "indexFile.html"]
+
+[[location]]
+name = "/"
+path = "/home/aderraj/Desktop/WebServ/www/html"
+index = ["index.html"]
+autoindex = "on"
+allow = ["GET", "DELETE", "POST"]
+upload_path = "/home/aderraj/Desktop/WebServ/www/uploads"
+
+[[location]]
+name = "/uploads"
+allow = ["POST"]
+upload_path = "/home/aderraj/Desktop/WebServ/www/uploads"
+
+[[location]]
+name = "/cgi"
+path = "/home/aderraj/Desktop/WebServ/www/cgi"
+index = ["welcome.py"]
+autoindex = "on"
+[[cgi]]
+extension = ".py"
+handler = "/usr/bin/python3"
+

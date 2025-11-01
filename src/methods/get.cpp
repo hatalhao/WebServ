@@ -185,19 +185,6 @@ int Response::Get() {
                     }
                     indexPath += *it;
                     
-                    // should be migrated to the new cgi->start() logic 
-
-                    // vector<cgi_t>::const_iterator handler = searchExtensionHandler(indexPath.substr(indexPath.find_last_of(".")));
-                    //     if (handler != this->rules->cgiList.end()) {
-                    //         this->request.setPath(this->request.getPath() + (this->request.getPath()[this->request.getPath().length() - 1] == '/' ? "" : "/") + *it);
-                    //         this->resourcePath = indexPath; // Update resourcePath for the handler
-                            
-                    //         CgiHandler _cgi(*this, handler->path);
-                    //         _cgi.execute();
-                    //         *this = _cgi.exportResponse();
-                    //         return (this->statusCode);
-                    //     }
-    
                     struct stat indexStat;
                     if (stat(indexPath.c_str(), &indexStat) == 0 && S_ISREG(indexStat.st_mode)) {
                         int fd = open(indexPath.c_str(), O_RDONLY);

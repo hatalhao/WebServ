@@ -69,16 +69,10 @@ void    Client::processRequest() {
 		&& this->state != READING_BAD_REQUEST)
 		this->processRequest();
 	
-	// After request parsing is complete, determine keep-alive
-	// Default behavior: close connection unless "Connection: keep-alive" is explicitly sent
 	if (this->state == READING_DONE) {
 		string connectionHeader = this->request.getHeader("connection");
-		
-		// Convert to lowercase for comparison
 		for (size_t i = 0; i < connectionHeader.length(); i++)
 			connectionHeader[i] = tolower(connectionHeader[i]);
-		
-		// Only keep alive if explicitly requested
 		this->keepAlive = (connectionHeader == "keep-alive");
 	}
 }
@@ -127,20 +121,17 @@ void    Client::generateResponse() {
 		this->cgiHandlerPath = this->response.searchCgiHandlerPath();
 		CgiHandler* cgi = new CgiHandler(*this);
 		if (cgi->start()) {
-			// Track handler lifetime to avoid dangling pointers during cleanup
 			this->globalConfig->getCgiSet().insert(cgi);
 			struct epoll_event ev = epoll_event();
-			// Level-triggered events by default
 			ev.events = 0;
 
-			// If the CGI needs to be written-to (POST), watch for EPOLLOUT on its write-pipe.
 			if (cgi->getState() == CGI_WRITING) {
-				ev.events |= EPOLLOUT; // watch write readiness
+				ev.events |= EPOLLOUT; 
 				ev.data.fd = cgi->getWriteFd();
 				this->globalConfig->getCgiHandlers()[ev.data.fd] = cgi;
 				epoll_ctl(this->globalConfig->getEpollFd(), EPOLL_CTL_ADD, ev.data.fd, &ev);
 			}
-			ev.events = EPOLLIN; // watch read readiness
+			ev.events = EPOLLIN; 
 			ev.data.fd = cgi->getReadFd();
 			this->globalConfig->getCgiHandlers()[ev.data.fd] = cgi;
 			epoll_ctl(this->globalConfig->getEpollFd(), EPOLL_CTL_ADD, ev.data.fd, &ev);
@@ -183,9 +174,9 @@ int Client::handleReadEvent(int epollFd) {
 	bytesRead = recv(this->_clientFd, buffer, sizeof(buffer), 0);
 	if (bytesRead > 0) {
 		this->requestBuf.append(buffer, bytesRead);
-		this->updateActivity();  // Update activity timestamp on successful read
+		this->updateActivity();
 	} else if (bytesRead == 0) {
-		return DISCONNECTED; // client closed
+		return DISCONNECTED; 
 	} else if (bytesRead < 0) {
 		if (errno != EAGAIN && errno != EWOULDBLOCK) {
 			perror("recv failed");
@@ -193,14 +184,14 @@ int Client::handleReadEvent(int epollFd) {
 		}
 	}
 
-	this->processRequest();
-	if (this->state == READING_DONE || this->state == READING_BAD_REQUEST) {
-		this->generateResponse();
+	processRequest();
+	if (state == READING_DONE || state == READING_BAD_REQUEST) {
+		generateResponse();
 
-		if (this->state == SENDING_RESPONSE) {
+		if (state == SENDING_RESPONSE) {
 			struct epoll_event event = epoll_event();
 			event.data.fd = this->_clientFd;
-			event.events = EPOLLOUT; // level-triggered write readiness
+			event.events = EPOLLOUT;
 	
 			if (epoll_ctl(epollFd, EPOLL_CTL_MOD, this->_clientFd, &event) < 0) {
 				perror("epoll_ctl MOD failed");

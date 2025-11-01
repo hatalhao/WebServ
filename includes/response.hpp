@@ -27,7 +27,7 @@ class Response {
 		bool				detectRedirectLoop(const string& startPath, int maxDepth,
 												set<string>& visitedPaths);
 		string				resolveRedirect(const string& redirectTarget, const string& locationName);
-		const string		generatefilename();
+		const string		getfilename();
 		string				getReasonPhrase();
 
 		public:
@@ -55,6 +55,9 @@ class Response {
 		string	getResourceExtension() { return resourceExtension; }
 		string	getresourceDir() { return resourceDir; }
 		const location_b*	getRules() { return rules; }
+		void	resolveResourcePath(bool isPOST);
+		bool	checkRedirections();
+		void	handleIndexFile();
 
 };
 

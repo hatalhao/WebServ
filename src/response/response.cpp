@@ -10,42 +10,50 @@ Response::Response(const Response& other) :
 	resourcePath(other.resourcePath), resourceDir(other.resourceDir),
 	resourceType(other.resourceType), headers(other.headers), body(other.body){}
 
-// void printSingleLocation(const location_b& loc) {
-// 	cout << "--Location Block:" << endl;
-// 	cout << "  name: " << loc.name << endl;
-// 	cout << "  path: " << loc.path << endl;
-// 	cout << "  index: ";
-// 	for (size_t i = 0; i < loc.index.size(); i++) {
-// 		cout << loc.index[i];
-// 		if (i < loc.index.size() - 1)
-// 			cout << ", ";
-// 	}
-// 	cout << endl;
-// 	cout << "  errorPageMap: ";
-// 	for (map<int, string>::const_iterator it = loc.errorPageMap.begin(); it !=
-// 			loc.errorPageMap.end(); ++it) {
-// 		cout << it->first << " -> " << it->second << "; ";
-// 	}
-// 	cout << endl;
-// 	cout << "  methods: ";
-// 	for (size_t i = 0; i < loc.methods.size(); i++) {
-// 		cout << loc.methods[i];
-// 		if (i < loc.methods.size() - 1)
-// 			cout << ", ";
-// 	}
-// 	cout << endl;
-// 	cout << "  redirection: " << loc.redirection << endl;
-// 	cout << "  uploadPath: " << loc.uploadPath << endl;
-// 	cout << "  isAutoIndexEnabled: " << (loc.isAutoIndexEnabled ? "true" : "false") << endl;
-// 	cout << "  isCgiEnabled: " << (loc.isCgiEnabled ? "true" : "false") << endl;
-// 	cout << "  cgiList: ";
-// 	for (size_t i = 0; i < loc.cgiList.size(); i++) {
-// 		cout << "{" << loc.cgiList[i].extension << " -> " << loc.cgiList[i].path << "}";
-// 		if (i < loc.cgiList.size() - 1)
-// 			cout << ", ";
-// 	}
-// 	cout << endl;
-// }
+void printSingleLocation(const location_b& loc) {
+	cout << "--Location Block:" << endl;
+	cout << "  name: " << loc.name << endl;
+	cout << "  path: " << loc.path << endl;
+	cout << "  index: ";
+	for (size_t i = 0; i < loc.index.size(); i++) {
+		cout << loc.index[i];
+		if (i < loc.index.size() - 1)
+			cout << ", ";
+	}
+	cout << endl;
+	cout << "  errorPageMap: ";
+	for (map<int, string>::const_iterator it = loc.errorPageMap.begin(); it !=
+			loc.errorPageMap.end(); ++it) {
+		cout << it->first << " -> " << it->second << "; ";
+	}
+	cout << endl;
+	cout << "  methods: ";
+	for (size_t i = 0; i < loc.methods.size(); i++) {
+		cout << loc.methods[i];
+		if (i < loc.methods.size() - 1)
+			cout << ", ";
+	}
+	cout << endl;
+	cout << "  redirection: " << loc.redirection << endl;
+	cout << "  uploadPath: " << loc.uploadPath << endl;
+	cout << "  isAutoIndexEnabled: " << (loc.isAutoIndexEnabled ? "true" : "false") << endl;
+	cout << "  isCgiEnabled: " << (loc.isCgiEnabled ? "true" : "false") << endl;
+	cout << "  cgiList: ";
+	for (size_t i = 0; i < loc.cgiList.size(); i++) {
+		cout << "{" << loc.cgiList[i].extension << " -> " << loc.cgiList[i].path << "}";
+		if (i < loc.cgiList.size() - 1)
+			cout << ", ";
+	}
+	cout << endl;
+
+}
+
+const string	getFileExtension(const string& filename) {
+	size_t dotPos = filename.find_last_of(".");
+	if (dotPos != string::npos)
+		return filename.substr(dotPos);
+	return "";
+}
 
 const location_b& Response::findLocationConfig(const string& path) {
     const location_b* bestMatch = NULL, *root = NULL;
@@ -132,85 +140,99 @@ ResourceType	getResourceType(const char* resource) {
 	return IS_FORBIDDEN;
 }
 
-int Response::prepareResponse() {
-    this->rules = &(this->findLocationConfig(this->client->getRequest().getPath()));
-	// printSingleLocation(*this->rules);
+
+void	Response::resolveResourcePath(bool isPOST) {
+	if (isPOST)
+		this->resourceDir = rules->uploadPath;
+	else
+		this->resourceDir = rules->path.empty() ?
+				client->getServer()->root : rules->path;
+
+	string requestPath = client->getRequest().getPath().length() > rules->name.length() ?
+		client->getRequest().getPath().substr(rules->name.length()) : "";
+
+	if (!requestPath.empty() && requestPath[0] == '/')
+		requestPath = requestPath.substr(1);
+	
+	this->resourcePath = resourceDir;
+	if (!this->resourcePath.empty() && resourceDir[resourceDir.length() - 1] != '/')
+		this->resourcePath += "/";
+
+	this->resourcePath += requestPath;
+
+	this->resourceExtension = getFileExtension(requestPath);	
+}
+
+bool	Response::checkRedirections() {
 	if (rules->redirection.empty() == false) {
-	 	string currentPath = this->client->getRequest().getPath();
+	 	string currentPath = client->getRequest().getPath();
+	 	set<string> visitedPaths;
 
-	 	std::set<string> visitedPaths;
-
-        if (detectRedirectLoop(currentPath, 10, visitedPaths))
-            return (this->client->setStatusCode(508), -1);
+        if (detectRedirectLoop(currentPath, 7, visitedPaths))
+            return (this->client->setStatusCode(508), false);
 
 		string resolvedPath = resolveRedirect(rules->redirection, rules->name);
 
 		if (resolvedPath.empty())
-			return (this->client->setStatusCode(500), -1);
+			return (this->client->setStatusCode(500), false);
 
 	 	this->setHeader("Location", resolvedPath);
 		this->client->setStatusCode(301);
-	 	return -1;
-	 }
+	 	return false;
+	}
+	return true;
+}
 
-	if (find(rules->methods.begin(),
-				rules->methods.end(),
-				this->client->getRequest().getMethod()) == rules->methods.end())
-		return (this->client->setStatusCode(405), -1);
 
-	this->resourceDir = this->rules->path.empty() ? this->client->getServer()->root : this->rules->path;
-	this->resourcePath = this->resourceDir + this->client->getRequest().getPath();
+void	Response::handleIndexFile() {
+	if (this->resourceType != IS_DIR || this->rules->index.empty())
+		return ;
 
-	if (!this->resourceDir.empty() && this->resourceDir[this->resourceDir.length() - 1] != '/'
-		&& !this->rules->name.empty() && this->rules->name[0] != '/')
-				this->resourceDir += "/";
+	for (vector<string>::const_iterator it = this->rules->index.begin();
+			it != this->rules->index.end(); ++it)
+	{
+		string indexPath = this->resourcePath;
+		if (!indexPath.empty() && indexPath[indexPath.length() - 1] != '/')
+			indexPath += "/";
 
-	this->resourceDir += this->rules->name;
+		indexPath += *it;
 
-	size_t pos;
-	while ((pos = this->resourcePath.find("//")) != string::npos)
-		this->resourcePath.replace(pos, 2, "/");
-
-	size_t dotPos = this->client->getRequest().getPath().find_last_of(".");
-	if (dotPos != string::npos)
-		this->resourceExtension = this->client->getRequest().getPath().substr(dotPos);
-	else
-		this->resourceExtension = "";
-
-	this->resourceType = getResourceType(this->resourcePath.c_str());
-	if (this->resourceType == IS_NOT_FOUND || this->resourceType == IS_FORBIDDEN)
-		return (this->client->setStatusCode(this->resourceType), -1);
-
-	if (this->resourceType == IS_DIR &&
-		this->client->getRequest().getMethod() == "GET" &&
-		!this->rules->index.empty()) {
-
-		for (vector<string>::const_iterator it = this->rules->index.begin();
-			 it != this->rules->index.end(); ++it) {
-			string indexPath = this->resourcePath;
-			if (!indexPath.empty() && indexPath[indexPath.length() - 1] != '/') {
-				indexPath += "/";
-			}
-			indexPath += *it;
-
-			ResourceType indexType = getResourceType(indexPath.c_str());
-			if (indexType == IS_FILE) {
-				this->resourcePath = indexPath;
-				this->resourceType = IS_FILE;
-
-				size_t dotPos = indexPath.find_last_of(".");
-				if (dotPos != string::npos)
-					this->resourceExtension = indexPath.substr(dotPos);
-				else
-					this->resourceExtension = "";
-				break;
-			}
+		if (getResourceType(indexPath.c_str()) == IS_FILE) {
+			this->resourcePath = indexPath;
+			this->resourceType = IS_FILE;
+			this->resourceExtension = getFileExtension(indexPath);
+			break;
 		}
 	}
+}
 
-	string	sid = this->client->getRequest().getCookie("session_id");
+int Response::prepareResponse() {
+	Request& request = this->client->getRequest();
+    this->rules = &(this->findLocationConfig(request.getPath()));
+
+	if (checkRedirections() == false) return -1;
+
+	if (find(rules->methods.begin(), rules->methods.end(),
+			request.getMethod() ) == rules->methods.end() )
+		return (this->client->setStatusCode(405), -1);
+
+	const string& requestMethod = request.getMethod();
+
+	this->resolveResourcePath(requestMethod == "POST");
+	if (this->resourcePath.find("..") != string::npos)
+		return (this->client->setStatusCode(403), -1);
+
+	this->resourceType = getResourceType(this->resourcePath.c_str());
+
+	if (this->resourceType == IS_FORBIDDEN
+		|| (this->resourceType == IS_NOT_FOUND && requestMethod != "POST") )
+		return (this->client->setStatusCode(this->resourceType), -1);
+
+	if (requestMethod == "GET") handleIndexFile();
+
+	string sid = request.getCookie("session_id");
 	if (!sid.empty())
-		this->session = this->client->getGlobalConfig()->getSessionManager().getSession(sid);
+		this->session = client->getGlobalConfig()->getSessionManager().getSession(sid);
 	return (0);
 }
 
@@ -220,11 +242,10 @@ string Response::serializeHeaders() {
     ss << "HTTP/1.1 " << this->client->getStatusCode() << " " << getReasonPhrase() << CRLF;
 
     ss << "Server: Webserv/1.0" << CRLF;
-    
-    // Set Connection header based on keep-alive status
+
     if (this->client->shouldKeepAlive()) {
         ss << "Connection: keep-alive" << CRLF;
-        ss << "Keep-Alive: timeout=5" << CRLF;  // 5 second timeout, max 100 requests
+        ss << "Keep-Alive: timeout=30" << CRLF;
     } else {
         ss << "Connection: close" << CRLF;
     }
@@ -245,12 +266,6 @@ string Response::serializeHeadersAndBody() {
 }
 
 
-const string	Response::generatefilename() {
-	stringstream ss;
-	ss << "file_" << time(NULL) << ".upload";
-	return ss.str();
-}
-
 string Response::getReasonPhrase() {
 	switch (this->client->getStatusCode()) {
 		case 200: return "OK";
@@ -262,6 +277,7 @@ string Response::getReasonPhrase() {
 		case 404: return "Not Found";
 		case 405: return "Method Not Allowed";
 		case 408: return "Request Timeout";
+		case 409: return "Conflict";
 		case 413: return "Request Entity Too Large";
 		case 414: return "Request-URI Too Long";
 		case 500: return "Internal Server Error";

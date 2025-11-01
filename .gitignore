@@ -8,8 +8,6 @@
 .vscode/
 
 
-*.toml
-
 tmp/
 # tldraw
 *.tldr
