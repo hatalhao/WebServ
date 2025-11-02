@@ -34,10 +34,8 @@ static bool extractMultipartFile(const vector<char>& body, const string& boundar
 	if (headerEnd == string::npos)
 		return false;
 	
-	// Content starts after headers
 	size_t contentStart = (bodyStr[headerEnd] == '\r') ? headerEnd + 4 : headerEnd + 2;
-	
-	// Find the ending boundary
+
 	size_t endPos = bodyStr.find("\r\n" + fullBoundary, contentStart);
 	if (endPos == string::npos)
 		endPos = bodyStr.find("\n" + fullBoundary, contentStart);
@@ -45,7 +43,6 @@ static bool extractMultipartFile(const vector<char>& body, const string& boundar
 	if (endPos == string::npos)
 		return false;
 	
-	// Extract file content
 	fileContent.assign(body.begin() + contentStart, body.begin() + endPos);
 	return true;
 }
@@ -66,14 +63,14 @@ static string extractBoundaryFromContentType(const string& contentType) {
 }
 
 int	Response::Post() {
-	if (this->resourceType != IS_FILE) {
+	if (this->resourceInfo.type != IS_FILE) {
 		Request	&request = client->getRequest();
-		if (getResourceType(resourceDir.c_str()) != IS_DIR) return (500);
+		if (getResourceType(this->resourceInfo) != IS_DIR) return (500);
 
-		string filename = this->resourcePath;
+		string filename = this->resourceInfo.path;
 		string headerlocationPath = request.getPath();
 
-		if (this->resourceType == IS_DIR) {
+		if (this->resourceInfo.type == IS_DIR) {
 			if (filename[filename.length() - 1] != '/')
 			{ filename += "/";  headerlocationPath += "/";  }
 			string randomName = generateRandomFileName();

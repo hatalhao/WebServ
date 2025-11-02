@@ -148,22 +148,24 @@ int Response::Get() {
     if (!isSafePath(this->client->getRequest().getPath())) {
         return (403);
     }
-    
-    switch (resourceType) {
+
+    switch (resourceInfo.type) {
         case IS_FILE: {
-            
-            if (getResourceType(resourcePath.c_str()) != IS_FILE) {
+
+            if (getResourceType(this->resourceInfo) != IS_FILE) {
                 return (this->setErrorResponse(403), 403);
             }
 
-            int fd = open(resourcePath.c_str(), O_RDONLY);
+            int fd = open(resourceInfo.path.c_str(), O_RDONLY);
             if (fd < 0) {
                 perror("open");
                 return 500;
             }
-        
-            this->setHeader("Content-Type", getMimeType(resourcePath));
+
+            this->setHeader("Content-Type", getMimeType(resourceInfo.path));
+            this->setHeader("Content-Length", to_string(resourceInfo.size));
             this->bodyFd = fd;
+            this->bodySize = resourceInfo.size;
             this->bodySent = 0;
             this->isFileBody = true;
 
@@ -173,7 +175,7 @@ int Response::Get() {
             if (!this->rules->index.empty()) {
                 for (vector<string>::const_iterator it = this->rules->index.begin(); 
                     it != this->rules->index.end(); ++it) {
-                    string indexPath = resourcePath;
+                    string indexPath = resourceInfo.path;
                     if (!indexPath.empty() && indexPath[indexPath.length() - 1] != '/') {
                         indexPath += "/";
                     }
@@ -202,7 +204,7 @@ int Response::Get() {
                 return (this->setErrorResponse(404), 404);
             }
             else if (this->rules->isAutoIndexEnabled) {
-                string listing = generateDirectoryListing(resourcePath, this->client->getRequest().getPath());
+                string listing = generateDirectoryListing(resourceInfo.path, this->client->getRequest().getPath());
                 if (listing.empty()) {
                     return 500;
                 }

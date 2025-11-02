@@ -65,7 +65,7 @@ bool deleteResource(const std::string& path) {
 int Response::Delete() {
     struct stat statBuf;
     
-	if (stat(this->resourcePath.c_str(), &statBuf) != 0) {
+	if (stat(this->resourceInfo.path.c_str(), &statBuf) != 0) {
         if (errno == ENOENT) {
             return NOT_FOUND;
         } else {
@@ -73,11 +73,11 @@ int Response::Delete() {
         }
     }
     
-    if (!DeletePermitted(this->resourcePath)) {
+    if (!DeletePermitted(this->resourceInfo.path)) {
         return FORBIDDEN;
     }
     
-    if (deleteResource(this->resourcePath)) {
+    if (deleteResource(this->resourceInfo.path)) {
         return 200;
     } else {
         if (errno == EACCES || errno == EPERM) {
