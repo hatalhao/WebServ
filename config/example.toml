@@ -8,15 +8,16 @@ index = ["accueil.html", "welcome.html", "indexFile.html"]
 
 [[location]]
 name = "/"
-path = "/home/aderraj/Desktop/WebServ/www/html"
-index = ["index.html"]
+path = "/home/aderraj/Desktop/WebServ/www/uploads"
+# index = ["index.html"]
 autoindex = "on"
 allow = ["GET", "DELETE", "POST"]
 upload_path = "/home/aderraj/Desktop/WebServ/www/uploads"
 
 [[location]]
 name = "/uploads"
-allow = ["POST"]
+allow = ["POST","GET"]
+index = ["accueil.html", "welcome.html", "indexFile.html"]
 upload_path = "/home/aderraj/Desktop/WebServ/www/uploads"
 
 [[location]]

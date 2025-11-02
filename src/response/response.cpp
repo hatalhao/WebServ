@@ -10,43 +10,43 @@ Response::Response(const Response& other) :
 	resourcePath(other.resourcePath), resourceDir(other.resourceDir),
 	resourceType(other.resourceType), headers(other.headers), body(other.body){}
 
-void printSingleLocation(const location_b& loc) {
-	cout << "--Location Block:" << endl;
-	cout << "  name: " << loc.name << endl;
-	cout << "  path: " << loc.path << endl;
-	cout << "  index: ";
-	for (size_t i = 0; i < loc.index.size(); i++) {
-		cout << loc.index[i];
-		if (i < loc.index.size() - 1)
-			cout << ", ";
-	}
-	cout << endl;
-	cout << "  errorPageMap: ";
-	for (map<int, string>::const_iterator it = loc.errorPageMap.begin(); it !=
-			loc.errorPageMap.end(); ++it) {
-		cout << it->first << " -> " << it->second << "; ";
-	}
-	cout << endl;
-	cout << "  methods: ";
-	for (size_t i = 0; i < loc.methods.size(); i++) {
-		cout << loc.methods[i];
-		if (i < loc.methods.size() - 1)
-			cout << ", ";
-	}
-	cout << endl;
-	cout << "  redirection: " << loc.redirection << endl;
-	cout << "  uploadPath: " << loc.uploadPath << endl;
-	cout << "  isAutoIndexEnabled: " << (loc.isAutoIndexEnabled ? "true" : "false") << endl;
-	cout << "  isCgiEnabled: " << (loc.isCgiEnabled ? "true" : "false") << endl;
-	cout << "  cgiList: ";
-	for (size_t i = 0; i < loc.cgiList.size(); i++) {
-		cout << "{" << loc.cgiList[i].extension << " -> " << loc.cgiList[i].path << "}";
-		if (i < loc.cgiList.size() - 1)
-			cout << ", ";
-	}
-	cout << endl;
+// void printSingleLocation(const location_b& loc) {
+// 	cout << "--Location Block:" << endl;
+// 	cout << "  name: " << loc.name << endl;
+// 	cout << "  path: " << loc.path << endl;
+// 	cout << "  index: ";
+// 	for (size_t i = 0; i < loc.index.size(); i++) {
+// 		cout << loc.index[i];
+// 		if (i < loc.index.size() - 1)
+// 			cout << ", ";
+// 	}
+// 	cout << endl;
+// 	cout << "  errorPageMap: ";
+// 	for (map<int, string>::const_iterator it = loc.errorPageMap.begin(); it !=
+// 			loc.errorPageMap.end(); ++it) {
+// 		cout << it->first << " -> " << it->second << "; ";
+// 	}
+// 	cout << endl;
+// 	cout << "  methods: ";
+// 	for (size_t i = 0; i < loc.methods.size(); i++) {
+// 		cout << loc.methods[i];
+// 		if (i < loc.methods.size() - 1)
+// 			cout << ", ";
+// 	}
+// 	cout << endl;
+// 	cout << "  redirection: " << loc.redirection << endl;
+// 	cout << "  uploadPath: " << loc.uploadPath << endl;
+// 	cout << "  isAutoIndexEnabled: " << (loc.isAutoIndexEnabled ? "true" : "false") << endl;
+// 	cout << "  isCgiEnabled: " << (loc.isCgiEnabled ? "true" : "false") << endl;
+// 	cout << "  cgiList: ";
+// 	for (size_t i = 0; i < loc.cgiList.size(); i++) {
+// 		cout << "{" << loc.cgiList[i].extension << " -> " << loc.cgiList[i].path << "}";
+// 		if (i < loc.cgiList.size() - 1)
+// 			cout << ", ";
+// 	}
+// 	cout << endl;
 
-}
+// }
 
 const string	getFileExtension(const string& filename) {
 	size_t dotPos = filename.find_last_of(".");
@@ -130,14 +130,18 @@ bool Response::detectRedirectLoop(const string& startPath, int maxDepth,
 
 
 ResourceType	getResourceType(const char* resource) {
-	struct stat statBuf;
+	struct stat st;
+	if (stat(resource, &st) != 0)
+		return IS_NOT_FOUND;
 
-	if (stat(resource, &statBuf) != 0)
-		return (errno == ENOENT) ? IS_NOT_FOUND : IS_FORBIDDEN;
-	else if (S_ISDIR(statBuf.st_mode)) return IS_DIR;
-	else if (S_ISREG(statBuf.st_mode)) return IS_FILE;
+	if (access(resource, R_OK) != 0)
+        return IS_FORBIDDEN;
 
-	return IS_FORBIDDEN;
+    if (S_ISDIR(st.st_mode))
+        return IS_DIR;
+    if (S_ISREG(st.st_mode))
+        return IS_FILE;
+    return IS_NOT_FOUND;
 }
 
 
@@ -210,6 +214,7 @@ int Response::prepareResponse() {
 	Request& request = this->client->getRequest();
     this->rules = &(this->findLocationConfig(request.getPath()));
 
+	// printSingleLocation(*this->rules);
 	if (checkRedirections() == false) return -1;
 
 	if (find(rules->methods.begin(), rules->methods.end(),
@@ -238,7 +243,7 @@ int Response::prepareResponse() {
 		|| (this->resourceType == IS_NOT_FOUND && requestMethod != "POST") )
 		return (this->client->setStatusCode(this->resourceType), -1);
 
-	if (requestMethod == "GET") handleIndexFile();
+	// if (requestMethod == "GET") handleIndexFile();
 
 	string sid = request.getCookie("session_id");
 	if (!sid.empty())

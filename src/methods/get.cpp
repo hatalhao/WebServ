@@ -151,26 +151,20 @@ int Response::Get() {
     
     switch (resourceType) {
         case IS_FILE: {
+            
+            if (getResourceType(resourcePath.c_str()) != IS_FILE) {
+                return (this->setErrorResponse(403), 403);
+            }
+
             int fd = open(resourcePath.c_str(), O_RDONLY);
             if (fd < 0) {
                 perror("open");
                 return 500;
             }
-
-            struct stat st;
-            if (fstat(fd, &st) < 0) {
-                close(fd);
-                perror("fstat");
-                return 500;
-            }
-
+        
             this->setHeader("Content-Type", getMimeType(resourcePath));
-            this->setHeader("Content-Length", to_string(st.st_size));
-
-            // New: instead of setBody(content), store file descriptor
-            this->bodyFd = fd;              // keep fd for streaming
-            this->bodySize = st.st_size;    // track remaining size
-            this->bodySent = 0;             // how much we already sent
+            this->bodyFd = fd;
+            this->bodySent = 0;
             this->isFileBody = true;
 
             return 200;
@@ -178,7 +172,7 @@ int Response::Get() {
         case IS_DIR: {
             if (!this->rules->index.empty()) {
                 for (vector<string>::const_iterator it = this->rules->index.begin(); 
-                     it != this->rules->index.end(); ++it) {
+                    it != this->rules->index.end(); ++it) {
                     string indexPath = resourcePath;
                     if (!indexPath.empty() && indexPath[indexPath.length() - 1] != '/') {
                         indexPath += "/";
@@ -190,10 +184,9 @@ int Response::Get() {
                         int fd = open(indexPath.c_str(), O_RDONLY);
                         if (fd < 0) {
                             perror("open");
-                            return 500;
+                            return 403;
                         }
                         
-                        this->client->setStatusCode(200);
                         this->setHeader("Content-Type", getMimeType(indexPath));
                         this->setHeader("Content-Length", to_string(indexStat.st_size));
 
@@ -206,9 +199,9 @@ int Response::Get() {
                         return 200;
                     }
                 }
+                return (this->setErrorResponse(404), 404);
             }
-
-            if (this->rules->isAutoIndexEnabled) {
+            else if (this->rules->isAutoIndexEnabled) {
                 string listing = generateDirectoryListing(resourcePath, this->client->getRequest().getPath());
                 if (listing.empty()) {
                     return 500;
