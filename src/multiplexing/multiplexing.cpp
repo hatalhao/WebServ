@@ -303,10 +303,27 @@ void Worker::cleanupIdleConnections() {
 
 	for (std::map<int, Client*>::iterator it = _clients.begin(); it != _clients.end(); ++it) {
 		double elapsed = difftime(now, it->second->getLastActivity());
-		if (elapsed > KEEP_ALIVE_TIMEOUT)
-			fdsToClose.push_back(it->first);
+		if (elapsed > KEEP_ALIVE_TIMEOUT) {
+			Client* client = it->second;
+			ClientState clientState = client->getState();
+			
+			// Check if this is a slow client (still reading request) or keep-alive idle
+			if (clientState == READING_REQUEST_LINE && client->getRequestBuf().empty() && client->shouldKeepAlive()) {
+				// Keep-alive idle: close without response
+				fdsToClose.push_back(it->first);
+			} else if (clientState == READING_REQUEST_LINE || clientState == READING_HEADERS || clientState == READING_BODY) {
+				// Slow client: send 408 timeout error
+				print "Sending 408 Request Timeout to slow client " << it->first << endl;
+				client->setKeepAlive(false);
+				client->onCgiError(408);
+			} else {
+				// Other states: close without response
+				fdsToClose.push_back(it->first);
+			}
+		}
 	}
 
+	// Close connections that don't need a response
 	for (size_t i = 0; i < fdsToClose.size(); ++i) {
 		std::map<int, Client*>::iterator it = _clients.find(fdsToClose[i]);
 		if (it != _clients.end()) {
@@ -315,7 +332,7 @@ void Worker::cleanupIdleConnections() {
 			clientToServer.erase(it->first);
 			delete it->second;
 			_clients.erase(it);
-			print "Closed slow/idle client connection " << fdsToClose[i] << endl;
+			print "Closed keep-alive idle client connection " << fdsToClose[i] << endl;
 		}
 	}
 }

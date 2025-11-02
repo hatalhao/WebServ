@@ -1,0 +1,1 @@
+Limit the max_body_size directive to less than <  ~50MB (inside the configfile)
