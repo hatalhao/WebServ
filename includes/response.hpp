@@ -11,15 +11,24 @@ enum ResourceType {
 	IS_FORBIDDEN = 403
 };
 
+typedef struct ResourceInfo {
+	string			path;
+	string			extension;
+	string			pathDir;
+	ResourceType	type;
+	off_t			size;
+} file_info;
+
 class Response {
 	private:
 		Client*				client;
 		const location_b*	rules;
 		Session*			session;
-		string				resourcePath;
-		string				resourceExtension;
-		string				resourceDir;
-		ResourceType		resourceType;
+		file_info			resourceInfo;
+		// string				resourcePath;
+		// string				resourceExtension;
+		// string				resourceDir;
+		// ResourceType		resourceType;
 		bool                isCgiRequest;
 		string				resolvedServerName;
 		map<string, string>	headers;
@@ -51,16 +60,17 @@ class Response {
 		bool	findHeader(string key) { return headers.find(key) != headers.end(); }
 
 		string	searchCgiHandlerPath();
-		string	getResourcePath() { return resourcePath; }
-		string	getResourceExtension() { return resourceExtension; }
-		string	getresourceDir() { return resourceDir; }
+		string	getResourcePath() { return resourceInfo.path; }
+		string	getResourceExtension() { return resourceInfo.extension; }
+		string	getresourceDir() { return resourceInfo.pathDir; }
 		const location_b*	getRules() { return rules; }
-		void	resolveResourcePath(bool isPOST);
+		void	resolveResourcePath(const Request& request, bool isPOST);
 		bool	checkRedirections();
 		void	handleIndexFile();
 		bool	checkCgiRequest() { return isCgiRequest; }
+		int		prepareResource(const Request& request);
 
 };
 
-ResourceType	getResourceType(const char* resource);
+ResourceType	getResourceType(file_info& resource);
 #endif

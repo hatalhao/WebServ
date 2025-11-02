@@ -7,8 +7,7 @@ Response::Response(Client* _client) :
 
 Response::Response(const Response& other) :
 	client(other.client), rules(other.rules),
-	resourcePath(other.resourcePath), resourceDir(other.resourceDir),
-	resourceType(other.resourceType), headers(other.headers), body(other.body){}
+	resourceInfo(other.resourceInfo), headers(other.headers), body(other.body){}
 
 // void printSingleLocation(const location_b& loc) {
 // 	cout << "--Location Block:" << endl;
@@ -129,12 +128,15 @@ bool Response::detectRedirectLoop(const string& startPath, int maxDepth,
 }
 
 
-ResourceType	getResourceType(const char* resource) {
+ResourceType	getResourceType(file_info& resource) {
 	struct stat st;
-	if (stat(resource, &st) != 0)
+	int ret = stat(resource.path.c_str(), &st);
+	resource.size = (ret == 0) ? st.st_size : 0;
+
+	if (ret != 0)
 		return IS_NOT_FOUND;
 
-	if (access(resource, R_OK) != 0)
+	if (access(resource.path.c_str(), R_OK) != 0)
         return IS_FORBIDDEN;
 
     if (S_ISDIR(st.st_mode))
@@ -145,26 +147,26 @@ ResourceType	getResourceType(const char* resource) {
 }
 
 
-void	Response::resolveResourcePath(bool isPOST) {
+void	Response::resolveResourcePath(const Request& request, bool isPOST) {
 	if (this->isCgiRequest || !isPOST)
-		this->resourceDir = rules->path.empty() ?
+		this->resourceInfo.pathDir = rules->path.empty() ?
 				client->getServer()->root : rules->path;
 	else
-		this->resourceDir = rules->uploadPath;
+		this->resourceInfo.pathDir = rules->uploadPath;
 
-	string requestPath = client->getRequest().getPath().length() > rules->name.length() ?
-		client->getRequest().getPath().substr(rules->name.length()) : "";
+	string requestPath = request.getPath().length() > rules->name.length() ?
+		request.getPath().substr(rules->name.length()) : "";
 
 	if (!requestPath.empty() && requestPath[0] == '/')
 		requestPath = requestPath.substr(1);
 	
-	this->resourcePath = resourceDir;
-	if (!this->resourcePath.empty() && resourceDir[resourceDir.length() - 1] != '/')
-		this->resourcePath += "/";
+	this->resourceInfo.path = resourceInfo.pathDir;
+	if (!this->resourceInfo.path.empty()
+	&& resourceInfo.pathDir[resourceInfo.pathDir.length() - 1] != '/')
+		this->resourceInfo.path += "/";
 
-	this->resourcePath += requestPath;
+	this->resourceInfo.path += requestPath;
 
-	this->resourceExtension = getFileExtension(requestPath);	
 }
 
 bool	Response::checkRedirections() {
@@ -189,25 +191,53 @@ bool	Response::checkRedirections() {
 
 
 void	Response::handleIndexFile() {
-	if (this->resourceType != IS_DIR || this->rules->index.empty())
+	if (this->resourceInfo.type != IS_DIR || this->rules->index.empty())
 		return ;
 
 	for (vector<string>::const_iterator it = this->rules->index.begin();
 			it != this->rules->index.end(); ++it)
 	{
-		string indexPath = this->resourcePath;
+		string indexPath = this->resourceInfo.path;
 		if (!indexPath.empty() && indexPath[indexPath.length() - 1] != '/')
 			indexPath += "/";
 
 		indexPath += *it;
 
-		if (getResourceType(indexPath.c_str()) == IS_FILE) {
-			this->resourcePath = indexPath;
-			this->resourceType = IS_FILE;
-			this->resourceExtension = getFileExtension(indexPath);
+		file_info indexInfo;
+		indexInfo.path = indexPath;
+		if (getResourceType(indexInfo) == IS_FILE) {
+			this->resourceInfo.path = indexPath;
+			this->resourceInfo.type = IS_FILE;
+			this->resourceInfo.extension = getFileExtension(indexPath);
 			break;
 		}
 	}
+}
+
+int	Response::prepareResource(const Request& request) {
+	this->resourceInfo.extension = getFileExtension(request.getPath());
+
+	this->isCgiRequest = false;
+	for (vector<cgi_t>::const_iterator it = rules->cgiList.begin(); it != rules->cgiList.end(); ++it) {
+		if (it->extension == this->resourceInfo.extension) {
+			this->isCgiRequest = true;
+			break;
+		}
+	}
+
+	const string& requestMethod = request.getMethod();
+
+	this->resolveResourcePath(request, requestMethod == "POST");
+	if (this->resourceInfo.path.find("..") != string::npos)
+		return (this->client->setStatusCode(403), -1);
+
+	this->resourceInfo.type = getResourceType(this->resourceInfo);
+
+	if (this->resourceInfo.type == IS_FORBIDDEN
+		|| (this->resourceInfo.type == IS_NOT_FOUND && requestMethod != "POST") )
+		return (this->client->setStatusCode(this->resourceInfo.type), -1);
+
+	return (0);
 }
 
 int Response::prepareResponse() {
@@ -221,29 +251,7 @@ int Response::prepareResponse() {
 			request.getMethod() ) == rules->methods.end() )
 		return (this->client->setStatusCode(405), -1);
 
-	this->resourceExtension = getFileExtension(request.getPath());
-	this->isCgiRequest = false;
-	for (vector<cgi_t>::const_iterator it = rules->cgiList.begin(); it != rules->cgiList.end(); ++it) {
-
-		if (it->extension == this->resourceExtension) {
-			this->isCgiRequest = true;
-			break;
-		}
-	}
-
-	const string& requestMethod = request.getMethod();
-
-	this->resolveResourcePath(requestMethod == "POST");
-	if (this->resourcePath.find("..") != string::npos)
-		return (this->client->setStatusCode(403), -1);
-
-	this->resourceType = getResourceType(this->resourcePath.c_str());
-
-	if (this->resourceType == IS_FORBIDDEN
-		|| (this->resourceType == IS_NOT_FOUND && requestMethod != "POST") )
-		return (this->client->setStatusCode(this->resourceType), -1);
-
-	// if (requestMethod == "GET") handleIndexFile();
+	if (prepareResource(request)) return -1;
 
 	string sid = request.getCookie("session_id");
 	if (!sid.empty())
@@ -340,7 +348,7 @@ void	Response::setBody(string& _body)
 string	Response::searchCgiHandlerPath() {
 	vector<cgi_t>::const_iterator it = this->rules->cgiList.begin();
 	for (; it != this->rules->cgiList.end(); it++) {
-		if (it->extension == this->resourceExtension)
+		if (it->extension == this->resourceInfo.extension)
 				return it->path;
 	}
 	return "";
