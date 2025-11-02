@@ -157,8 +157,7 @@ bool	CgiHandler::start() {
 			if (pipeIn[i] != -1) close(pipeIn[i]);
 			if (pipeOut[i] != -1) close(pipeOut[i]);
 		}
-		// optional: catch the exception msj && print it OR send it as response
-		this->_client.setStatusCode(500);
+		this->_client.getResponse().setErrorResponse(500);
 		return false;
 	}
 	return true;
@@ -166,26 +165,21 @@ bool	CgiHandler::start() {
 
 void	CgiHandler::manageReadEvent(int epollFd) {
 	if (this->state != CGI_READING || this->readPipeFd < 0)
-		return;
-
+	return;
+	
 	char	buffer[8192];
-	ssize_t	bytesRead;
-
-	while ((bytesRead = read(this->readPipeFd, buffer, sizeof(buffer))) > 0)
+	ssize_t	bytesRead = read(this->readPipeFd, buffer, sizeof(buffer));
+	
+	if (bytesRead > 0) {
 		this->output.append(buffer, bytesRead);
-
-	if (bytesRead == 0) {
+	} else if (bytesRead == 0) {
 		epoll_ctl(epollFd, EPOLL_CTL_DEL, this->readPipeFd, NULL);
 		close(this->readPipeFd);
 		this->readPipeFd = -1;
 		this->_client.onCgiDone(this->output);
 		this->state = CGI_DONE;
-	} else if (bytesRead < 0) {
-		if (errno == EAGAIN || errno == EWOULDBLOCK) {
-			// No more data for now; will continue on next EPOLLIN
-			return;
-		}
-		// Hard error
+	} else {
+		// bytesRead < 0: error occurred
 		this->state = CGI_DONE;
 		epoll_ctl(epollFd, EPOLL_CTL_DEL, this->readPipeFd, NULL);
 		close(this->readPipeFd);
@@ -202,27 +196,15 @@ void	CgiHandler::manageWriteEvent(int epollFd) {
 	const vector<char>& body = request.getBody();
 	size_t	bytesLeft = body.size() - this->bytesRecieved;
 
-	// Write as much as possible until EAGAIN
-	while (bytesLeft > 0) {
+	if (bytesLeft > 0) {
 		ssize_t sent = write(this->writePipeFd, body.data() + this->bytesRecieved, bytesLeft);
 		if (sent > 0) {
 			this->bytesRecieved += sent;
-			bytesLeft -= sent;
-			continue;
-		}
-
-		if (sent < 0) {
-			if (errno == EAGAIN || errno == EWOULDBLOCK)
-				return;
-			if (errno == EPIPE) {
-				// Child closed stdin early; stop writing and switch to reading
-				epoll_ctl(epollFd, EPOLL_CTL_DEL, this->writePipeFd, 0);
-				close(this->writePipeFd);
-				this->writePipeFd = -1;
-				this->state = CGI_READING;
-				return;
-			}
-			// Hard error
+		} else if (sent == 0) {
+			// Shouldn't happen with pipes, but handle it
+			return;
+		} else {
+			// sent < 0: error occurred
 			this->state = CGI_DONE;
 			epoll_ctl(epollFd, EPOLL_CTL_DEL, this->writePipeFd, 0);
 			close(this->writePipeFd);
@@ -238,8 +220,5 @@ void	CgiHandler::manageWriteEvent(int epollFd) {
 		close(this->writePipeFd);
 		this->writePipeFd = -1;
 		this->state = CGI_READING;
-	} else if (bytesLeft == 0) {
-		// Nothing left right now; will continue on next EPOLLOUT
-		return;
 	}
 }
