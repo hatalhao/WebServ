@@ -10,7 +10,7 @@ typedef struct	cgi
 	cgi() : extension(), path() {};
 }				cgi_t;
 
-typedef struct	location {
+struct	location {
 	std::string								name;
 	std::string								path;
 	std::vector<std::string>				index;
@@ -27,7 +27,7 @@ typedef struct	location {
 	location() : name(), path(), index(), errorPageMap(), methods(), redirection(), uploadPath(),
 				isAutoIndexEnabled(false), isCgiEnabled(false), cgiList() {};
 
-}				location_b;
+};
 
 typedef struct	server {
 	std::vector<std::string>	index;
@@ -45,11 +45,10 @@ typedef struct	server {
 	// Member functions
 	void	createSockets(const struct addrinfo& hint, struct addrinfo **newAddr, const std::string& port, const std::string& host);
 	void	fileDescriptorDisposal();
-	void	checkAttributes(server &serv);
-	void	printServer(const server &serv);
+	// void	printServer(const server &serv);
 	void	fillServer(server &serv, const Config &config);
 
 }			 server;
 
-void	printLocation(const std::vector<location_b> &location);
 std::map<int, std::string>	getDefaultErrorPages();
+// void	printLocation(const std::vector<location_b> &location);

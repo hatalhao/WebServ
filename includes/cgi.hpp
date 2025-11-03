@@ -2,7 +2,7 @@
 
 #include "response.hpp"
 #include "client.hpp"
-#include "cookies.hpp"
+#include "Session.hpp"
 
 enum CgiState {
 	CGI_IDLE,
@@ -11,7 +11,7 @@ enum CgiState {
 	CGI_DONE
 };
 
-#define CGI_TIMEOUT_SECONDS 5
+#define CGI_TIMEOUT_SECONDS 10
 
 class CgiHandler {
 	private:

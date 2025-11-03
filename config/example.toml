@@ -9,7 +9,7 @@ index = ["accueil.html", "welcome.html", "indexFile.html"]
 [[location]]
 name = "/"
 path = "/home/aderraj/Desktop/WebServ/www/html"
-# index = ["index.html"]
+index = ["index.html"]
 autoindex = "on"
 allow = ["GET", "DELETE", "POST"]
 upload_path = "/home/aderraj/Desktop/WebServ/www/uploads"

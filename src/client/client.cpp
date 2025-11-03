@@ -4,7 +4,6 @@ Client::Client(int fd, Worker* _g_config, const pair<string, int>& hostPort) :
 	globalConfig(_g_config), _clientFd(fd),
 	condidateServersIndices(_g_config->getCondidateServersIndices(hostPort)),
 	serverConfig(&_g_config->getServers()[*condidateServersIndices.begin()]),
-	currentPort(hostPort.second),
 	requestBuf(""), responseBuf(""), contentLen(0), state(READING_REQUEST_LINE),
 	request(this), response(this), cgiHandlerPath(""),
 	httpStatusCode(0), keepAlive(false), lastActivity(time(NULL)),
@@ -18,8 +17,7 @@ void    Client::resolveHost() {
     	requestServerName = this->request.getHeader("host").substr(0, colon);
 	vector<server>& servers = this->globalConfig->getServers();
 	for (set<int>::iterator it = condidateServersIndices.begin(); it != condidateServersIndices.end(); ++it) {
-		if (find(servers[*it].serverName.begin(),
-				servers[*it].serverName.end(),
+		if (find(servers[*it].serverName.begin(), servers[*it].serverName.end(),
 				requestServerName) != servers[*it].serverName.end())
 		{	this->serverConfig = &servers[*it]; return; }
 	}
@@ -168,21 +166,17 @@ void    Client::generateResponse() {
 
 
 int Client::handleReadEvent(int epollFd) {
-	char buffer[4096];
+	char buffer[8092];
 	ssize_t bytesRead;
 
 	bytesRead = recv(this->_clientFd, buffer, sizeof(buffer), 0);
 	if (bytesRead > 0) {
 		this->requestBuf.append(buffer, bytesRead);
 		this->updateActivity();
-	} else if (bytesRead == 0) {
-		return DISCONNECTED; 
-	} else if (bytesRead < 0) {
-		if (errno != EAGAIN && errno != EWOULDBLOCK) {
-			perror("recv failed");
-			return DISCONNECTED;
-		}
-	}
+	} else if (bytesRead == 0)
+		return DISCONNECTED;
+	else if (bytesRead < 0)
+		return CONTINUE;
 
 	processRequest();
 	if (state == READING_DONE || state == READING_BAD_REQUEST) {
@@ -203,6 +197,51 @@ int Client::handleReadEvent(int epollFd) {
 	return CONTINUE;
 }
 
+int	Client::endStreamingFile(size_t n) {
+	if (n < 0) return DISCONNECTED;
+	if (n == 0 || response.bodySent >= response.bodySize) {
+		close(response.bodyFd);
+		response.isFileBody = false;
+		if (keepAlive)
+			return (resetForNextRequest(), FINISHED);
+		else
+			return DISCONNECTED;
+	}
+	return -2;
+}
+
+int Client::streamFileResponse(ssize_t& sent) {
+	if (fileBufferUsed == fileBufferSent) {
+		size_t remaining = response.bodySize - fileReadOffset;
+		int ret = endStreamingFile(remaining);
+		if ( ret != -2) return ret;
+
+		ssize_t bytesRead = pread(response.bodyFd, fileBuffer,
+								(remaining < sizeof(fileBuffer) ?
+								remaining : sizeof(fileBuffer)),
+								fileReadOffset);
+
+		ret = endStreamingFile(bytesRead);
+		if (ret != -2) return ret;
+	
+		fileBufferUsed = bytesRead;
+		fileBufferSent = 0;
+		fileReadOffset += bytesRead;
+	}
+
+	size_t toSend = fileBufferUsed - fileBufferSent;
+	sent = send(_clientFd, fileBuffer + fileBufferSent, toSend, 0);
+
+	if (sent < 0)
+		return CONTINUE;
+	if (sent == 0)
+		return DISCONNECTED;
+
+	fileBufferSent += sent;
+	response.bodySent += sent;
+	this->updateActivity();
+	return CONTINUE;
+}
 
 int Client::handleWriteEvent() {
 	ssize_t sent;
@@ -212,89 +251,24 @@ int Client::handleWriteEvent() {
 		size_t toSend = responseBuf.size() - headerSent;
 
 		sent = send(_clientFd, buf, toSend, 0);
-		if (sent < 0) {
-			if (errno == EAGAIN) return CONTINUE;
+		if (sent < 0)
+			return CONTINUE;
+		if (sent == 0)
 			return DISCONNECTED;
-		}
 
 		headerSent += sent;
 		this->updateActivity();
 		if (headerSent < responseBuf.size())
 			return CONTINUE;
 	}
-	// If it's a file, stream it in chunks
-	if (response.isFileBody) {
-		// If buffer is empty or fully sent, read more data
-		if (fileBufferUsed == fileBufferSent) {
-			size_t remaining = response.bodySize - fileReadOffset;
-			if (remaining == 0 || response.bodySent >= response.bodySize) {
-				// All data sent
-				close(response.bodyFd);
-				response.isFileBody = false;
-				
-				// Decide whether to keep connection alive or close
-				if (keepAlive) {
-					resetForNextRequest();
-					return FINISHED;  // Signal to switch back to reading
-				} else {
-					return DISCONNECTED;  // Close connection
-				}
-			}
+	if (response.isFileBody)
+		return streamFileResponse(sent);
 
-			size_t chunk = remaining < sizeof(fileBuffer) ? remaining : sizeof(fileBuffer);
-			ssize_t bytesRead = pread(response.bodyFd, fileBuffer, chunk, fileReadOffset);
-			
-			if (bytesRead < 0) {
-				if (errno == EAGAIN) return CONTINUE;
-				return DISCONNECTED;
-			} else if (bytesRead == 0) {
-				// EOF - check if we've sent everything
-				if (response.bodySent >= response.bodySize) {
-					close(response.bodyFd);
-					response.isFileBody = false;
-					
-					// Decide whether to keep connection alive or close
-					if (keepAlive) {
-						resetForNextRequest();
-						return FINISHED;  // Signal to switch back to reading
-					} else {
-						return DISCONNECTED;  // Close connection
-					}
-				}
-				return DISCONNECTED; // Unexpected EOF
-			}
-
-			fileBufferUsed = bytesRead;
-			fileBufferSent = 0;
-			fileReadOffset += bytesRead;
-		}
-
-		size_t toSend = fileBufferUsed - fileBufferSent;
-		sent = send(_clientFd, fileBuffer + fileBufferSent, toSend, 0);
-		
-		if (sent < 0) {
-			if (errno == EAGAIN) return CONTINUE;
-			return DISCONNECTED;
-		}
-
-		fileBufferSent += sent;
-		response.bodySent += sent;
-		this->updateActivity();
-
-		if (fileBufferSent < fileBufferUsed)
-			return CONTINUE;
-
-		// Buffer fully sent, will read more next time
-		return CONTINUE;
-	}
-
-	// If not a file and headers+body were already sent
-	// Decide whether to keep connection alive or close
 	if (keepAlive) {
 		resetForNextRequest();
-		return FINISHED;  // Signal to switch back to reading for next request
+		return FINISHED; 
 	} else {
-		return DISCONNECTED;  // Close the connection
+		return DISCONNECTED;
 	}
 }
 
@@ -323,13 +297,8 @@ void	Client::onCgiDone(string& cgiOutput) {
 		_body = cgiOutput.substr(lfPos + 2); 
         headersFound = true; // ADDED
 	}
-	else {
-        // --- START: FIX FOR MALFORMED RESPONSE ---
-        // If no header separator is found, the CGI response is invalid.
-        onCgiError(502); // Trigger a 502 Bad Gateway error
-        return;          // Stop processing
-        // --- END: FIX FOR MALFORMED RESPONSE ---
-    }
+	else
+        return onCgiError(502);
 
 	this->response.setBody(_body);
 

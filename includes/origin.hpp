@@ -20,14 +20,15 @@
 #include <ctime>
 
 
-class Config;
-class Request;
-class Response;
-class CgiHandler;
-class Client;
-class Worker;
-struct server;
-typedef struct location location_b;
+class   Config;
+class   Request;
+class   Response;
+class   CgiHandler;
+class   Client;
+class   Worker;
+struct  server;
+
+typedef struct  location location_b;
 
 using namespace std;
 
