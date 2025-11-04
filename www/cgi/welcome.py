@@ -29,9 +29,9 @@ def load_template(path):
         return '<html><body><h1>Template load error</h1><p>{}</p></body></html>'.format(str(e))
 
 def main():
-    session_id = get_session_id()
-
-    if session_id and is_session_valid():
+    # Let server handle all session validation via SESSION_VALID env var
+    if is_session_valid():
+        session_id = get_session_id() or 'unknown'
         body_template = load_template(TEMPLATE_PATH)
         body = body_template.replace('{{session_id}}', session_id)
 
@@ -41,15 +41,10 @@ def main():
         sys.stdout.flush()
         sys.stdout.buffer.write(body.encode('utf-8'))
     else:
-        if session_id and not is_session_valid():
-            print('Status: 302 Found')
-            print('Location: /cgi/login.py')
-            print('Set-Cookie: session_id=; HttpOnly; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT')
-            print('Content-Length: 0')
-        else:
-            print('Status: 302 Found')
-            print('Location: /cgi/login.py')
-            print('Content-Length: 0')
+        # Server already handles session cleanup, just redirect
+        print('Status: 302 Found')
+        print('Location: /cgi/login.py')
+        print('Content-Length: 0')
         print()
 
 

@@ -21,6 +21,7 @@ void    Client::resolveHost() {
 				requestServerName) != servers[*it].serverName.end())
 		{	this->serverConfig = &servers[*it]; return; }
 	}
+	this->serverConfig = &servers[*condidateServersIndices.begin()];
 }
 
 void    Client::updateState() {
@@ -338,6 +339,8 @@ void	Client::checkSession(string& newSID, string& delSID) {
 	if (!delSID.empty()) {
 		SessionManager& sessionManager = this->globalConfig->getSessionManager();
 		sessionManager.deleteSession(delSID);
+		string cookieValue = "session_id=; HttpOnly; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT";
+		this->response.setHeader("Set-Cookie", cookieValue);
 	}
 }
 

@@ -2,9 +2,8 @@
 #include "../../includes/networking.hpp"
 
 void server::fileDescriptorDisposal() {
-	for (size_t i = 0; i < this->socketFd.size(); i++) {
+	for (size_t i = 0; i < this->socketFd.size(); i++)
 		close(this->socketFd[i]);
-	}
 }
 
 void server::createSockets(const struct addrinfo& hint, struct addrinfo **newAddr, const std::string& port, const std::string& host) {
@@ -23,11 +22,9 @@ void server::createSockets(const struct addrinfo& hint, struct addrinfo **newAdd
 		freeaddrinfo(*newAddr);
 		throw std::runtime_error("Failed to create socket");
 	}
-	// Ensure listening sockets are not inherited by exec'ed CGI children
 	int fdflags = fcntl(this->socketFd.back(), F_GETFD);
-	if (fdflags >= 0) {
+	if (fdflags >= 0)
 		fcntl(this->socketFd.back(), F_SETFD, fdflags | FD_CLOEXEC);
-	}
 	
 	int optval = 1;
 	if (setsockopt(this->socketFd.back(), SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int)) < 0) {
@@ -49,7 +46,6 @@ void server::createSockets(const struct addrinfo& hint, struct addrinfo **newAdd
 		}
 	}
 
-	// Preserve existing flags when enabling non-blocking
 	int nbFlags = fcntl(this->socketFd.back(), F_GETFL, 0);
 	if (nbFlags < 0 || fcntl(this->socketFd.back(), F_SETFL, nbFlags | O_NONBLOCK) < 0) {
 		close(this->socketFd.back());

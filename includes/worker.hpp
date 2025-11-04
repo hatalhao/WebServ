@@ -18,7 +18,6 @@ class Worker {
 		static Worker*						instance;
 		map< pair<string,int>, set<int> >	hostToIndex;
 		map<int, pair<int, int> >			socketToServer;
-		map<int, int>						clientToServer;
 		map<int, int>						socketToPort;
 
 		void								initializeEpoll();

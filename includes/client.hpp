@@ -6,7 +6,7 @@
 #include "manipulators.hpp"
 #include "cgi.hpp"
 
-#define KEEP_ALIVE_TIMEOUT 20 // 20 seconds
+#define KEEP_ALIVE_TIMEOUT 20
 
 enum ClientState {
 	READING_REQUEST_LINE,
@@ -39,9 +39,8 @@ class Client {
 	private:
 		Worker			*globalConfig;
 		int				_clientFd;
-		set<int>		condidateServersIndices;// Indexes of servers this client could belong to
+		set<int>		condidateServersIndices;
 		server*			serverConfig;
-		// int				currentPort;
 		string			requestBuf;
 		string			responseBuf;
 		size_t          contentLen;
@@ -51,19 +50,19 @@ class Client {
 		string			cgiHandlerPath;
 		cgi_data		cgiData;
 		unsigned short	httpStatusCode;
-		bool			keepAlive;		// Whether to keep connection alive
-		time_t			lastActivity;	// Last activity timestamp for timeout
+		bool			keepAlive;
+		time_t			lastActivity;
 		void			resetWriteState();
-		void			resetForNextRequest();	// Reset state for next request on same connection
+		void			resetForNextRequest();
 
 	public:
     	size_t	bodySent;
 		size_t	headerSent;
-		char	fileBuffer[100000]; // Buffer for file streaming
-		size_t	fileBufferUsed;   // How much of buffer is used
-		size_t	fileBufferSent;   // How much of buffer has been sent
-		size_t	fileReadOffset;   // Current file read position
-		// Changed hostPort parameter to const reference to allow binding rvalues (e.g., std::make_pair)
+		char	fileBuffer[100000];
+		size_t	fileBufferUsed; 
+		size_t	fileBufferSent;
+		size_t	fileReadOffset;
+
 		Client(int fd, Worker* _g_config, const pair<string, int>& hostPort);
 
 		string					getRequestBuf() const { return requestBuf; }
@@ -83,9 +82,6 @@ class Client {
 		void					generateResponse();
 		void					setRequestBuf(const string& buf) { requestBuf = buf; }
 		void					updateState();
-		// void					printBuffer() const { cout << "Request Buffer: " << requestBuf << endl; }
-		// void					printRequest() const;
-		// void					printState() const;
 		int						handleReadEvent(int epollFd);
 		int						handleWriteEvent();
 		int						streamFileResponse(ssize_t& sent);

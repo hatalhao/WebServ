@@ -32,15 +32,15 @@ def render_page(title, content, session_id):
     return page
 
 def main():
-    session_id = get_session_id()
-    if not session_id or not is_session_valid():
+    # Let server handle all session validation via SESSION_VALID env var
+    if not is_session_valid():
         print('Status: 302 Found')
         print('Location: /cgi/login.py')
-        if session_id and not is_session_valid():
-            # Clear invalid session cookie
-            print('Set-Cookie: session_id=; HttpOnly; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT')
+        print('Content-Length: 0')
         print()
         return
+    
+    session_id = get_session_id() or 'unknown'
         
     title = "View Analytics"
     content = '''

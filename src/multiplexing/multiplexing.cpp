@@ -47,7 +47,6 @@ int Worker::acceptConnection(int serverIndex, int socketIndex) {
 		return -1;
 	}
 
-	print "Accepted new client connection on socket " << clientFd << endl;
 	return clientFd;
 }
 
@@ -110,17 +109,13 @@ void Worker::initializeEpoll() {
 void Worker::closeClient(int fd, std::map<int, Client*>::iterator& clientIt) {
 	epoll_ctl(_epollFd, EPOLL_CTL_DEL, fd, NULL);
 	close(fd);
-	clientToServer.erase(fd);
 	delete clientIt->second;
 	_clients.erase(clientIt);
-	print "Closed connection to client " << fd << endl;
 }
 
 void Worker::handleServerSocket(int fd) {
 	std::pair<int, int> serverInfo = socketToServer[fd];
-	int clientFd = acceptConnection(serverInfo.first, serverInfo.second);
-	if (clientFd >= 0)
-		clientToServer[clientFd] = serverInfo.first;
+	acceptConnection(serverInfo.first, serverInfo.second);
 }
 
 void Worker::handleCgiEvent(int fd, uint32_t events) {
@@ -141,10 +136,8 @@ void Worker::handleClientEvent(int fd, uint32_t events, std::map<int, Client*>::
 
 	if (events & EPOLLIN) {
 		int result = client->handleReadEvent(_epollFd);
-		if (result == DISCONNECTED || result == FINISHED) {
-			closeClient(fd, clientIt);
-			return;
-		}
+		if (result == DISCONNECTED || result == FINISHED)
+			return closeClient(fd, clientIt);
 	}
 
 	if (events & EPOLLOUT) {
@@ -153,18 +146,15 @@ void Worker::handleClientEvent(int fd, uint32_t events, std::map<int, Client*>::
 			struct epoll_event event;
 			event.events = EPOLLIN;
 			event.data.fd = fd;
-			if (epoll_ctl(_epollFd, EPOLL_CTL_MOD, fd, &event) < 0) {
-				print "Failed to switch client to read mode: " << strerror(errno) << endl;
+			if (epoll_ctl(_epollFd, EPOLL_CTL_MOD, fd, &event) < 0)
 				closeClient(fd, clientIt);
-			}
-		} else if (result == DISCONNECTED) {
-			closeClient(fd, clientIt);
 		}
+		else if (result == DISCONNECTED) 
+			closeClient(fd, clientIt);
 	}
 }
 
 void Worker::listenForEvents() {
-	print "Starting epoll-based event loop" << endl;
 	initializeEpoll();
 
 	struct epoll_event events[MAXEVENTS];
@@ -174,19 +164,18 @@ void Worker::listenForEvents() {
 		int eventCount = epoll_wait(_epollFd, events, MAXEVENTS, timeoutMs);
 
 		if (eventCount < 0) {
-			if (errno == EINTR)
-				continue;
+			if (errno == EINTR) continue;
 			break;
 		}
 
 		for (int i = 0; i < eventCount; ++i) {
 			int fd = events[i].data.fd;
 
-			if (socketToServer.find(fd) != socketToServer.end()) {
+			if (socketToServer.find(fd) != socketToServer.end())
 				handleServerSocket(fd);
-			} else if (_cgiHandlers.find(fd) != _cgiHandlers.end()) {
+			else if (_cgiHandlers.find(fd) != _cgiHandlers.end())
 				handleCgiEvent(fd, events[i].events);
-			} else {
+			else {
 				std::map<int, Client*>::iterator clientIt = _clients.find(fd);
 				if (clientIt != _clients.end())
 					handleClientEvent(fd, events[i].events, clientIt);
@@ -215,20 +204,11 @@ void    Worker::establishConnection() {
 			if (hostToIndex[hostPort].empty()) {
 				_servers[i].createSockets(hint, &newAddr, to_string(*port), _servers[i].host);
 				socketToPort[_servers[i].socketFd.back()] = *port;
+				print "Server listening on " << _servers[i].host << ":" << *port << endl;
 			}
 			hostToIndex[hostPort].insert(i);
-			print "Server listening on " << _servers[i].host << ":" << *port << endl;
 		}
 	}
-
-	for (std::map<std::pair<std::string, int>, std::set<int> >::iterator it = hostToIndex.begin(); 
-		 it != hostToIndex.end(); ++it) {
-		print "Host " << it->first.first << " Port " << it->first.second << " serves servers: ";
-		for (std::set<int>::iterator sit = it->second.begin(); sit != it->second.end(); ++sit)
-			print *sit << " ";
-		print endl;
-	}
-	print "All server sockets created and listening" << endl;
 
 	listenForEvents();
 }
@@ -305,36 +285,28 @@ void Worker::cleanupIdleConnections() {
 		Client* client = it->second;
 		ClientState clientState = client->getState();
 		
-		// Don't timeout clients that are waiting for CGI or sending a response
 		if (clientState == WAITING_FOR_CGI || clientState == SENDING_RESPONSE)
 			continue;
 		
 		double elapsed = difftime(now, client->getLastActivity());
 		if (elapsed > KEEP_ALIVE_TIMEOUT) {
-			// Check if this is a slow client (still reading request) or keep-alive idle
 			if (clientState == READING_REQUEST_LINE && client->getRequestBuf().empty() && client->shouldKeepAlive()) {
-				// Keep-alive idle: close without response
 				fdsToClose.push_back(it->first);
 			} else if (clientState == READING_REQUEST_LINE || clientState == READING_HEADERS || clientState == READING_BODY) {
-				// Slow client: send 408 timeout error
 				client->setKeepAlive(false);
 				client->onCgiError(408);
-			} else {
+			} else
 				fdsToClose.push_back(it->first);
-			}
 		}
 	}
 
-	// Close connections that don't need a response
 	for (size_t i = 0; i < fdsToClose.size(); ++i) {
 		std::map<int, Client*>::iterator it = _clients.find(fdsToClose[i]);
 		if (it != _clients.end()) {
 			epoll_ctl(_epollFd, EPOLL_CTL_DEL, it->first, NULL);
 			close(it->first);
-			clientToServer.erase(it->first);
 			delete it->second;
 			_clients.erase(it);
-			print "Closed keep-alive idle client connection " << fdsToClose[i] << endl;
 		}
 	}
 }

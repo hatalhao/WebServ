@@ -31,11 +31,10 @@ void    CgiHandler::addSessionToEnv(vector<string>& env_vars) {
 
 		SessionManager& sessionManager = this->_client.getGlobalConfig()->getSessionManager();
 		Session* session = sessionManager.getSession(existingSessionId);
-		if (session) {
+		if (session)
 			env_vars.push_back("SESSION_VALID=1");
-		} else {
+		else 
 			env_vars.push_back("SESSION_VALID=0");
-		}
 	}
 
 	env_vars.push_back("WEBSERV_SESSION_ENABLED=1");

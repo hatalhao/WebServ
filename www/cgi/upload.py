@@ -194,12 +194,14 @@ def handle_post_request(session_id):
 
 if __name__ == "__main__":
     try:
-        session_id = get_session_id()
-        if not session_id or not is_session_valid():
-            sys.stdout.buffer.write(b"Status: 401 Unauthorized\r\n")
-            sys.stdout.buffer.write(b"Content-Type: text/html\r\n\r\n")
-            sys.stdout.buffer.write(b"<h1>401 Unauthorized</h1>")
+        if not is_session_valid():
+            print('Status: 302 Found')
+            print('Location: /cgi/login.py')
+            print('Content-Length: 0')
+            print()
             sys.exit(0)
+        
+        session_id = get_session_id() or 'unknown'
 
         request_method = os.environ.get('REQUEST_METHOD', 'GET')
         

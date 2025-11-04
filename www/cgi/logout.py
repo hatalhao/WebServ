@@ -18,12 +18,10 @@ def get_session_id():
 def main():
     session_id = get_session_id()
     
-    # Clear the session cookie and redirect to login
+    # Signal server to delete the session - server will handle cookie clearing
     print('Status: 302 Found')
     print('Location: /cgi/login.py')
-    print('Set-Cookie: session_id=; HttpOnly; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT')
     
-    # Optional: Signal to the server to delete the session
     if session_id:
         print('X-WebServ-Delete-Session: %s' % session_id)
     
