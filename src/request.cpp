@@ -1,5 +1,5 @@
-#include "../../includes/request.hpp"
-#include "../../includes/client.hpp"
+#include "../includes/request.hpp"
+#include "../includes/client.hpp"
 
 Request::Request(Client* _client) : client(_client), state(PARSINGREQUESTLINE){}
 

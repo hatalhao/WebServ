@@ -1,4 +1,4 @@
-#include "../../includes/worker.hpp"
+#include "../includes/worker.hpp"
 
 Worker* Worker::instance = 0;
 

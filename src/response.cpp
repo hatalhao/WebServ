@@ -1,5 +1,5 @@
-#include "../../includes/response.hpp"
-#include "../../includes/client.hpp"
+#include "../includes/response.hpp"
+#include "../includes/client.hpp"
 
 Response::Response(Client* _client) :
         client(_client) , rules(NULL), session(NULL), isCgiRequest(false),

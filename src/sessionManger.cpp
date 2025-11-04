@@ -1,4 +1,4 @@
-#include "../../includes/Session.hpp"
+#include "../includes/Session.hpp"
 
 string  SessionManager::generateSID() {
     static const char charset[] =

@@ -1,4 +1,4 @@
-#include "../../includes/cgi.hpp"
+#include "../includes/cgi.hpp"
 
 CgiHandler::CgiHandler(Client& client) :
 	_client(client), envp(NULL), pid(-1), state(CGI_IDLE),

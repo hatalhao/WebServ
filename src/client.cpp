@@ -1,4 +1,4 @@
-#include "../../includes/client.hpp"
+#include "../includes/client.hpp"
 
 Client::Client(int fd, Worker* _g_config, const pair<string, int>& hostPort) :
 	globalConfig(_g_config), _clientFd(fd),
