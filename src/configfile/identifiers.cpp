@@ -20,14 +20,28 @@ bool trimmableChar(const char c) {
 	return (c == ' ' || c == '\t' || c == '[' || c == ']');
 }
 
+static inline bool	invalidBrackets(const std::string& line) {
+	return (std::count(line.begin(), line.end(), '[') != 2 || \
+		std::count(line.begin(), line.end(), ']') != 2 || line.find("[[") == NPOS \
+		|| line.find("]]") == NPOS || line.find("[[") >= line.find("]]"));
+}
+
+static inline std::string extractDirective(const std::string& line) {
+	std::string directive = line;
+	size_t start = directive.find_first_not_of(" \t[");
+	size_t end = directive.find_last_not_of(" \t]");
+	if (start == NPOS || end == NPOS || end <= start)
+		return ("invalid");
+	directive = directive.substr(start, end - start + 1);
+	return (directive);
+}
+
 int isValidBlock(const std::string& line) {
-	if (line.find("=") != NPOS || std::count(line.begin(), line.end(), '[') != 2 || \
-	std::count(line.begin(), line.end(), ']') != 2 || line.find("[[") == NPOS \
-	|| line.find("]]") == NPOS || line.find("[[") >= line.find("]]")) {
+	if (line.find("=") != NPOS || invalidBrackets(line)) {
 		return false;
 	}
-	std::string directive = line;
-	directive.erase(std::remove_if(directive.begin(), directive.end(), trimmableChar), directive.end());
+
+	std::string directive = extractDirective(line);
 	std::string	directiveArr[] = {"invalid", "server", "location", "cgi", "error_pages"};
 	size_t i = 4;
 	for (; i > 0 && directiveArr[i] != directive; --i);
@@ -70,9 +84,14 @@ bool	isArrayKey(const std::string& key) {
 }
 
 bool isValidValue(const std::string& value) {
-	stringstream ss(value);
-	char firstChar = value[value.find_first_not_of("\t ")];
-	char lastChar = value[value.find_last_not_of("\t ")];
+	string trimmedValue = value;
+	removeInvalidChars(trimmedValue);
+	if (trimmedValue.empty())
+		return false;
+
+	stringstream ss(trimmedValue);
+	char firstChar = trimmedValue[0];
+	char lastChar = trimmedValue[trimmedValue.length() - 1];
 	if (firstChar == ']' || firstChar == '[' || lastChar == '[' || lastChar == ']')
 		return false;
 	string tmp;

@@ -171,7 +171,7 @@ location_b	getLocation(std::ifstream& configFile, std::string& line, const std::
 		}
 		
 		if (pos == NPOS && token == CGI_TOKEN) {
-			while (line == "[[cgi]]"){
+			while (isValidBlock(line) == CGI_TOKEN) {
 				cgi_t cgi = getCgi(configFile, line);
  				location.cgiList.push_back(cgi);
 			}
@@ -250,7 +250,7 @@ Config::Config(const std::string& configFilePath) {
 	int	token = SERVER_TOKEN;
 	std::string	lastLine = line;
 
-	while (lastLine == "[[server]]") {
+	while (isValidBlock(lastLine) == SERVER_TOKEN) {
 		server serv;
 		serv.errorPageMap = getDefaultErrorPages();
 		do {
@@ -278,7 +278,7 @@ Config::Config(const std::string& configFilePath) {
 			
 			if (pos == NPOS && token == LOCATION_TOKEN) {
 				try {
-					while (line == "[[location]]") {
+					while (isValidBlock(line) == LOCATION_TOKEN) {
 						if (_settings["root"].empty())
 							throw std::runtime_error("Root directory not specified before location block");
 						location_b location = getLocation(configFile, line, serv.root);

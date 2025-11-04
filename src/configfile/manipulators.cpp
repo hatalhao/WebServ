@@ -7,6 +7,10 @@ size_t parseSize(const std::string& sizeStr) {
 	if (sizeStr.empty()) {
 		throw std::runtime_error("Size string is empty");
 	}
+	if (sizeStr[0] == '-') {
+		throw std::runtime_error("Size cannot be negative: " + sizeStr);
+	}
+
 	size_t size = 0;
 	size_t pos = sizeStr.find_first_not_of("0123456789");
 	std::string numberStr = sizeStr.substr(0, pos);
@@ -34,41 +38,40 @@ size_t parseSize(const std::string& sizeStr) {
 }
 
 void removeInvalidChars(std::string &str) {
-	if (str.empty())
-		return ;
-	str.erase(std::remove_if(str.begin(), str.end(), notValidChar), str.end());
+	size_t start = str.find_first_not_of(" \t\"\'");
+	size_t end = str.find_last_not_of(" \t\"\'");
+	if (start == NPOS || end == NPOS) {
+		str.clear();
+	} else {
+		str = str.substr(start, end - start + 1);
+	}
+}
+
+static inline std::string getEntries(const std::string& line) {
+	size_t start = line.find_first_not_of(" \t[");
+	size_t end = line.find_last_not_of(" \t]");
+	if (start == NPOS || end == NPOS || end <= start)
+		return ("");
+	std::string  entries = line.substr(start, end - start + 1);
+	entries.erase(std::remove(entries.begin(), entries.end(), '"'), entries.end());
+	return (entries);
 }
 
 std::string	saveArray(const std::string& line) {
 	std::vector<std::string> array;
 	if (std::count(line.begin(), line.end(), '"') != (std::count(line.begin(), line.end(), ',') + 1) * 2)
 		throw std::runtime_error("Invalid array format: " + line);
-	size_t start = 0;
-	size_t end = line.find(',');
-	std::string value;
-	
-	while (end != NPOS) {
-		value = line.substr(start, end - start);
-		removeInvalidChars(value);
-		if (value.empty()) {
-			throw std::runtime_error("Invalid array value: " + value);
-		}
-		array.push_back(value);
-		value.clear();
-		start = end + 1;
-		end = line.find_first_of(",]", start);
-	}
+
+	std::string value = getEntries(line);
+	std::stringstream ss(value);
+	value.clear();
 	std::string merged;
-	if (end == NPOS && start == 0){
-		value = line;
-		removeInvalidChars(value);
+	while (std::getline(ss, value, ',')) {
 		if (value.empty()) {
-			throw std::runtime_error("Invalid array value: " + value);
+			throw std::runtime_error("Empty value in array: " + line);
 		}
-		merged = value;
+		merged += value + ",";
 	}
-	for (size_t i = 0; i < array.size(); ++i) {
-		merged += array[i] + (i < array.size() - 1 ? "," : "");
-	}
+
 	return merged;
 }
