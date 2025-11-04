@@ -3,7 +3,7 @@ server_name = ["sekhar", "awd", "awdaw", "aawdawd"]
 host = "127.0.0.1"
 listen = ["8989", "8080"]
 root = "/home/hatalhao/webserv/www/html"
-max_body_size = "1GB"
+max_body_size = "-15MB"
 index = ["accueil.html", "welcome.html", "indexFile.html"]
 
 [[error_pages]]
@@ -14,7 +14,7 @@ index = ["accueil.html", "welcome.html", "indexFile.html"]
 
 [[location]]
 name = "/"
-path = "/home/hatalhao/"
+# path = "/home/hatalhao/"
 index = ["index.html", "images.php", "imagesFile.html"]
 autoindex = "on"
 allow = ["GET", "DELETE", "POST"]
@@ -44,7 +44,7 @@ server_name = "hatalhao"
 host = "127.0.0.1"
 listen = '8080'
 root = "/home/hatalhao/webserv"
-max_body_size = "10GB"
+max_body_size = "10MB"
 index = ["welcome.html"]
 # [[cgi]]
 # extension = ".php"
@@ -62,4 +62,4 @@ index = ["welcome.html"]
 # host = "127.0.0.1"
 # listen = "8082"
 # root = "/home/hatalhao/WebServ/src"
-# max_body_size = "5GB"
+# max_body_size = "5MB"
