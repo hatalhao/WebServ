@@ -6,17 +6,16 @@ string  SessionManager::generateSID() {
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         "abcdefghijklmnopqrstuvwxyz";
 
-    std::ifstream urandom("/dev/urandom", std::ios::in | std::ios::binary);
+    ifstream urandom("/dev/urandom", ios::in | ios::binary);
     if (!urandom) {
-        // Fallback to std::rand() if urandom is not available
-        std::string fallback_sid;
-        for (std::size_t i = 0; i < 32; ++i)
-            fallback_sid += charset[std::rand() % (sizeof(charset) - 1)];
+        string fallback_sid;
+        for (size_t i = 0; i < 32; ++i)
+            fallback_sid += charset[rand() % (sizeof(charset) - 1)];
         return fallback_sid;
     }
 
-    std::string sid;
-    for (std::size_t i = 0; i < 32; ++i) {
+    string sid;
+    for (size_t i = 0; i < 32; ++i) {
         char byte;
         urandom.read(&byte, 1);
         unsigned char index = static_cast<unsigned char>(byte) % (sizeof(charset) - 1);

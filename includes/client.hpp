@@ -24,6 +24,17 @@ enum ClientState {
 #define DISCONNECTED -1
 #define CONTINUE 1
 
+
+typedef struct	cgi_data {
+	size_t	crlfPos;
+	size_t	lfPos;
+	string	_headers;
+	string	_body;
+	bool	headersFound;
+	bool	isStatusSet;
+	bool	sessionRequested;
+} cgi_data;
+
 class Client {
 	private:
 		Worker			*globalConfig;
@@ -38,6 +49,7 @@ class Client {
 		Request			request;
 		Response		response;
 		string			cgiHandlerPath;
+		cgi_data		cgiData;
 		unsigned short	httpStatusCode;
 		bool			keepAlive;		// Whether to keep connection alive
 		time_t			lastActivity;	// Last activity timestamp for timeout
@@ -82,4 +94,7 @@ class Client {
 		void					onCgiDone(string& cgiOutput);
 		void					onCgiError(unsigned short code);
 		int						endStreamingFile(size_t n);
+		void					forwardToCgi();
+		int						parseCgiOutput(string& cgiOutput);
+		void					checkSession(string& newSID, string& delSID);
 };

@@ -15,18 +15,15 @@ static bool extractMultipartFile(const vector<char>& body, const string& boundar
 	string fullBoundary = "--" + boundary;
 	string bodyStr(body.begin(), body.end());
 	
-	// Find the first boundary
 	size_t startPos = bodyStr.find(fullBoundary);
 	if (startPos == string::npos)
 		return false;
 	
 	startPos += fullBoundary.length();
 	
-	// Skip CRLF after boundary
 	if (startPos + 2 <= bodyStr.length() && bodyStr.substr(startPos, 2) == "\r\n")
 		startPos += 2;
 	
-	// Find the end of headers (double CRLF)
 	size_t headerEnd = bodyStr.find("\r\n\r\n", startPos);
 	if (headerEnd == string::npos)
 		headerEnd = bodyStr.find("\n\n", startPos);
@@ -53,7 +50,6 @@ static string extractBoundaryFromContentType(const string& contentType) {
 		return "";
 	
 	string boundary = contentType.substr(boundaryPos + 9);
-	// Remove quotes if present
 	if (!boundary.empty() && boundary[0] == '"')
 		boundary = boundary.substr(1);
 	if (!boundary.empty() && boundary[boundary.length() - 1] == '"')

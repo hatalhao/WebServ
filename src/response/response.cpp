@@ -9,44 +9,6 @@ Response::Response(const Response& other) :
 	client(other.client), rules(other.rules),
 	resourceInfo(other.resourceInfo), headers(other.headers), body(other.body){}
 
-// void printSingleLocation(const location_b& loc) {
-// 	cout << "--Location Block:" << endl;
-// 	cout << "  name: " << loc.name << endl;
-// 	cout << "  path: " << loc.path << endl;
-// 	cout << "  index: ";
-// 	for (size_t i = 0; i < loc.index.size(); i++) {
-// 		cout << loc.index[i];
-// 		if (i < loc.index.size() - 1)
-// 			cout << ", ";
-// 	}
-// 	cout << endl;
-// 	cout << "  errorPageMap: ";
-// 	for (map<int, string>::const_iterator it = loc.errorPageMap.begin(); it !=
-// 			loc.errorPageMap.end(); ++it) {
-// 		cout << it->first << " -> " << it->second << "; ";
-// 	}
-// 	cout << endl;
-// 	cout << "  methods: ";
-// 	for (size_t i = 0; i < loc.methods.size(); i++) {
-// 		cout << loc.methods[i];
-// 		if (i < loc.methods.size() - 1)
-// 			cout << ", ";
-// 	}
-// 	cout << endl;
-// 	cout << "  redirection: " << loc.redirection << endl;
-// 	cout << "  uploadPath: " << loc.uploadPath << endl;
-// 	cout << "  isAutoIndexEnabled: " << (loc.isAutoIndexEnabled ? "true" : "false") << endl;
-// 	cout << "  isCgiEnabled: " << (loc.isCgiEnabled ? "true" : "false") << endl;
-// 	cout << "  cgiList: ";
-// 	for (size_t i = 0; i < loc.cgiList.size(); i++) {
-// 		cout << "{" << loc.cgiList[i].extension << " -> " << loc.cgiList[i].path << "}";
-// 		if (i < loc.cgiList.size() - 1)
-// 			cout << ", ";
-// 	}
-// 	cout << endl;
-
-// }
-
 const string	getFileExtension(const string& filename) {
 	size_t dotPos = filename.find_last_of(".");
 	if (dotPos != string::npos)
@@ -244,7 +206,6 @@ int Response::prepareResponse() {
 	Request& request = this->client->getRequest();
     this->rules = &(this->findLocationConfig(request.getPath()));
 
-	// printSingleLocation(*this->rules);
 	if (checkRedirections() == false) return -1;
 
 	if (find(rules->methods.begin(), rules->methods.end(),
@@ -296,6 +257,7 @@ string Response::getReasonPhrase() {
 		case 301: return "Moved Permanently";
 		case 302: return "Found";
 		case 400: return "Bad Request";
+		case 401: return "Unauthorized";
 		case 403: return "Forbidden";
 		case 404: return "Not Found";
 		case 405: return "Method Not Allowed";
@@ -306,8 +268,9 @@ string Response::getReasonPhrase() {
 		case 500: return "Internal Server Error";
 		case 501: return "Not Implemented";
 		case 505: return "HTTP Version Not Supported";
+		case 504: return "Gateway Timeout";
 		case 508: return "Loop Detected";
-		default: return "OK";
+		default: return "Phrase";
 	}
 }
 

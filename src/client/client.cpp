@@ -84,7 +84,6 @@ void    Client::resetWriteState() {
 }
 
 void    Client::resetForNextRequest() {
-	// Clear buffers and state for next request
 	this->requestBuf.clear();
 	this->responseBuf.clear();
 	this->cgiHandlerPath.clear();
@@ -92,21 +91,50 @@ void    Client::resetForNextRequest() {
 	this->contentLen = 0;
 	this->state = READING_REQUEST_LINE;
 	
-	// Reset write state
 	this->resetWriteState();
-	
-	// Reconstruct request and response objects using placement new
+
 	this->request.~Request();
 	new (&this->request) Request(this);
 	
 	this->response.~Response();
 	new (&this->response) Response(this);
-	
-	// Update activity timestamp
+
 	this->lastActivity = time(NULL);
 }
 
+
+void	Client::forwardToCgi() {
+	cgiHandlerPath = this->response.searchCgiHandlerPath();
+	CgiHandler* cgi = new CgiHandler(*this);
+	if (cgi->start()) {
+		this->globalConfig->getCgiSet().insert(cgi);
+		struct epoll_event ev = epoll_event();
+		ev.events = 0;
+
+		if (cgi->getState() == CGI_WRITING) {
+			ev.events |= EPOLLOUT; 
+			ev.data.fd = cgi->getWriteFd();
+			this->globalConfig->getCgiHandlers()[ev.data.fd] = cgi;
+			epoll_ctl(this->globalConfig->getEpollFd(), EPOLL_CTL_ADD, ev.data.fd, &ev);
+		}
+		ev.events = EPOLLIN; 
+		ev.data.fd = cgi->getReadFd();
+		this->globalConfig->getCgiHandlers()[ev.data.fd] = cgi;
+		epoll_ctl(this->globalConfig->getEpollFd(), EPOLL_CTL_ADD, ev.data.fd, &ev);
+
+		this->state = WAITING_FOR_CGI;
+	}
+	else {
+		delete cgi;
+		if (!httpStatusCode) httpStatusCode = 500;
+		response.setErrorResponse(httpStatusCode);
+		responseBuf = response.serializeHeadersAndBody();
+		state = SENDING_RESPONSE;
+	}
+}
+
 void    Client::generateResponse() {
+
 	if (httpStatusCode != 0 || response.prepareResponse()) {
 		response.setErrorResponse(httpStatusCode);
 		responseBuf = response.serializeHeadersAndBody();
@@ -115,36 +143,8 @@ void    Client::generateResponse() {
 		return;
 	}
 
-	if (this->response.checkCgiRequest() ) {
-		this->cgiHandlerPath = this->response.searchCgiHandlerPath();
-		CgiHandler* cgi = new CgiHandler(*this);
-		if (cgi->start()) {
-			this->globalConfig->getCgiSet().insert(cgi);
-			struct epoll_event ev = epoll_event();
-			ev.events = 0;
-
-			if (cgi->getState() == CGI_WRITING) {
-				ev.events |= EPOLLOUT; 
-				ev.data.fd = cgi->getWriteFd();
-				this->globalConfig->getCgiHandlers()[ev.data.fd] = cgi;
-				epoll_ctl(this->globalConfig->getEpollFd(), EPOLL_CTL_ADD, ev.data.fd, &ev);
-			}
-			ev.events = EPOLLIN; 
-			ev.data.fd = cgi->getReadFd();
-			this->globalConfig->getCgiHandlers()[ev.data.fd] = cgi;
-			epoll_ctl(this->globalConfig->getEpollFd(), EPOLL_CTL_ADD, ev.data.fd, &ev);
-
-			this->state = WAITING_FOR_CGI;
-		}
-		else {
-			delete cgi;
-			if (!httpStatusCode) httpStatusCode = 500;
-			response.setErrorResponse(httpStatusCode);
-			responseBuf = response.serializeHeadersAndBody();
-			state = SENDING_RESPONSE;
-		}
-		return ;
-	}
+	if (this->response.checkCgiRequest() )
+		return forwardToCgi();
 
 	if (request.getMethod() == "GET")
 		httpStatusCode = response.Get();
@@ -198,7 +198,6 @@ int Client::handleReadEvent(int epollFd) {
 }
 
 int	Client::endStreamingFile(size_t n) {
-	if (n < 0) return DISCONNECTED;
 	if (n == 0 || response.bodySent >= response.bodySize) {
 		close(response.bodyFd);
 		response.isFileBody = false;
@@ -220,6 +219,8 @@ int Client::streamFileResponse(ssize_t& sent) {
 								(remaining < sizeof(fileBuffer) ?
 								remaining : sizeof(fileBuffer)),
 								fileReadOffset);
+
+		if (bytesRead < 0) return DISCONNECTED;
 
 		ret = endStreamingFile(bytesRead);
 		if (ret != -2) return ret;
@@ -264,14 +265,11 @@ int Client::handleWriteEvent() {
 	if (response.isFileBody)
 		return streamFileResponse(sent);
 
-	if (keepAlive) {
-		resetForNextRequest();
-		return FINISHED; 
-	} else {
-		return DISCONNECTED;
-	}
-}
+	if (keepAlive)
+		return (resetForNextRequest(), FINISHED);
 
+	return DISCONNECTED;
+}
 
 string	strToLower(string& src) {
 	string _new = src;
@@ -280,33 +278,25 @@ string	strToLower(string& src) {
 	return (_new);
 }
 
-void	Client::onCgiDone(string& cgiOutput) {
+int	Client::parseCgiOutput(string& cgiOutput) {
 
-	size_t crlfPos = cgiOutput.find(CRLF CRLF);
-	size_t lfPos = cgiOutput.find("\n\n");
-	string	_headers, _body, line;
-    bool    headersFound = false; // ADDED: Flag to track if headers were parsed
-
-	if (crlfPos != string::npos) {
-		_headers = cgiOutput.substr(0, crlfPos);
-		_body = cgiOutput.substr(crlfPos + CRLF_LENGTH + CRLF_LENGTH); 
-        headersFound = true; // ADDED
+	if (cgiData.crlfPos != string::npos) {
+		cgiData._headers = cgiOutput.substr(0, cgiData.crlfPos);
+		cgiData._body = cgiOutput.substr(cgiData.crlfPos + CRLF_LENGTH + CRLF_LENGTH); 
+        cgiData.headersFound = true;
 	}
-	else if (lfPos != string::npos) {
-		_headers = cgiOutput.substr(0, lfPos);
-		_body = cgiOutput.substr(lfPos + 2); 
-        headersFound = true; // ADDED
+	else if (cgiData.lfPos != string::npos) {
+		cgiData._headers = cgiOutput.substr(0, cgiData.lfPos);
+		cgiData._body = cgiOutput.substr(cgiData.lfPos + 2); 
+        cgiData.headersFound = true;
 	}
 	else
-        return onCgiError(502);
+        return (onCgiError(502), -1);
 
-	this->response.setBody(_body);
+	this->response.setBody(cgiData._body);
 
-	stringstream ss(_headers);
-	bool isStatusSet = false;
-	bool sessionRequested = false;
-	string newSessionId;
-	string deleteSessionId;
+	stringstream ss(cgiData._headers);
+	string newSessionId, deleteSessionId, line;
 
 	while (getline(ss, line)) {
 		if (!line.empty() && line[line.length() - 1] == '\r')
@@ -319,56 +309,59 @@ void	Client::onCgiDone(string& cgiOutput) {
 			
 			if (strToLower(key) == "status") {
 				this->httpStatusCode = atoi(value.c_str());
-				isStatusSet = true;
+				cgiData.isStatusSet = true;
 			}
-			else if (strToLower(key) == "x-webserv-create-session") {
-				// CGI script requests session creation
-				sessionRequested = true;
-			}
-			else if (strToLower(key) == "x-webserv-session-id") {
-				// CGI script provides session ID to use
+			else if (strToLower(key) == "x-webserv-create-session")
+				cgiData.sessionRequested = true;
+			else if (strToLower(key) == "x-webserv-session-id")
 				newSessionId = value;
-			}
-			else if (strToLower(key) == "x-webserv-delete-session") {
-				// CGI script requests session deletion
+			else if (strToLower(key) == "x-webserv-delete-session")
 				deleteSessionId = value;
-			}
 			else
 				this->response.setHeader(key, value);
 		}
 	}
-	
-	// Handle session creation if requested
-	if (sessionRequested) {
-		if (newSessionId.empty()) {
+	checkSession(newSessionId, deleteSessionId);
+	return 0;
+}
+
+void	Client::checkSession(string& newSID, string& delSID) {
+	if (cgiData.sessionRequested) {
+		if (newSID.empty()) {
 			SessionManager& sessionManager = this->globalConfig->getSessionManager();
-			newSessionId = sessionManager.createSession();
+			newSID = sessionManager.createSession();
 		}
-		// Set session cookie
-		string cookieValue = "session_id=" + newSessionId + "; HttpOnly; Path=/";
+		string cookieValue = "session_id=" + newSID + "; HttpOnly; Path=/";
 		this->response.setHeader("Set-Cookie", cookieValue);
 	}
 	
-	// Handle session deletion if requested
-	if (!deleteSessionId.empty()) {
+	if (!delSID.empty()) {
 		SessionManager& sessionManager = this->globalConfig->getSessionManager();
-		sessionManager.deleteSession(deleteSessionId);
+		sessionManager.deleteSession(delSID);
 	}
-	if (!isStatusSet)
-		this->httpStatusCode = (headersFound ? 200 : 403);
+}
+
+void	Client::onCgiDone(string& cgiOutput) {
+
+	cgiData.crlfPos = cgiOutput.find(CRLF CRLF);
+	cgiData.lfPos = cgiOutput.find("\n\n");
+    cgiData.headersFound = false;
+
+	if (parseCgiOutput(cgiOutput)) return ;
+
+	if (!cgiData.isStatusSet)
+		this->httpStatusCode = (cgiData.headersFound ? 200 : 403);
 
 	this->response.setHeader("Content-Length", toString(this->response.getBodySize()));
-		// --- 2. Serialize the final response into the buffer ---
+
 	this->responseBuf = this->response.serializeHeadersAndBody();
 	this->response.bodySent = 0;
 
-	// --- 3. CRUCIAL: Transition the client's state to WRITING ---
 	this->state = SENDING_RESPONSE;
 
-	// --- 4. Tell epoll to watch for when this client's socket is ready for writing ---
 	struct epoll_event event = epoll_event();
 	event.data.fd = this->_clientFd;
-	event.events = EPOLLOUT; // level-triggered
+	event.events = EPOLLOUT;
 	epoll_ctl(this->globalConfig->getEpollFd(), EPOLL_CTL_MOD, this->_clientFd, &event);
 	
 }
@@ -377,16 +370,13 @@ void    Client::onCgiError(unsigned short code) {
 	this->httpStatusCode = code;
 	this->response.setErrorResponse(this->httpStatusCode);
 
-	// 2. Serialize the error response into the buffer.
 	this->responseBuf = this->response.serializeHeadersAndBody();
 	this->response.bodySent = 0;
 
-	// 3. Transition the client's state to WRITING to send the error page.
 	this->state = SENDING_RESPONSE;
 
-	// 4. Tell epoll to watch for when this client's socket is ready for writing.
 	struct epoll_event event = epoll_event();
 	event.data.fd = this->_clientFd;
-	event.events = EPOLLOUT; // level-triggered
+	event.events = EPOLLOUT;
 	epoll_ctl(this->globalConfig->getEpollFd(), EPOLL_CTL_MOD, this->_clientFd, &event);
 }

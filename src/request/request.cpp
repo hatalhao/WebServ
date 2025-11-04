@@ -106,8 +106,7 @@ bool    Request::validateHostHeader(const string& val) {
     
     size_t colonPos = val.find(':');
     size_t hostname_end = (colonPos != std::string::npos) ? colonPos : val.length();
-    
-    // validating the port
+
     if (colonPos != std::string::npos) {
         if (colonPos == val.length() - 1) return false;
         for (size_t i = colonPos + 1; i < val.length(); ++i)
@@ -211,11 +210,10 @@ int Request::processRequestLine(string& buffer) {
     string rawPath = (queryPos != NPOS) ? uri.substr(0, queryPos) : uri;
     string rawQuery = (queryPos != NPOS) ? uri.substr(queryPos + 1) : string();
 
-    // Decode path and query
     string decodedPath;
     string decodedQuery;
-    if (!decodeComponent(rawPath, decodedPath, /*plusAsSpace=*/false)) { this->state = PARSINGERROR; return 400; }
-    if (!rawQuery.empty() && !decodeComponent(rawQuery, decodedQuery, /*plusAsSpace=*/true)) { this->state = PARSINGERROR; return 400; }
+    if (!decodeComponent(rawPath, decodedPath, false)) { this->state = PARSINGERROR; return 400; }
+    if (!rawQuery.empty() && !decodeComponent(rawQuery, decodedQuery, true)) { this->state = PARSINGERROR; return 400; }
 
     this->path = decodedPath;
     this->queryString = decodedQuery;

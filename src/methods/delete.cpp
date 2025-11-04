@@ -1,5 +1,4 @@
  #include "../../includes/response.hpp"
-#include "../../includes/statuscode.hpp"
 #include "../../includes/methods.hpp"
 
 bool DeletePermitted(const std::string& path) {
@@ -67,25 +66,25 @@ int Response::Delete() {
     
 	if (stat(this->resourceInfo.path.c_str(), &statBuf) != 0) {
         if (errno == ENOENT) {
-            return NOT_FOUND;
+            return IS_NOT_FOUND;
         } else {
-            return FORBIDDEN;
+            return IS_FORBIDDEN;
         }
     }
     
     if (!DeletePermitted(this->resourceInfo.path)) {
-        return FORBIDDEN;
+        return IS_FORBIDDEN;
     }
     
     if (deleteResource(this->resourceInfo.path)) {
         return 200;
     } else {
         if (errno == EACCES || errno == EPERM) {
-            return FORBIDDEN;
+            return IS_FORBIDDEN;
         } else if (errno == ENOENT) {
-            return NOT_FOUND;
+            return IS_NOT_FOUND;
         } else {
-            return INTERNAL_SERVER_ERROR;
+            return 500;
         }
     }
 }
