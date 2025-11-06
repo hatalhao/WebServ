@@ -174,3 +174,15 @@ bool	isValidHost(const std::string& host) {
 	}
 	return (count == 4 && ss.eof());
 }
+
+bool	isValidPort(const std::string& port) {
+	size_t i = port.find_first_not_of(" \t");
+	if (i == NPOS)
+		return false;
+
+	for (; i < port.length(); i++) {
+		if (!isdigit(port[i]))
+			return false;
+	}
+	return true;
+}

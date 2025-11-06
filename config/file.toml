@@ -1,7 +1,7 @@
-[[      server]]
+[[server]]
 server_name = ["sekhar", "awd", "awdaw", "aawdawd"]
 host = "127.0.0.1"
-listen = ["8989", "8080"]
+listen = ["8989"]
 root = "/home/hatalhao/webserv/www/html"
 max_body_size = "  15MB"
 index = ["accueil.html", "welcome.html", "indexFile.html"]

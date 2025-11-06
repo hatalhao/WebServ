@@ -17,3 +17,4 @@ bool	isdefaultLocationFound(const server& serv);
 bool	isValidKey(const std::string& key, const int context);
 bool	isValidHost(const std::string& host);
 bool	isValidValue(const std::string& value);
+bool	isValidPort(const std::string& port);

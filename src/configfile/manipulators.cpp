@@ -47,12 +47,51 @@ void removeInvalidChars(std::string &str) {
 	}
 }
 
+static inline bool validSeparators(const std::string& line) {
+	int count = 0;
+	for (size_t i = 0; i < line.size(); i++) {
+		if (line[i] == '\"')
+			count++;
+		if (count == 2 && (line[i + 1] && line[i + 1] != ',' && line[i + 1] != ' ') && i != line.size()) {
+			return false;
+		}
+		if (line[i] == ',')
+			count = 0;
+		if (count > 2)
+			return false;
+	}
+	return true;
+}
+
+static inline bool checkForSingle(const std::string& line, size_t start, size_t end) {
+	size_t doubleQuoteCount = std::count(line.begin() + start, line.begin() + end + 1, '\"');
+	size_t singleQuoteCount = std::count(line.begin() + start, line.begin() + end + 1, '\'');
+	if (doubleQuoteCount == 2 && singleQuoteCount == 0 && line[start] == '\"' && line[end] == '\"')
+		return (true);
+	if (singleQuoteCount == 2 && doubleQuoteCount == 0 && line[start] == '\'' && line[end] == '\'')
+		return (true);
+	return (false);
+}
+
+static inline bool validArray(const std::string& line, size_t start, size_t end) {
+	size_t beginBracket = line.find('[', start);
+	size_t endBracket = line.find(']', beginBracket);
+
+	if (beginBracket != NPOS && endBracket != NPOS && beginBracket == start && endBracket == end)
+		return true;
+	if (checkForSingle(line, start, end))
+		return (true);
+	return (false);
+}
+
 static inline std::string getEntries(const std::string& line) {
-	size_t start = line.find_first_not_of(" \t[");
-	size_t end = line.find_last_not_of(" \t]");
-	if (start == NPOS || end == NPOS || end <= start)
-		return ("");
-	std::string  entries = line.substr(start, end - start + 1);
+	size_t start = line.find_first_not_of(" \t");
+	size_t end = line.find_last_not_of(" \t");
+	if (start == NPOS || end == NPOS || end <= start || !validArray(line, start, end))
+		throw std::runtime_error("Invalid array format: " + line);
+	std::string  entries = line.substr(start + (line[start] == '['), end - start + 1 - (line[end] == ']') * 2);
+	if (!validSeparators(entries))
+		throw std::runtime_error("Invalid array separators: " + entries);
 	entries.erase(std::remove(entries.begin(), entries.end(), '"'), entries.end());
 	return (entries);
 }
@@ -67,11 +106,11 @@ std::string	saveArray(const std::string& line) {
 	value.clear();
 	std::string merged;
 	while (std::getline(ss, value, ',')) {
-		if (value.empty()) {
+		if (value.find_first_not_of(" \t") == NPOS || value.empty()) {
 			throw std::runtime_error("Empty value in array: " + line);
 		}
-		merged += value + ",";
+		merged += value + (ss.eof() ? "" : ",");
 	}
-
+	
 	return merged;
 }

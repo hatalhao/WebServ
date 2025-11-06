@@ -334,9 +334,13 @@ std::set<int> Config::extractPorts() const {
 		throw std::runtime_error("Port not found in configuration");
 	std::set<int> ports;
 	std::istringstream ss(it->second);
+	
 	std::string portStr;
 	int port = 0;
 	while (std::getline(ss, portStr, ',')) {
+		if (!isValidPort(portStr)) {
+			throw std::runtime_error("Invalid port number: " + portStr);
+		}
 		port = std::atoi(portStr.c_str());
 		ports.insert(port);
 	}
