@@ -7,6 +7,10 @@ size_t parseSize(const std::string& sizeStr) {
 	if (sizeStr.empty()) {
 		throw std::runtime_error("Size string is empty");
 	}
+	if (sizeStr[0] == '-') {
+		throw std::runtime_error("Size cannot be negative: " + sizeStr);
+	}
+
 	size_t size = 0;
 	size_t pos = sizeStr.find_first_not_of("0123456789");
 	std::string numberStr = sizeStr.substr(0, pos);
@@ -34,41 +38,79 @@ size_t parseSize(const std::string& sizeStr) {
 }
 
 void removeInvalidChars(std::string &str) {
-	if (str.empty())
-		return ;
-	str.erase(std::remove_if(str.begin(), str.end(), notValidChar), str.end());
+	size_t start = str.find_first_not_of(" \t\"\'");
+	size_t end = str.find_last_not_of(" \t\"\'");
+	if (start == NPOS || end == NPOS) {
+		str.clear();
+	} else {
+		str = str.substr(start, end - start + 1);
+	}
+}
+
+static inline bool validSeparators(const std::string& line) {
+	int count = 0;
+	for (size_t i = 0; i < line.size(); i++) {
+		if (line[i] == '\"')
+			count++;
+		if (count == 2 && (line[i + 1] && line[i + 1] != ',' && line[i + 1] != ' ') && i != line.size()) {
+			return false;
+		}
+		if (line[i] == ',')
+			count = 0;
+		if (count > 2)
+			return false;
+	}
+	return true;
+}
+
+static inline bool checkForSingle(const std::string& line, size_t start, size_t end) {
+	size_t doubleQuoteCount = std::count(line.begin() + start, line.begin() + end + 1, '\"');
+	size_t singleQuoteCount = std::count(line.begin() + start, line.begin() + end + 1, '\'');
+	if (doubleQuoteCount == 2 && singleQuoteCount == 0 && line[start] == '\"' && line[end] == '\"')
+		return (true);
+	if (singleQuoteCount == 2 && doubleQuoteCount == 0 && line[start] == '\'' && line[end] == '\'')
+		return (true);
+	return (false);
+}
+
+static inline bool validArray(const std::string& line, size_t start, size_t end) {
+	size_t beginBracket = line.find('[', start);
+	size_t endBracket = line.find(']', beginBracket);
+
+	if (beginBracket != NPOS && endBracket != NPOS && beginBracket == start && endBracket == end)
+		return true;
+	if (checkForSingle(line, start, end))
+		return (true);
+	return (false);
+}
+
+static inline std::string getEntries(const std::string& line) {
+	size_t start = line.find_first_not_of(" \t");
+	size_t end = line.find_last_not_of(" \t");
+	if (start == NPOS || end == NPOS || end <= start || !validArray(line, start, end))
+		throw std::runtime_error("Invalid array format: " + line);
+	std::string  entries = line.substr(start + (line[start] == '['), end - start + 1 - (line[end] == ']') * 2);
+	if (!validSeparators(entries))
+		throw std::runtime_error("Invalid array separators: " + entries);
+	entries.erase(std::remove(entries.begin(), entries.end(), '"'), entries.end());
+	return (entries);
 }
 
 std::string	saveArray(const std::string& line) {
 	std::vector<std::string> array;
 	if (std::count(line.begin(), line.end(), '"') != (std::count(line.begin(), line.end(), ',') + 1) * 2)
 		throw std::runtime_error("Invalid array format: " + line);
-	size_t start = 0;
-	size_t end = line.find(',');
-	std::string value;
-	
-	while (end != NPOS) {
-		value = line.substr(start, end - start);
-		removeInvalidChars(value);
-		if (value.empty()) {
-			throw std::runtime_error("Invalid array value: " + value);
-		}
-		array.push_back(value);
-		value.clear();
-		start = end + 1;
-		end = line.find_first_of(",]", start);
-	}
+
+	std::string value = getEntries(line);
+	std::stringstream ss(value);
+	value.clear();
 	std::string merged;
-	if (end == NPOS && start == 0){
-		value = line;
-		removeInvalidChars(value);
-		if (value.empty()) {
-			throw std::runtime_error("Invalid array value: " + value);
+	while (std::getline(ss, value, ',')) {
+		if (value.find_first_not_of(" \t") == NPOS || value.empty()) {
+			throw std::runtime_error("Empty value in array: " + line);
 		}
-		merged = value;
+		merged += value + (ss.eof() ? "" : ",");
 	}
-	for (size_t i = 0; i < array.size(); ++i) {
-		merged += array[i] + (i < array.size() - 1 ? "," : "");
-	}
+	
 	return merged;
 }
