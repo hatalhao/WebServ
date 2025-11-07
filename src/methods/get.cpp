@@ -126,23 +126,6 @@ static inline string generateDirectoryListing(const string& dirPath, const strin
     return html.str();
 }
 
-static inline bool readFileContent(const string& filePath, string& content) {
-    ifstream file(filePath.c_str(), ios::binary);
-    if (!file.is_open()) {
-        return false;
-    }
-    
-    file.seekg(0, ios::end);
-    size_t fileSize = file.tellg();
-    file.seekg(0, ios::beg);
-    
-    content.resize(fileSize);
-    file.read(&content[0], fileSize);
-    file.close();
-    
-    return true;
-}
-
 void Response::Get() {
 
     if (!isSafePath(this->client->getRequest().getPath())) {
