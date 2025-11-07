@@ -31,4 +31,5 @@ class Config {
 		std::map<std::string, std::string>	extractLocations() const;
 		std::map<int, std::string>			extractErrorPageMap() const;
 		size_t								extractMaxBodySize() const;
+		bool								isAutoIndexed() const;
 };

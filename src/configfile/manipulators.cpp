@@ -105,11 +105,15 @@ std::string	saveArray(const std::string& line) {
 	std::stringstream ss(value);
 	value.clear();
 	std::string merged;
+	size_t start, end;
 	while (std::getline(ss, value, ',')) {
 		if (value.find_first_not_of(" \t") == NPOS || value.empty()) {
 			throw std::runtime_error("Empty value in array: " + line);
 		}
-		value = value[0] == ' ' ? value.substr(1) : value;
+		start = 0, end = value.size() - 1;
+		start = value.find_first_not_of(" \t");
+		end = value.find_last_not_of(" \t");
+		value = value.substr(start, end - start + 1);
 		merged += value + (ss.eof() ? "" : ",");
 	}
 	

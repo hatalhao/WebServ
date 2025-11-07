@@ -3,7 +3,7 @@
 #include "../../includes/response.hpp"
 #include "../../includes/cgi.hpp"
 
-string getMimeType(const string& filePath) {
+static inline string getMimeType(const string& filePath) {
     size_t dotPos = filePath.find_last_of('.');
     if (dotPos == NPOS) {
         return "application/octet-stream";
@@ -34,11 +34,11 @@ string getMimeType(const string& filePath) {
     return "application/octet-stream";
 }
 
-bool isSafePath(const string& path) {
+static inline bool isSafePath(const string& path) {
     return (path.find("..") == NPOS);
 }
 
-string generateDirectoryListing(const string& dirPath, const string& requestPath) {
+static inline string generateDirectoryListing(const string& dirPath, const string& requestPath) {
     DIR* dir = opendir(dirPath.c_str());
     if (!dir) {
         return "";
@@ -126,7 +126,7 @@ string generateDirectoryListing(const string& dirPath, const string& requestPath
     return html.str();
 }
 
-bool readFileContent(const string& filePath, string& content) {
+static inline bool readFileContent(const string& filePath, string& content) {
     ifstream file(filePath.c_str(), ios::binary);
     if (!file.is_open()) {
         return false;

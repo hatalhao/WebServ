@@ -12,14 +12,6 @@ bool	isdefaultLocationFound(const server& serv) {
 	return false;
 }
 
-bool notValidChar(const char c) {
-	return (c == '\"' || c == '\'' || c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '[' || c == ']');
-}
-
-bool trimmableChar(const char c) {
-	return (c == ' ' || c == '\t' || c == '[' || c == ']');
-}
-
 static inline bool	invalidBrackets(const std::string& line) {
 	return (std::count(line.begin(), line.end(), '[') != 2 || \
 		std::count(line.begin(), line.end(), ']') != 2 || line.find("[[") == NPOS \
@@ -51,6 +43,35 @@ int isValidBlock(const std::string& line) {
 bool skipLine(const std::string& line) {
 	size_t pos = line.find_first_not_of(" \t\n\r");
 	return (pos == NPOS || line[pos] == '#');
+}
+
+static inline bool isValidKey(const std::string& key, const int context) {
+	long code = 0;
+	const std::string serverTokens[] = {"server_name", "host", "listen", "root", "index", "error_pages", "location", "cgi", "max_body_size", "autoindex"};
+	const std::string locationTokens[] = {"name", "path", "index", "allow", "autoindex", "upload_path", "return"};
+
+	switch (context) {
+		case SERVER_TOKEN:
+			if (std::find(serverTokens, serverTokens + 10, key) != serverTokens + 10)
+				return true;
+			break;
+		case LOCATION_TOKEN:
+			if  (std::find(locationTokens, locationTokens + 7, key) != locationTokens + 7)
+				return true;
+			break;
+		case CGI_TOKEN:
+			if (key == "extension" || key == "handler")
+				return true;
+			break;
+		case ERROR_TOKEN:
+			code = std::strtol(key.c_str(), 0, 10);
+			if (code >= 400 && code <= 599)
+				return true;
+			break;
+		default:
+			return false;
+	}
+	return false;
 }
 
 bool	isKeyValue(const std::string& line, const int token) {
@@ -126,35 +147,6 @@ int isValidStatusCode(const long statusCode) {
 	if (statusCode < 400 || statusCode > 599)
 		return -1;
 	return static_cast<int>(statusCode);
-}
-
-bool isValidKey(const std::string& key, const int context) {
-	long code = 0;
-
-	switch (context) {
-		case SERVER_TOKEN:
-			if (key == "server_name" || key == "host" || key == "listen" || key == "root" || key == "index" || \
-			key == "error_pages" || key == "location" || key == "cgi" || key == "max_body_size" || key == "autoindex")
-				return true;
-			break;
-		case LOCATION_TOKEN:
-			if (key == "name" || key == "path" || key == "index" || key == "allow" || key == "autoindex" || \
-			key == "upload_path" || key == "return")
-				return true;
-			break;
-		case CGI_TOKEN:
-			if (key == "extension" || key == "handler")
-				return true;
-			break;
-		case ERROR_TOKEN:
-			code = std::strtol(key.c_str(), 0, 10);
-			if (code >= 400 && code <= 599)
-				return true;
-			break;
-		default:
-			return false;
-	}
-	return false;
 }
 
 bool	isValidHost(const std::string& host) {
