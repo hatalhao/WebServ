@@ -16,6 +16,16 @@ std::map<int, std::string> getDefaultErrorPages() {
 	return defaultErrorPages;
 }
 
+static void checkForDuplicateLocations(const std::vector<location_b> &locations) {
+	std::set<std::string> locationNames;
+	for (size_t i = 0; i < locations.size(); ++i) {
+		if (locationNames.find(locations[i].name) != locationNames.end()) {
+			std::cout << YELLOW << "Warning: Duplicate location name found: " + locations[i].name << RESET << std::endl;
+		}
+		locationNames.insert(locations[i].name);
+	}
+}
+
 void	server::fillServer(server &serv, const Config &config) {
 	serv.port = config.extractPorts();
 	serv.host = config.extractHost();
@@ -35,4 +45,5 @@ void	server::fillServer(server &serv, const Config &config) {
 		defaultLocation.errorPageMap = serv.errorPageMap;
 		serv.locations.push_back(defaultLocation);
 	}
+	checkForDuplicateLocations(serv.locations);
 }
