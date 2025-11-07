@@ -17,12 +17,12 @@ std::map<int, std::string> getDefaultErrorPages() {
 }
 
 static void checkForDuplicateLocations(const std::vector<location_b> &locations) {
-	std::set<std::string> locationNames;
-	for (size_t i = 0; i < locations.size(); ++i) {
-		if (locationNames.find(locations[i].name) != locationNames.end()) {
-			std::cout << YELLOW << "Warning: Duplicate location name found: " + locations[i].name << RESET << std::endl;
+	std::map<std::string, std::string> checked;
+	for (std::vector<location_b>::const_iterator it = locations.begin(); it != locations.end(); ++it) {
+		if (checked.find(it->name) != checked.end() && checked[it->name] == it->path) {
+			throw std::runtime_error("Duplicate location found: " + it->name);
 		}
-		locationNames.insert(locations[i].name);
+		checked[it->name] = it->path;
 	}
 }
 

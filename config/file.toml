@@ -33,7 +33,7 @@ autoindex = "on"
 
 [[location]]
 name = "errors"
-# path = "/home/hatalhao/snap"
+path = "/home/hatalhao/snap"
 index = ["trash.html", "trash.php", "trashFile.html"]
 autoindex = "off"
 
