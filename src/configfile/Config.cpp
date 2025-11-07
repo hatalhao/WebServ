@@ -6,7 +6,7 @@
 #include "../../includes/client.hpp"
 
 
-bool isValidCgi(std::string extension, std::string path) {
+static inline bool isValidCgi(std::string extension, std::string path) {
 	if (extension.empty() || path.empty())
 		return false;
 	if (extension != ".php" && extension != ".py"){
@@ -22,7 +22,7 @@ bool isValidCgi(std::string extension, std::string path) {
 	return true;
 }
 
-cgi_t	getCgi(std::ifstream& configFile, std::string& line) {
+static inline cgi_t	getCgi(std::ifstream& configFile, std::string& line) {
 	cgi_t cgi;
 	size_t pos = NPOS;
 	std::string key;
@@ -67,7 +67,7 @@ cgi_t	getCgi(std::ifstream& configFile, std::string& line) {
 	return cgi;
 }
 
-inline int	getStatusCode(const std::string& line) {
+static inline int	getStatusCode(const std::string& line) {
 	long statusCode = 0;
 	size_t pos = NPOS;
 
@@ -79,7 +79,7 @@ inline int	getStatusCode(const std::string& line) {
 	return (isValidStatusCode(statusCode));
 }
 
-inline std::map<int, std::string> getPages(std::ifstream& configFile, std::string& line, std::map<int, std::string>& existingMap) {
+static inline std::map<int, std::string> getPages(std::ifstream& configFile, std::string& line, std::map<int, std::string>& existingMap) {
 	int token = 5;
 	while (std::getline(configFile, line)) {
 		if (skipLine(line))
@@ -107,7 +107,7 @@ inline std::map<int, std::string> getPages(std::ifstream& configFile, std::strin
 	return existingMap;
 }
 
-inline std::vector<std::string> extractArray(const std::string& value, bool context) {
+static inline std::vector<std::string> extractArray(const std::string& value, bool context) {
 	std::vector<std::string> array;
 	std::string splitValue = saveArray(value);
 	stringstream ss(splitValue);
@@ -121,7 +121,7 @@ inline std::vector<std::string> extractArray(const std::string& value, bool cont
 	return array;
 }
 
-bool	setValue(const std::string& key, const std::string& value, location_b& location) {
+static inline bool	setValue(const std::string& key, const std::string& value, location_b& location) {
 	if (key == "path" && location.path.empty()) {
 		location.path = value;
 		return true;
@@ -154,9 +154,10 @@ bool	setValue(const std::string& key, const std::string& value, location_b& loca
 	return false;
 }
 
-location_b	getLocation(std::ifstream& configFile, std::string& line, const std::string& root) {
+static inline location_b	getLocation(std::ifstream& configFile, std::string& line, const std::string& root, bool autoIndexed) {
 	location_b location;
 	location.errorPageMap = getDefaultErrorPages();
+	location.isAutoIndexEnabled = autoIndexed;
 	while (std::getline(configFile, line)) {
 		if (skipLine(line))
 			continue ;
@@ -281,7 +282,10 @@ Config::Config(const std::string& configFilePath) {
 					while (isValidBlock(line) == LOCATION_TOKEN) {
 						if (_settings["root"].empty())
 							throw std::runtime_error("Root directory not specified before location block");
-						location_b location = getLocation(configFile, line, serv.root);
+						
+						bool autoIndexed = (_settings.find("autoindex") != _settings.end() && _settings["autoindex"] == "on");	
+						location_b location = getLocation(configFile, line, serv.root, autoIndexed);
+						
 						serv.locations.push_back(location);
 					}
 				} catch (const std::runtime_error& e) {
@@ -378,7 +382,7 @@ std::string	Config::extractRoot() const {
 std::vector<std::string>	Config::extractIndex() const {
 	std::map<std::string, std::string>::const_iterator it = _settings.find("index");
 	if (it == _settings.end())
-		throw std::runtime_error("Index not found in configuration");
+		return std::vector<std::string>();
 	std::vector<std::string> indexFiles;
 	std::istringstream ss(it->second);
 	std::string file;

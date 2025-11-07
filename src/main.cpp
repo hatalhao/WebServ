@@ -3,7 +3,7 @@
 #include "../includes/worker.hpp"
 #include <csignal>
 
-# define q "\x1b[94m"
+# define BRIGHT_BLUE "\x1b[94m"
 # define BRIGHT_YELLOW "\x1b[93m"
 
 void    signalHandler(int signum) {

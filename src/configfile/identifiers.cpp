@@ -134,7 +134,7 @@ bool isValidKey(const std::string& key, const int context) {
 	switch (context) {
 		case SERVER_TOKEN:
 			if (key == "server_name" || key == "host" || key == "listen" || key == "root" || key == "index" || \
-			key == "error_pages" || key == "location" || key == "cgi" || key == "max_body_size")
+			key == "error_pages" || key == "location" || key == "cgi" || key == "max_body_size" || key == "autoindex")
 				return true;
 			break;
 		case LOCATION_TOKEN:

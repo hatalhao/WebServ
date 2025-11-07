@@ -4,7 +4,8 @@ host = "127.0.0.1"
 listen = ["8989"]
 root = "/home/hatalhao/webserv/www/html"
 max_body_size = "  15MB"
-index = ["accueil.html", "welcome.html", "indexFile.html"]
+autoindex = "on"
+# index = ["accueil.html", "welcome.html", "indexFile.html"]
 
 [[error_pages]]
 403 = "./pages/403.html"
@@ -24,16 +25,17 @@ upload_path = "/home/hatalhao/42-cc"
 extension = ".py"
 handler = "/usr/bin/python3"
 
-# [[location]]
-# name = "home"
-# path = "/home/"
-# index = ["home.html", "home.php", "homeFile.html"]
-# autoindex = "on"
-# [[location]]
-# name = "trash"
-# path = "/home/hatalhao/trash"
-# index = ["trash.html", "trash.php", "trashFile.html"]
-# autoindex = "off"
+[[location]]
+name = "errors"
+# path = "/"
+index = ["home.html", "home.php", "homeFile.html"]
+autoindex = "on"
+
+[[location]]
+name = "errors"
+# path = "/home/hatalhao/snap"
+index = ["trash.html", "trash.php", "trashFile.html"]
+autoindex = "off"
 
 # [[cgi]]
 # extension = ".py"
