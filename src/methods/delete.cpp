@@ -1,5 +1,6 @@
- #include "../../includes/response.hpp"
+#include "../../includes/response.hpp"
 #include "../../includes/methods.hpp"
+#include "../../includes/client.hpp"
 
 bool DeletePermitted(const std::string& path) {
     size_t lastSlash = path.find_last_of('/');
@@ -61,30 +62,30 @@ bool deleteResource(const std::string& path) {
     return (unlink(path.c_str()) == 0);
 }
 
-int Response::Delete() {
+void    Response::Delete() {
     struct stat statBuf;
     
 	if (stat(this->resourceInfo.path.c_str(), &statBuf) != 0) {
         if (errno == ENOENT) {
-            return IS_NOT_FOUND;
+            return this->setErrorResponse(404);
         } else {
-            return IS_FORBIDDEN;
+            return this->setErrorResponse(403);
         }
     }
     
     if (!DeletePermitted(this->resourceInfo.path)) {
-        return IS_FORBIDDEN;
+        return this->setErrorResponse(403);
     }
     
     if (deleteResource(this->resourceInfo.path)) {
-        return 200;
+        return this->client->setStatusCode(200);
     } else {
         if (errno == EACCES || errno == EPERM) {
-            return IS_FORBIDDEN;
+            return this->setErrorResponse(403);
         } else if (errno == ENOENT) {
-            return IS_NOT_FOUND;
+            return this->setErrorResponse(404);
         } else {
-            return 500;
+            return this->setErrorResponse(500);
         }
     }
 }

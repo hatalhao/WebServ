@@ -16,7 +16,7 @@ upload_path = "/home/aderraj/Desktop/WebServ/www/uploads"
 
 [[location]]
 name = "/uploads"
-allow = ["POST","GET"]
+allow = ["POST", "GET"]
 index = ["accueil.html", "welcome.html", "indexFile.html"]
 upload_path = "/home/aderraj/Desktop/WebServ/www/uploads"
 
@@ -38,30 +38,3 @@ host = "127.0.0.1"
 listen = ["8080"]
 root = "/home/aderraj/Desktop/WebServ/www/"
 max_body_size = "1MB"
-index = ["accueil.html", "welcome.html", "indexFile.html"]
-
-[[location]]
-name = "/"
-path = "/home/aderraj/Desktop/WebServ/www/"
-index = ["index.html"]
-autoindex = "on"
-allow = ["GET", "DELETE", "POST"]
-upload_path = "/home/aderraj/Desktop/WebServ/www/uploads"
-
-[[location]]
-name = "/uploads"
-allow = ["POST","GET"]
-index = ["accueil.html", "welcome.html", "indexFile.html"]
-upload_path = "/home/aderraj/Desktop/WebServ/www/uploads"
-
-[[location]]
-name = "/cgi"
-path = "/home/aderraj/Desktop/WebServ/www/cgi"
-allow = ["GET", "POST"]
-upload_path = "/home/aderraj/Desktop/WebServ/www/uploads"
-index = ["welcome.py"]
-autoindex = "on"
-[[cgi]]
-extension = ".py"
-handler = "/usr/bin/python3"
-

@@ -143,23 +143,23 @@ bool readFileContent(const string& filePath, string& content) {
     return true;
 }
 
-int Response::Get() {
+void Response::Get() {
 
     if (!isSafePath(this->client->getRequest().getPath())) {
-        return (403);
+        return this->setErrorResponse(403);
     }
 
     switch (resourceInfo.type) {
         case IS_FILE: {
 
             if (getResourceType(this->resourceInfo) != IS_FILE) {
-                return (this->setErrorResponse(403), 403);
+                return this->setErrorResponse(403);
             }
 
             int fd = open(resourceInfo.path.c_str(), O_RDONLY);
             if (fd < 0) {
                 perror("open");
-                return 500;
+                return this->setErrorResponse(500);
             }
 
             this->setHeader("Content-Type", getMimeType(resourceInfo.path));
@@ -169,7 +169,7 @@ int Response::Get() {
             this->bodySent = 0;
             this->isFileBody = true;
 
-            return 200;
+            return this->client->setStatusCode(200);
         }
         case IS_DIR: {
             if (!this->rules->index.empty()) {
@@ -186,7 +186,7 @@ int Response::Get() {
                         int fd = open(indexPath.c_str(), O_RDONLY);
                         if (fd < 0) {
                             perror("open");
-                            return 403;
+                            return this->setErrorResponse(403);
                         }
                         
                         this->setHeader("Content-Type", getMimeType(indexPath));
@@ -198,25 +198,25 @@ int Response::Get() {
                         this->bodySent = 0;             // how much we already sent
                         this->isFileBody = true;
 
-                        return 200;
+                        return this->client->setStatusCode(200);
                     }
                 }
-                return (this->setErrorResponse(404), 404);
+                return this->setErrorResponse(404);
             }
             else if (this->rules->isAutoIndexEnabled) {
                 string listing = generateDirectoryListing(resourceInfo.path, this->client->getRequest().getPath());
                 if (listing.empty()) {
-                    return 500;
+                    return this->setErrorResponse(500);
                 }
                 
                 this->setHeader("Content-Type", "text/html");
                 this->setHeader("Content-Length", to_string(listing.length()));
                 this->setBody(listing);
-                return 200;
+                return this->client->setStatusCode(200);
             } else
-                return 403;
+                return this->setErrorResponse(403);
         }
         default:
-            return 403;
+            return this->setErrorResponse(403);
     }
 }

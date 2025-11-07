@@ -135,7 +135,6 @@ void	Client::forwardToCgi() {
 }
 
 void    Client::generateResponse() {
-
 	if (httpStatusCode != 0 || response.prepareResponse()) {
 		response.setErrorResponse(httpStatusCode);
 		responseBuf = response.serializeHeadersAndBody();
@@ -147,12 +146,9 @@ void    Client::generateResponse() {
 	if (this->response.checkCgiRequest() )
 		return forwardToCgi();
 
-	if (request.getMethod() == "GET")
-		httpStatusCode = response.Get();
-	else if (request.getMethod() == "POST")
-		httpStatusCode = response.Post();
-	else if (request.getMethod() == "DELETE")
-		httpStatusCode = response.Delete();
+	if (request.getMethod() == "GET") response.Get();
+	else if (request.getMethod() == "POST") response.Post();
+	else if (request.getMethod() == "DELETE") response.Delete();
 
 	if (!response.isFileBody) {
 		if (response.findHeader("Content-Length") == false)

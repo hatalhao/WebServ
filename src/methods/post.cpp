@@ -58,16 +58,16 @@ static string extractBoundaryFromContentType(const string& contentType) {
 	return boundary;
 }
 
-int	Response::Post() {
+void	Response::Post() {
 	if (this->resourceInfo.type != IS_FILE) {
 		Request	&request = client->getRequest();
-		if (getResourceType(this->resourceInfo) != IS_DIR) return (500);
 
 		string filename = this->resourceInfo.path;
 		string headerlocationPath = request.getPath();
 
 		if (this->resourceInfo.type == IS_DIR) {
 			if (filename[filename.length() - 1] != '/')
+
 			{ filename += "/";  headerlocationPath += "/";  }
 			string randomName = generateRandomFileName();
 			filename += randomName;
@@ -88,14 +88,14 @@ int	Response::Post() {
 		}
 		
 		ofstream file(filename.c_str(), ios::binary);
-		if (!file.is_open()) return 409;
+		if (!file.is_open()) return this->setErrorResponse(409);
 		file.write(dataToWrite.data(), dataToWrite.size());
 		file.close();
 
 		setHeader("Location", headerlocationPath);
 		setHeader("Content-Length", "0");
-		return 201;
+		return this->client->setStatusCode(201);
 	}
 	else
-		return (setHeader("Allow", "GET"), setHeader("Content-Length", "0"), 405);
+		return (setHeader("Allow", "GET"), this->setErrorResponse(405));
 }

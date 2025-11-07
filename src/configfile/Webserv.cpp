@@ -11,6 +11,7 @@ std::map<int, std::string> getDefaultErrorPages() {
 	defaultErrorPages[404] = "./www/html/errors/404.html";
 	defaultErrorPages[405] = "./www/html/errors/405.html";
 	defaultErrorPages[408] = "./www/html/errors/408.html";
+	defaultErrorPages[409] = "./www/html/errors/409.html";
 	defaultErrorPages[500] = "./www/html/errors/500.html";
 	defaultErrorPages[501] = "./www/html/errors/501.html";
 	defaultErrorPages[502] = "./www/html/errors/502.html";

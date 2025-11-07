@@ -47,9 +47,9 @@ class Response {
 		int					prepareResponse();
 		string				serializeHeaders();
 		string				serializeHeadersAndBody();
-		int					Post();
-		int					Get();
-		int					Delete();
+		void				Post();
+		void				Get();
+		void				Delete();
 		void				setErrorResponse(int code);
 		bool				findHeader(string key) { return headers.find(key) != headers.end(); }
 
