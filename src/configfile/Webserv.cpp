@@ -20,7 +20,7 @@ std::map<int, std::string> getDefaultErrorPages() {
 	return defaultErrorPages;
 }
 
-static void checkForDuplicateLocations(const std::vector<location_b> &locations) {
+static inline void checkForDuplicateLocations(const std::vector<location_b> &locations) {
 	std::map<std::string, std::string> checked;
 	for (std::vector<location_b>::const_iterator it = locations.begin(); it != locations.end(); ++it) {
 		if (checked.find(it->name) != checked.end() && checked[it->name] == it->path) {
@@ -43,11 +43,16 @@ void	server::fillServer(server &serv, const Config &config) {
 		defaultLocation.name = "/";
 		defaultLocation.methods.push_back("GET");
 		defaultLocation.errorPageMap = getDefaultErrorPages();
-		defaultLocation.isAutoIndexEnabled = true;
+		defaultLocation.isAutoIndexEnabled = config.isAutoIndexed();
 		defaultLocation.index = serv.index;
 		defaultLocation.isCgiEnabled = false;
 		defaultLocation.errorPageMap = serv.errorPageMap;
 		serv.locations.push_back(defaultLocation);
 	}
+	for (std::vector<location_b>::iterator it = serv.locations.begin(); it != serv.locations.end(); ++it) {
+		if (it->index.empty())
+			it->index = serv.index;
+	}
 	checkForDuplicateLocations(serv.locations);
+
 }

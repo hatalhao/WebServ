@@ -3,18 +3,18 @@
 #include "../../includes/networking.hpp"
 #include "../../includes/client.hpp"
 
-static bool setNonBlocking(int fd) {
+static inline bool setNonBlocking(int fd) {
 	int flags = fcntl(fd, F_GETFL, 0);
 	return flags >= 0 && fcntl(fd, F_SETFL, flags | O_NONBLOCK) >= 0;
 }
 
-static void setCloseOnExec(int fd) {
+static inline void setCloseOnExec(int fd) {
 	int flags = fcntl(fd, F_GETFD);
 	if (flags >= 0)
 		fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
 }
 
-int Worker::acceptConnection(int serverIndex, int socketIndex) {
+inline int Worker::acceptConnection(int serverIndex, int socketIndex) {
 	if (serverIndex >= static_cast<int>(_servers.size()) ||
 		socketIndex >= static_cast<int>(_servers[serverIndex].socketFd.size()))
 		return -1;
@@ -51,7 +51,7 @@ int Worker::acceptConnection(int serverIndex, int socketIndex) {
 }
 
 
-static int computeNextTimeout(const std::set<CgiHandler*>& cgiSet, 
+static inline int computeNextTimeout(const std::set<CgiHandler*>& cgiSet, 
                               const std::map<int, Client*>& clients, 
                               time_t now) {
 	int timeoutMs = -1;
@@ -75,7 +75,7 @@ static int computeNextTimeout(const std::set<CgiHandler*>& cgiSet,
 	return timeoutMs;
 }
 
-void Worker::initializeEpoll() {
+inline void Worker::initializeEpoll() {
 	if (_servers.empty())
 		throw std::runtime_error("No servers configured");
 
@@ -106,19 +106,19 @@ void Worker::initializeEpoll() {
 	}
 }
 
-void Worker::closeClient(int fd, std::map<int, Client*>::iterator& clientIt) {
+inline void Worker::closeClient(int fd, std::map<int, Client*>::iterator& clientIt) {
 	epoll_ctl(_epollFd, EPOLL_CTL_DEL, fd, NULL);
 	close(fd);
 	delete clientIt->second;
 	_clients.erase(clientIt);
 }
 
-void Worker::handleServerSocket(int fd) {
+inline void Worker::handleServerSocket(int fd) {
 	std::pair<int, int> serverInfo = socketToServer[fd];
 	acceptConnection(serverInfo.first, serverInfo.second);
 }
 
-void Worker::handleCgiEvent(int fd, uint32_t events) {
+inline void Worker::handleCgiEvent(int fd, uint32_t events) {
 	CgiHandler* handler = _cgiHandlers[fd];
 	if (events & (EPOLLIN | EPOLLHUP | EPOLLERR))
 		handler->manageReadEvent(_epollFd);
@@ -126,7 +126,7 @@ void Worker::handleCgiEvent(int fd, uint32_t events) {
 		handler->manageWriteEvent(_epollFd);
 }
 
-void Worker::handleClientEvent(int fd, uint32_t events, std::map<int, Client*>::iterator& clientIt) {
+inline void Worker::handleClientEvent(int fd, uint32_t events, std::map<int, Client*>::iterator& clientIt) {
 	Client* client = clientIt->second;
 
 	if (events & (EPOLLERR | EPOLLHUP)) {
@@ -154,7 +154,7 @@ void Worker::handleClientEvent(int fd, uint32_t events, std::map<int, Client*>::
 	}
 }
 
-void Worker::listenForEvents() {
+inline void Worker::listenForEvents() {
 	initializeEpoll();
 
 	struct epoll_event events[MAXEVENTS];
@@ -233,7 +233,7 @@ static void terminateCgiHandler(CgiHandler* handler, int epollFd) {
 	}
 }
 
-void Worker::checkCgiTimeouts() {
+inline void Worker::checkCgiTimeouts() {
 	time_t currentTime = time(NULL);
 
 	for (std::set<CgiHandler*>::iterator it = _cgiSet.begin(); it != _cgiSet.end(); ++it) {
@@ -246,7 +246,7 @@ void Worker::checkCgiTimeouts() {
 	}
 }
 
-void Worker::cleanupFinishedCgi() {
+inline void Worker::cleanupFinishedCgi() {
 	for (std::set<CgiHandler*>::iterator it = _cgiSet.begin(); it != _cgiSet.end(); ) {
 		CgiHandler* handler = *it;
 		if (!handler || handler->getState() != CGI_DONE) {
@@ -277,7 +277,7 @@ void Worker::cleanupFinishedCgi() {
 	}
 }
 
-void Worker::cleanupIdleConnections() {
+inline void Worker::cleanupIdleConnections() {
 	time_t now = time(NULL);
 	std::vector<int> fdsToClose;
 

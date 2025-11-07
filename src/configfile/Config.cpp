@@ -86,7 +86,7 @@ static inline std::map<int, std::string> getPages(std::ifstream& configFile, std
 			continue;
 		size_t pos = line.find('=');
 		token = isValidBlock(line);
-		if (pos == NPOS && (token == ERROR_TOKEN || token == LOCATION_TOKEN || token == SERVER_TOKEN)) {
+		if (pos == NPOS && (token == ERROR_TOKEN || token == LOCATION_TOKEN || token == SERVER_TOKEN || token == CGI_TOKEN)) {
 			break ;
 		}
 
@@ -260,7 +260,7 @@ Config::Config(const std::string& configFilePath) {
 
 			pos = line.find('=');
 			token = (pos == NPOS) ? isValidBlock(line) : token;
-			if (pos == NPOS && (token == UNKNOWN_TOKEN || token == CGI_TOKEN)) {
+			if (pos == NPOS && token == UNKNOWN_TOKEN) {
 				configFile.close();
 				throw std::runtime_error("Invalid configuration directive in the server block: " + line);
 			}
@@ -296,6 +296,11 @@ Config::Config(const std::string& configFilePath) {
 					lastLine = line;
 					break;
 				}
+			}
+
+			if (pos == NPOS && token == CGI_TOKEN) {
+				configFile.close();
+				throw std::runtime_error("CGI directive found outside of location block: " + line);
 			}
 
 			if (pos != NPOS && !isKeyValue(line, SERVER_TOKEN)) {
@@ -405,6 +410,13 @@ std::vector<std::string> Config::extractServerName() const {
 	}
 
 	return serverNames;
+}
+
+bool Config::isAutoIndexed() const {
+	std::map<std::string, std::string>::const_iterator it = _settings.find("autoindex");
+	if (it == _settings.end())
+		return false;
+	return (it->second == "on");
 }
 
 Config::~Config() {

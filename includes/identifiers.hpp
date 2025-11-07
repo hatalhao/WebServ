@@ -14,7 +14,7 @@ bool	isArrayKey(const std::string& key);
 bool 	isValidMethod(const std::string& method);
 int		isValidStatusCode(long statusCode);
 bool	isdefaultLocationFound(const server& serv);
-bool	isValidKey(const std::string& key, const int context);
+// bool	isValidKey(const std::string& key, const int context);
 bool	isValidHost(const std::string& host);
 bool	isValidValue(const std::string& value);
 bool	isValidPort(const std::string& port);
