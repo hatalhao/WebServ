@@ -109,6 +109,7 @@ std::string	saveArray(const std::string& line) {
 		if (value.find_first_not_of(" \t") == NPOS || value.empty()) {
 			throw std::runtime_error("Empty value in array: " + line);
 		}
+		value = value[0] == ' ' ? value.substr(1) : value;
 		merged += value + (ss.eof() ? "" : ",");
 	}
 	
