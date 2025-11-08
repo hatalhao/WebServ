@@ -208,13 +208,15 @@ int	Response::prepareResource(const Request& request) {
 		return (client->setStatusCode(403), -1);
 
 	resourceInfo.type = getResourceType(resourceInfo);
-
+	
 	if (resourceInfo.type == IS_DIR)
 		handleIndexFile(request.getMethod());
+	else if (resourceInfo.type == IS_FILE)
+		checkcgiExtension(resourceInfo);
 
 	if (resourceInfo.type == IS_NOT_FOUND || resourceInfo.type == IS_FORBIDDEN)
 		return (client->setStatusCode(resourceInfo.type), -1);
-
+	
 	return (0);
 }
 
