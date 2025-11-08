@@ -109,11 +109,6 @@ void    CgiHandler::executeChild(int *pipeIn, int *pipeOut) {
 bool	CgiHandler::start() {
 	int pipeIn[2] = {-1}, pipeOut[2] = {-1};
 	try {
-		string resourcePath = this->_client.getResponse().getResourcePath();
-		if (access(resourcePath.c_str(), X_OK) != 0) {
-			this->_client.onCgiError(403);
-			return false;
-		}
 
 		if (this->_client.getCgiHandlerPath().empty())
 			return false;
@@ -122,9 +117,9 @@ bool	CgiHandler::start() {
 		if (pipe(pipeIn) < 0 || pipe(pipeOut) < 0)
 			throw exception();
 
-		for (int i = 0; i < 2; ++i) {
-			fcntl(pipeIn[i], F_SETFL, O_NONBLOCK);
-			fcntl(pipeOut[i], F_SETFL, O_NONBLOCK); }
+		// for (int i = 0; i < 2; ++i) {
+		// 	fcntl(pipeIn[i], F_SETFL, O_NONBLOCK);
+		// 	fcntl(pipeOut[i], F_SETFL, O_NONBLOCK); }
 
 		this->pid = fork();
 		if (this->pid < 0) throw exception();
@@ -178,7 +173,6 @@ void	CgiHandler::manageReadEvent(int epollFd) {
 		this->_client.onCgiDone(this->output);
 		this->state = CGI_DONE;
 	} else {
-		// bytesRead < 0: error occurred
 		this->state = CGI_DONE;
 		epoll_ctl(epollFd, EPOLL_CTL_DEL, this->readPipeFd, NULL);
 		close(this->readPipeFd);
@@ -200,10 +194,8 @@ void	CgiHandler::manageWriteEvent(int epollFd) {
 		if (sent > 0) {
 			this->bytesRecieved += sent;
 		} else if (sent == 0) {
-			// Shouldn't happen with pipes, but handle it
 			return;
 		} else {
-			// sent < 0: error occurred
 			this->state = CGI_DONE;
 			epoll_ctl(epollFd, EPOLL_CTL_DEL, this->writePipeFd, 0);
 			close(this->writePipeFd);

@@ -58,11 +58,12 @@ class Response {
 		string				getResourceExtension() { return resourceInfo.extension; }
 		string				getresourceDir() { return resourceInfo.pathDir; }
 		const location_b*	getRules() { return rules; }
-		void				resolveResourcePath(const Request& request, bool isPOST);
 		bool				checkRedirections();
-		void				handleIndexFile();
+		void				handleIndexFile(const string& requestMethod);
 		bool				checkCgiRequest() { return isCgiRequest; }
 		int					prepareResource(const Request& request);
+		void				resolveResourcePath(const Request& request);
+		bool				checkcgiExtension(file_info& resource);
 
 };
 

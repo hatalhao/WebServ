@@ -247,7 +247,7 @@ int Request::processHeaders(string& buffer) {
         }
 
         size_t  colPos = line.find(':');
-        if (colPos == NPOS) {this->state = PARSINGERROR; DEBUG cout << "[" << line << "]\n"; return 400;}
+        if (colPos == NPOS) {this->state = PARSINGERROR; return 400;}
         
         string  key = line.substr(0, colPos);
         if (!validateHeaderKey(key)) {this->state = PARSINGERROR; return 400;}

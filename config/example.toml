@@ -17,7 +17,7 @@ upload_path = "/home/aderraj/Desktop/WebServ/www/uploads"
 [[location]]
 name = "/uploads"
 allow = ["POST", "GET"]
-index = ["accueil.html", "welcome.html", "indexFile.html"]
+index = ["welcome.py", "welcome.html", "indexFile.html"]
 upload_path = "/home/aderraj/Desktop/WebServ/www/uploads"
 
 [[location]]

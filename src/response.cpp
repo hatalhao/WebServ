@@ -17,40 +17,46 @@ const string	getFileExtension(const string& filename) {
 }
 
 const location_b& Response::findLocationConfig(const string& path) {
-    const location_b* bestMatch = NULL, *root = NULL;
+    const location_b* bestMatch = NULL;
+    const location_b* rootLocation = NULL;
     size_t longestMatchLen = 0;
     string normalizedPath(path);
 
-    if (normalizedPath.empty() || normalizedPath[0] != '/')
-        normalizedPath.insert(0, "/");
+    for (vector<location_b>::const_iterator it = client->getServer()->locations.begin();
+         it != client->getServer()->locations.end(); ++it) {
+        
+        string locName = it->name;
 
-    string pathWithSlash = normalizedPath;
-    if (pathWithSlash[pathWithSlash.length() - 1] != '/')
-        pathWithSlash += '/';
+        if (locName.empty() || locName[0] != '/')
+            locName.insert(0, "/");
 
-    for (vector<location_b>::const_iterator it = this->client->getServer()->locations.begin();
-         it != this->client->getServer()->locations.end(); ++it) {
-		if (it->name == "/") root = &(*it);
+        if (locName == "/") {
+            rootLocation = &(*it);
+            continue;
+        }
 
-        string normalizedLocName = it->name;
-        if (normalizedLocName.empty() || normalizedLocName[0] != '/')
-            normalizedLocName.insert(0, "/");
-        if (normalizedLocName.length() > 1 && normalizedLocName[normalizedLocName.length() - 1] != '/')
-            normalizedLocName.push_back('/');
+        if (locName[locName.length() - 1] != '/')
+            locName += '/';
+        
+        size_t currentMatchLen = locName.length();
 
-        bool matches = (normalizedPath.rfind(normalizedLocName, 0) == 0) ||
-                      (pathWithSlash.rfind(normalizedLocName, 0) == 0);
+        if (normalizedPath.find(locName) == 0) {
+            if (currentMatchLen > longestMatchLen) {
+                longestMatchLen = currentMatchLen;
+                bestMatch = &(*it);
+            }
+        } 
 
-        if (matches) {
-            if (normalizedLocName.length() > longestMatchLen) {
-                longestMatchLen = normalizedLocName.length();
+        else if (normalizedPath + "/" == locName) {
+            if (currentMatchLen > longestMatchLen) {
+                longestMatchLen = currentMatchLen;
                 bestMatch = &(*it);
             }
         }
     }
-
-    if (!bestMatch)
-        bestMatch = root;
+    if (bestMatch == NULL)
+        bestMatch = rootLocation; 
+    
     return *bestMatch;
 }
 
@@ -90,6 +96,59 @@ bool Response::detectRedirectLoop(const string& startPath, int maxDepth,
 }
 
 
+bool	Response::checkRedirections() {
+	if (rules->redirection.empty() == false)
+	{
+		string currentPath = client->getRequest().getPath();
+		set<string> visitedPaths;
+		
+        if (detectRedirectLoop(currentPath, 7, visitedPaths))
+			return (this->client->setStatusCode(508), false);
+		
+		string resolvedPath = resolveRedirect(rules->redirection, rules->name);
+		
+		if (resolvedPath.empty())
+			return (this->client->setStatusCode(500), false);
+		
+		this->setHeader("Location", resolvedPath);
+		this->client->setStatusCode(301);
+		return false;
+	}
+	return true;
+}
+
+void    Response::handleIndexFile(const string& requestMethod) {
+    if (this->rules->index.empty()) return ;
+    
+    for (vector<string>::const_iterator it = this->rules->index.begin();
+        it != this->rules->index.end(); ++it)
+    {
+        string indexPath = this->resourceInfo.path;
+        if (!indexPath.empty() && indexPath[indexPath.length() - 1] != '/')
+        indexPath += "/";
+        
+        indexPath += *it;
+        
+        file_info indexInfo;
+        indexInfo.path = indexPath;
+        indexInfo.type = getResourceType(indexInfo);
+		indexInfo.pathDir = resourceInfo.pathDir;
+        if (indexInfo.type == IS_FILE) {
+            indexInfo.extension = getFileExtension(indexPath);
+            checkcgiExtension(indexInfo);
+            if (isCgiRequest || requestMethod != "POST") {
+                resourceInfo = indexInfo;
+                return;
+            }
+        }
+        else if (indexInfo.type == IS_FORBIDDEN) {
+            resourceInfo = indexInfo;
+            return;
+        }
+    }
+}
+
+
 ResourceType	getResourceType(file_info& resource) {
 	struct stat st;
 	int ret = stat(resource.path.c_str(), &st);
@@ -97,107 +156,64 @@ ResourceType	getResourceType(file_info& resource) {
 
 	if (ret != 0)
 		return IS_NOT_FOUND;
-
 	if (access(resource.path.c_str(), R_OK) != 0)
         return IS_FORBIDDEN;
-
-    if (S_ISDIR(st.st_mode))
-        return IS_DIR;
-    if (S_ISREG(st.st_mode))
-        return IS_FILE;
-    return IS_NOT_FOUND;
+	if (S_ISDIR(st.st_mode))
+		return IS_DIR;
+	if (S_ISREG(st.st_mode))
+		return IS_FILE;
+	return IS_NOT_FOUND;
 }
 
+void	Response::resolveResourcePath(const Request& request) {
+	resourceInfo.pathDir = rules->path.empty() ?
+		client->getServer()->root : rules->path;
 
-void	Response::resolveResourcePath(const Request& request, bool isPOST) {
-	if (this->isCgiRequest || !isPOST)
-		this->resourceInfo.pathDir = rules->path.empty() ?
-				client->getServer()->root : rules->path;
-	else
-		this->resourceInfo.pathDir = rules->uploadPath;
+	string normalizedLocName = rules->name;
+	if (normalizedLocName.empty() || normalizedLocName[0] != '/')
+		normalizedLocName.insert(0, "/");
+	if (normalizedLocName.length() > 1 && normalizedLocName[normalizedLocName.length() - 1] != '/')
+		normalizedLocName.push_back('/');
 
-	string requestPath = request.getPath().length() > rules->name.length() ?
-		request.getPath().substr(rules->name.length()) : "";
+	string requestPath = request.getPath().length() > normalizedLocName.length() ?
+		request.getPath().substr(normalizedLocName.length()) : "";
 
 	if (!requestPath.empty() && requestPath[0] == '/')
 		requestPath = requestPath.substr(1);
 	
-	this->resourceInfo.path = resourceInfo.pathDir;
-	if (!this->resourceInfo.path.empty()
+	resourceInfo.path = resourceInfo.pathDir;
+	if (!resourceInfo.path.empty()
 	&& resourceInfo.pathDir[resourceInfo.pathDir.length() - 1] != '/')
-		this->resourceInfo.path += "/";
+		resourceInfo.path += "/";
 
-	this->resourceInfo.path += requestPath;
-
+	resourceInfo.path += requestPath;
+	resourceInfo.extension = getFileExtension(resourceInfo.path);
 }
 
-bool	Response::checkRedirections() {
-	if (rules->redirection.empty() == false) {
-	 	string currentPath = client->getRequest().getPath();
-	 	set<string> visitedPaths;
-
-        if (detectRedirectLoop(currentPath, 7, visitedPaths))
-            return (this->client->setStatusCode(508), false);
-
-		string resolvedPath = resolveRedirect(rules->redirection, rules->name);
-
-		if (resolvedPath.empty())
-			return (this->client->setStatusCode(500), false);
-
-	 	this->setHeader("Location", resolvedPath);
-		this->client->setStatusCode(301);
-	 	return false;
-	}
-	return true;
-}
-
-
-void	Response::handleIndexFile() {
-	if (this->resourceInfo.type != IS_DIR || this->rules->index.empty())
-		return ;
-
-	for (vector<string>::const_iterator it = this->rules->index.begin();
-			it != this->rules->index.end(); ++it)
+bool	Response::checkcgiExtension(file_info& resource) {
+	isCgiRequest = false;
+	for (vector<cgi_t>::const_iterator it = rules->cgiList.begin();
+			it != rules->cgiList.end(); ++it)
 	{
-		string indexPath = this->resourceInfo.path;
-		if (!indexPath.empty() && indexPath[indexPath.length() - 1] != '/')
-			indexPath += "/";
-
-		indexPath += *it;
-
-		file_info indexInfo;
-		indexInfo.path = indexPath;
-		if (getResourceType(indexInfo) == IS_FILE) {
-			this->resourceInfo.path = indexPath;
-			this->resourceInfo.type = IS_FILE;
-			this->resourceInfo.extension = getFileExtension(indexPath);
-			break;
-		}
+		if (it->extension == resource.extension)
+		{	isCgiRequest = true; return true; }
 	}
+	return false;
 }
 
 int	Response::prepareResource(const Request& request) {
-	this->resourceInfo.extension = getFileExtension(request.getPath());
+	resolveResourcePath(request);
 
-	this->isCgiRequest = false;
-	for (vector<cgi_t>::const_iterator it = rules->cgiList.begin(); it != rules->cgiList.end(); ++it) {
-		if (it->extension == this->resourceInfo.extension) {
-			this->isCgiRequest = true;
-			break;
-		}
-	}
-
-	const string& requestMethod = request.getMethod();
-
-	this->resolveResourcePath(request, requestMethod == "POST");
 	if (this->resourceInfo.path.find("..") != string::npos)
-		return (this->client->setStatusCode(403), -1);
+		return (client->setStatusCode(403), -1);
 
-	this->resourceInfo.type = getResourceType(this->resourceInfo);
+	resourceInfo.type = getResourceType(resourceInfo);
 
-	if (this->resourceInfo.type == IS_FORBIDDEN
-		|| (this->resourceInfo.type == IS_NOT_FOUND && requestMethod != "POST") )
-		return (this->client->setStatusCode(this->resourceInfo.type), -1);
+	if (resourceInfo.type == IS_DIR)
+		handleIndexFile(request.getMethod());
+
+	if (resourceInfo.type == IS_NOT_FOUND || resourceInfo.type == IS_FORBIDDEN)
+		return (client->setStatusCode(resourceInfo.type), -1);
 
 	return (0);
 }
@@ -267,6 +283,7 @@ string Response::getReasonPhrase() {
 		case 414: return "Request-URI Too Long";
 		case 500: return "Internal Server Error";
 		case 501: return "Not Implemented";
+		case 502: return "Bad Gateway";
 		case 505: return "HTTP Version Not Supported";
 		case 504: return "Gateway Timeout";
 		case 508: return "Loop Detected";

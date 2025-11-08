@@ -59,21 +59,21 @@ static string extractBoundaryFromContentType(const string& contentType) {
 }
 
 void	Response::Post() {
-	if (this->resourceInfo.type != IS_FILE) {
+
+	if (resourceInfo.type == IS_DIR && !rules->uploadPath.empty()) {
 		Request	&request = client->getRequest();
 
-		string filename = this->resourceInfo.path;
+		string filename = rules->uploadPath;
 		string headerlocationPath = request.getPath();
 
-		if (this->resourceInfo.type == IS_DIR) {
-			if (filename[filename.length() - 1] != '/')
-
-			{ filename += "/";  headerlocationPath += "/";  }
-			string randomName = generateRandomFileName();
-			filename += randomName;
-			headerlocationPath += randomName;
-		}
+		if (!filename.empty() && filename[filename.length() - 1] != '/')
+            filename += "/";
+        if (!headerlocationPath.empty() && headerlocationPath[headerlocationPath.length() - 1] != '/')
+            headerlocationPath += "/";
 		
+		string randomName = generateRandomFileName();
+        filename += randomName;
+        headerlocationPath += randomName;
 		string contentType = request.getHeader("content-type");
 		vector<char> dataToWrite = request.getBody();
 		
@@ -86,15 +86,15 @@ void	Response::Post() {
 				}
 			}
 		}
-		
 		ofstream file(filename.c_str(), ios::binary);
 		if (!file.is_open()) return this->setErrorResponse(409);
 		file.write(dataToWrite.data(), dataToWrite.size());
 		file.close();
-
+	
 		setHeader("Location", headerlocationPath);
 		setHeader("Content-Length", "0");
 		return this->client->setStatusCode(201);
+	
 	}
 	else
 		return (setHeader("Allow", "GET"), this->setErrorResponse(405));
