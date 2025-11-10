@@ -107,9 +107,16 @@ inline void Worker::initializeEpoll() {
 }
 
 inline void Worker::closeClient(int fd, std::map<int, Client*>::iterator& clientIt) {
+	Client* client = clientIt->second;
+	
+	// Mark associated CGI handler as done to prevent use-after-free
+	if (client->getCgiHandler()) {
+		client->getCgiHandler()->setState(CGI_DONE);
+	}
+	
 	epoll_ctl(_epollFd, EPOLL_CTL_DEL, fd, NULL);
 	close(fd);
-	delete clientIt->second;
+	delete client;
 	_clients.erase(clientIt);
 }
 

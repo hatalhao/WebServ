@@ -35,6 +35,7 @@ class CgiHandler {
 
 	public:
 		CgiHandler(Client& client);
+		~CgiHandler();
 		CgiState	getState() { return state; }
 		int			getWriteFd() const { return writePipeFd; }
 		int 		getReadFd() const { return readPipeFd; }

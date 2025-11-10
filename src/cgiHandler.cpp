@@ -6,6 +6,15 @@ CgiHandler::CgiHandler(Client& client) :
 	bodyBytesWritten(0), expectedBodySize(0),
 	sessionId(""), sessionCreated(false), startTime(0){}
 
+CgiHandler::~CgiHandler() {
+	if (envp) {
+		for (int i = 0; envp[i] != NULL; i++) {
+			delete[] envp[i];
+		}
+		delete[] envp;
+	}
+}
+
 void    closeFds(int* in, int *out) {
 	if (in) {
 		close(in[0]);

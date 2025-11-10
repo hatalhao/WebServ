@@ -36,6 +36,8 @@ typedef struct	cgi_data {
 	bool	sessionRequested;
 } cgi_data;
 
+class CgiHandler;
+
 class Client {
 	private:
 		Worker			*globalConfig;
@@ -55,6 +57,7 @@ class Client {
 		time_t			lastActivity;
 		int				uploadFd;
 		string			bodyBuffer;
+		CgiHandler*		_cgiHandler;
 		void			resetWriteState();
 		void			resetForNextRequest();
 
@@ -93,6 +96,8 @@ class Client {
 		int						streamFileResponse(ssize_t& sent);
 		void					setStatusCode(unsigned short status) { httpStatusCode = status; }
 		string					getCgiHandlerPath() { return cgiHandlerPath; }
+		CgiHandler*				getCgiHandler() { return _cgiHandler; }
+		void					setCgiHandler(CgiHandler* handler) { _cgiHandler = handler; }
 		void					onCgiDone(string& cgiOutput);
 		void					onCgiError(unsigned short code);
 		int						endStreamingFile(size_t n);

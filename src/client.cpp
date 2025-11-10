@@ -7,7 +7,7 @@ Client::Client(int fd, Worker* _g_config, const pair<string, int>& hostPort) :
 	requestBuf(""), responseBuf(""), contentLen(0), state(READING_REQUEST_LINE),
 	request(), response(this), cgiHandlerPath(""),
 	httpStatusCode(0), keepAlive(false), lastActivity(time(NULL)),
-	uploadFd(-1),
+	uploadFd(-1), _cgiHandler(NULL),
 	bodySent(0), headerSent(0), bodyBytesProcessed(0),
 	fileBufferUsed(0), fileBufferSent(0), fileReadOffset(0) {}
 
@@ -89,6 +89,7 @@ void    Client::resetForNextRequest() {
 	this->httpStatusCode = 0;
 	this->contentLen = 0;
 	this->state = READING_REQUEST_LINE;
+	this->_cgiHandler = NULL;
 	
 	if (this->uploadFd >= 0) {
 		close(this->uploadFd);
@@ -112,6 +113,7 @@ void	Client::forwardToCgi() {
 	cgiHandlerPath = this->response.searchCgiHandlerPath();
 	CgiHandler* cgi = new CgiHandler(*this);
 	if (cgi->start()) {
+		this->_cgiHandler = cgi;
 		this->globalConfig->getCgiSet().insert(cgi);
 		struct epoll_event ev = epoll_event();
 		ev.events = 0;
@@ -484,6 +486,7 @@ void	Client::onCgiDone(string& cgiOutput) {
 	this->response.bodySent = 0;
 
 	this->state = SENDING_RESPONSE;
+	this->_cgiHandler = NULL;
 
 	struct epoll_event event = epoll_event();
 	event.data.fd = this->_clientFd;
@@ -500,6 +503,7 @@ void    Client::onCgiError(unsigned short code) {
 	this->response.bodySent = 0;
 
 	this->state = SENDING_RESPONSE;
+	this->_cgiHandler = NULL;
 
 	struct epoll_event event = epoll_event();
 	event.data.fd = this->_clientFd;
