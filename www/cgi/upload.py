@@ -110,10 +110,22 @@ def handle_status_response(status_code):
                         submitButton.textContent = 'Uploading...';
                         submitButton.disabled = true;
                         
-                        const formData = new FormData(form);
+                        // Get the file directly, not as FormData
+                        const file = fileInput.files[0];
+                        if (!file) {
+                            alert('Please select a file');
+                            submitButton.textContent = originalButtonText;
+                            submitButton.disabled = false;
+                            return;
+                        }
+                        
+                        // Send file as raw binary data
                         const response = await fetch('/uploads/', {
                             method: 'POST',
-                            body: formData
+                            body: file,
+                            headers: {
+                                'Content-Type': 'application/octet-stream'
+                            }
                         });
 
                         // Redirect based on server response

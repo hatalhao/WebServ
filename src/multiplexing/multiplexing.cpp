@@ -292,7 +292,8 @@ inline void Worker::cleanupIdleConnections() {
 		if (elapsed > KEEP_ALIVE_TIMEOUT) {
 			if (clientState == READING_REQUEST_LINE && client->getRequestBuf().empty() && client->shouldKeepAlive()) {
 				fdsToClose.push_back(it->first);
-			} else if (clientState == READING_REQUEST_LINE || clientState == READING_HEADERS || clientState == READING_BODY) {
+			} else if (clientState == READING_REQUEST_LINE || clientState == READING_HEADERS || 
+			           clientState == READING_BODY || clientState == PROCESSING_UPLOAD) {
 				client->setKeepAlive(false);
 				client->onCgiError(408);
 			} else

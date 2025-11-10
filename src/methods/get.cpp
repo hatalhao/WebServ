@@ -125,7 +125,6 @@ static inline string generateDirectoryListing(const string& dirPath, const strin
 void Response::Get() {
     switch (resourceInfo.type) {
         case IS_FILE: {
-
             int fd = open(resourceInfo.path.c_str(), O_RDONLY);
             if (fd < 0) {
                 perror("open");
@@ -152,8 +151,6 @@ void Response::Get() {
                 this->setBody(listing);
                 return this->client->setStatusCode(200);
             }
-            else
-                return this->setErrorResponse(404);
         }
         default:
             return this->setErrorResponse(403);

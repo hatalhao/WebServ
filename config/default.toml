@@ -10,3 +10,9 @@ name = "/"
 path = "/home/hatalhao/42-cc/WebServ"
 index = ["index.html", "index.php"]
 autoindex = "on"
+
+[[location]]
+name = "/uploads"
+path = "/home/aderraj/Desktop/WebServ/www/uploads"
+upload_path = "/home/aderraj/Desktop/WebServ/www/uploads"
+methods = ["GET", "POST", "DELETE"]

@@ -18,6 +18,13 @@ string  SessionManager::generateSID() {
     for (size_t i = 0; i < 32; ++i) {
         char byte;
         urandom.read(&byte, 1);
+        if (!urandom || urandom.gcount() != 1) {
+            urandom.close();
+            string fallback_sid;
+            for (size_t j = sid.length(); j < 32; ++j)
+                fallback_sid += charset[rand() % (sizeof(charset) - 1)];
+            return sid + fallback_sid;
+        }
         unsigned char index = static_cast<unsigned char>(byte) % (sizeof(charset) - 1);
         sid += charset[index];
     }

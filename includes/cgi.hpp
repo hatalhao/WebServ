@@ -22,7 +22,8 @@ class CgiHandler {
 		int					writePipeFd;
 		int					readPipeFd;
 		string				output;
-		size_t				bytesRecieved;
+		size_t				bodyBytesWritten;
+		size_t				expectedBodySize;
 		string				sessionId;
 		bool				sessionCreated;
 		time_t				startTime;

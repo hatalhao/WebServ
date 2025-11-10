@@ -9,14 +9,14 @@
 static inline bool isValidCgi(std::string extension, std::string path) {
 	if (extension.empty() || path.empty())
 		return false;
-	if (extension != ".php" && extension != ".py"){
-		return false;
-	}
-	if (extension == ".php" && path != "/usr/bin/php")
-		return false;
-	if (extension == ".py" && path != "/usr/bin/python3"){
-		return false;
-	}
+	// if (extension != ".php" && extension != ".py"){
+	// 	return false;
+	// }
+	// if (extension == ".php" && path != "/usr/bin/php")
+	// 	return false;
+	// if (extension == ".py" && path != "/usr/bin/python3"){
+	// 	return false;
+	// }
 	if (access(path.c_str(), F_OK | X_OK) == -1)
 		return false;
 	return true;

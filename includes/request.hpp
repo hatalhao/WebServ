@@ -18,7 +18,6 @@ typedef enum RequestState {
 
 class Request {
 	private:
-		Client*							client;	
 		string							method;
 		string							uri;
 		string							path;
@@ -26,7 +25,6 @@ class Request {
 		string							version;
 		map<string, string>				headers;
 		map<string, string>				cookies;
-		vector<char>					body;
 		RequestState					state;
 
 		bool	validateMethod(const string& _method, int& code);
@@ -38,18 +36,17 @@ class Request {
 		bool	validateCookieVal(const string& val);
 
 	public:
-		Request(Client*		_client);
+		Request();
+		~Request();
 		string						getMethod() const { return method; }
 		string						getHeader(const string& key) const;
 		string						getPath() const { return path; }
 		string						getQueryString() const { return queryString; }
 		RequestState				getState() const { return state; }
-		const vector<char>&			getBody() const { return body; }
 		string						getVersion() const { return version; }
 		const map<string, string>&	getHeaders() const { return headers; }
 		int							processRequestLine(string& buffer);
 		int							processHeaders(string& buffer);
-		int							processBody(string& buffer);
 		void						setPath(const string& _path) { path = _path; }
 		string						getCookie(const string& name);
 		map<string, string>&		getCookies() { return cookies; }

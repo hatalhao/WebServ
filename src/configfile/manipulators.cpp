@@ -24,16 +24,16 @@ size_t parseSize(const std::string& sizeStr) {
 		} else if (unitStr == "MB") {
 			size = std::atoll(numberStr.c_str()) * MB;
 		} else if (unitStr == "GB") {
-			throw std::runtime_error("Size unit GB is not supported");
+			size = std::atoll(numberStr.c_str()) * GB;
 		} else {
 			throw std::runtime_error("Invalid size unit: " + unitStr);
 		}
 	} else {
 		size = std::atoll(sizeStr.c_str());
 	}
-	if (size > 50 * MB) {
-		throw std::runtime_error("Size exceeds maximum allowed limit of 50MB");
-	}
+	// if (size > 50 * MB) {
+	// 	throw std::runtime_error("Size exceeds maximum allowed limit of 50MB");
+	// }
 	return size;
 }
 

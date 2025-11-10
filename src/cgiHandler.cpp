@@ -2,7 +2,8 @@
 
 CgiHandler::CgiHandler(Client& client) :
 	_client(client), envp(NULL), pid(-1), state(CGI_IDLE),
-	writePipeFd(-1), readPipeFd(-1), output(""), bytesRecieved(0),
+	writePipeFd(-1), readPipeFd(-1), output(""),
+	bodyBytesWritten(0), expectedBodySize(0),
 	sessionId(""), sessionCreated(false), startTime(0){}
 
 void    closeFds(int* in, int *out) {
@@ -56,6 +57,7 @@ void    CgiHandler::setupEnv() {
 	env_vars.push_back("REQUEST_METHOD=" + request.getMethod());
 	env_vars.push_back("QUERY_STRING=" + request.getQueryString());
 	env_vars.push_back("SCRIPT_NAME=" + this->_client.getResponse().getResourcePath());
+	env_vars.push_back("PYTHONUNBUFFERED=1");
 
 	env_vars.push_back("PATH_INFO=" + this->_client.getResponse().getResourcePath());
 
@@ -64,7 +66,8 @@ void    CgiHandler::setupEnv() {
 		if (request.getHeader("content-length") != "")
 			env_vars.push_back("CONTENT_LENGTH=" + request.getHeader("content-length"));
 		else {
-			env_vars.push_back("CONTENT_LENGTH=" + toString(request.getBody().size()));
+			// Use body buffer size
+			env_vars.push_back("CONTENT_LENGTH=" + toString(this->_client.getBodyBuffer().size()));
 		}
 	}
 
@@ -88,7 +91,13 @@ void    CgiHandler::executeChild(int *pipeIn, int *pipeOut) {
 
 	dup2(pipeIn[0], STDIN_FILENO);
 	dup2(pipeOut[1], STDOUT_FILENO);
-	dup2(pipeOut[1], STDERR_FILENO);
+	
+	// Redirect stderr to /dev/null to avoid buffering issues
+	int devNull = open("/dev/null", O_WRONLY);
+	if (devNull != -1) {
+		dup2(devNull, STDERR_FILENO);
+		close(devNull);
+	}
 
 	closeFds(pipeIn, pipeOut);
 
@@ -117,10 +126,6 @@ bool	CgiHandler::start() {
 		if (pipe(pipeIn) < 0 || pipe(pipeOut) < 0)
 			throw exception();
 
-		// for (int i = 0; i < 2; ++i) {
-		// 	fcntl(pipeIn[i], F_SETFL, O_NONBLOCK);
-		// 	fcntl(pipeOut[i], F_SETFL, O_NONBLOCK); }
-
 		this->pid = fork();
 		if (this->pid < 0) throw exception();
 
@@ -138,8 +143,15 @@ bool	CgiHandler::start() {
 						|| (_request.getHeader("content-length") != ""
 								&&  _request.getHeader("content-length") != "0"));
 
-		if (this->_client.getRequest().getMethod() == "POST" && hasBody)
+		if (this->_client.getRequest().getMethod() == "POST" && hasBody) {
 			this->state = CGI_WRITING;
+			// Get expected body size
+			string contentLengthHeader = _request.getHeader("content-length");
+			if (!contentLengthHeader.empty()) {
+				this->expectedBodySize = atoll(contentLengthHeader.c_str());
+			}
+			this->bodyBytesWritten = 0;
+		}
 		else {
 			close(writePipeFd);
 			writePipeFd = -1;
@@ -183,33 +195,49 @@ void	CgiHandler::manageReadEvent(int epollFd) {
 
 void	CgiHandler::manageWriteEvent(int epollFd) {
 	if (this->state != CGI_WRITING || this->writePipeFd < 0)
-		return ;
+		return;
 
-	const Request& request = this->_client.getRequest();
-	const vector<char>& body = request.getBody();
-	size_t	bytesLeft = body.size() - this->bytesRecieved;
+	if (expectedBodySize > 0 && bodyBytesWritten >= expectedBodySize) {
+		epoll_ctl(epollFd, EPOLL_CTL_DEL, this->writePipeFd, 0);
+		close(this->writePipeFd);
+		this->writePipeFd = -1;
+		this->state = CGI_READING;
+		return;
+	}
 
-	if (bytesLeft > 0) {
-		ssize_t sent = write(this->writePipeFd, body.data() + this->bytesRecieved, bytesLeft);
+	const string& requestBuf = this->_client.getRequestBuf();
+	
+	if (requestBuf.empty())
+		return;
+
+	size_t toWrite = requestBuf.size();
+	if (expectedBodySize > 0 && bodyBytesWritten + toWrite > expectedBodySize)
+		toWrite = expectedBodySize - bodyBytesWritten;
+	
+	if (toWrite > 0) {
+		ssize_t sent = write(this->writePipeFd, requestBuf.c_str(), toWrite);
 		if (sent > 0) {
-			this->bytesRecieved += sent;
+			bodyBytesWritten += sent;
+			_client.consumeRequestBuf(sent);
+			
+			if (expectedBodySize > 0 && bodyBytesWritten >= expectedBodySize) {
+				epoll_ctl(epollFd, EPOLL_CTL_DEL, this->writePipeFd, 0);
+				close(this->writePipeFd);
+				this->writePipeFd = -1;
+				this->state = CGI_READING;
+			}
 		} else if (sent == 0) {
-			return;
+			this->state = CGI_DONE;
+			epoll_ctl(epollFd, EPOLL_CTL_DEL, this->writePipeFd, 0);
+			close(this->writePipeFd);
+			this->writePipeFd = -1;
+			this->_client.onCgiError(502);
 		} else {
 			this->state = CGI_DONE;
 			epoll_ctl(epollFd, EPOLL_CTL_DEL, this->writePipeFd, 0);
 			close(this->writePipeFd);
 			this->writePipeFd = -1;
 			this->_client.onCgiError(502);
-			return;
 		}
-	}
-
-	if (this->bytesRecieved >= body.size()) {
-		// Finished sending request body to CGI
-		epoll_ctl(epollFd, EPOLL_CTL_DEL, this->writePipeFd, 0);
-		close(this->writePipeFd);
-		this->writePipeFd = -1;
-		this->state = CGI_READING;
 	}
 }

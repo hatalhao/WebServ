@@ -1,7 +1,9 @@
 #include "../includes/request.hpp"
 #include "../includes/client.hpp"
 
-Request::Request(Client* _client) : client(_client), state(PARSINGREQUESTLINE){}
+Request::Request() : state(PARSINGREQUESTLINE) {}
+
+Request::~Request() { }
 
 static int hexVal(unsigned char ch) {
     if (ch >= '0' && ch <= '9') return ch - '0';
@@ -261,53 +263,6 @@ int Request::processHeaders(string& buffer) {
         this->headers[key] = val;
     }
     return 0;
-}
-
-
-int Request::processBody(string& buffer) {
-    size_t  contentLen;
-
-    size_t  maxBodySize = this->client->getServer()->maxBodySize;
-
-    if (headers.find("content-length") != headers.end()) {
-        contentLen = atoll(headers["content-length"].c_str());
-        if (contentLen > maxBodySize)
-            return (this->state = PARSINGERROR, 413);
-        if (buffer.length() < contentLen)
-            return 0;
-        this->body.assign(buffer.begin(), buffer.begin() + contentLen);
-        buffer.erase(0, contentLen);
-        this->state = PARSINGCOMPLETE;
-    }
-    else if (headers.find("transfer-encoding") != headers.end()) {
-        while (true) {
-            size_t crlf_pos = buffer.find(CRLF);
-            if (crlf_pos == string::npos) return 0;
-
-            stringstream ss(buffer.substr(0, crlf_pos));
-            size_t chunkSize;
-            ss >> std::hex >> chunkSize;
-
-            if (ss.fail()) return(this->state = PARSINGERROR, 400);
-
-            if (this->body.size() + chunkSize > maxBodySize)
-                return (this->state = PARSINGERROR, 413);
-
-            size_t chunkDataStart = crlf_pos + CRLF_LENGTH;
-            size_t totalChunkBlockSize = chunkDataStart + chunkSize + CRLF_LENGTH;
-            if (buffer.length() < totalChunkBlockSize) return 0;
-
-            if (chunkSize == 0) {
-                buffer.erase(0, totalChunkBlockSize - chunkSize);
-                return (this->state = PARSINGCOMPLETE, 0); 
-            }
-            body.insert(body.end(), buffer.begin() + chunkDataStart, buffer.begin() + chunkDataStart + chunkSize);
-            buffer.erase(0, totalChunkBlockSize);
-        }
-    }
-    else
-        return (this->state = PARSINGERROR, 400);
-    return (0);
 }
 
 

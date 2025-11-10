@@ -1,53 +1,53 @@
-# [[server]]
-# server_name = ["sekhar", "awd", "awdaw", "aawdawd"]
-# host = "127.0.0.1"
-# listen = ["8989"]
-# root = "/home/hatalhao/webserv/www/html"
-# max_body_size = "  15MB"
-# autoindex = "on"
-# # index = ["accueil.html", "welcome.html", "indexFile.html"]
+[[server]]
+server_name = ["sekhar", "awd", "awdaw", "aawdawd"]
+host = "127.0.0.1"
+listen = ["8989"]
+root = "/home/hatalhao/webserv/www/html"
+max_body_size = "  15MB"
+autoindex = "on"
+# index = ["accueil.html", "welcome.html", "indexFile.html"]
 
-# [[error_pages]]
-# 403 = "./pages/403.html"
-# 404 = "./pages/404.html"
-# 413 = "./pages/413.html"
-# 513 = "./pages/513.html"
+[[error_pages]]
+403 = "./pages/403.html"
+404 = "./pages/404.html"
+413 = "./pages/413.html"
+513 = "./pages/513.html"
 
-# [[location           ]]
-# name = "/"
-# # path = "/home/hatalhao/"
-# index = ["index.html", "images.php", "imagesFile.html"]
-# autoindex = "on"
-# allow = ["GET", "DELETE", "POST"]
-# upload_path = "/home/hatalhao/42-cc"
-# # return = ""
-# [[cgi    ]]
+[[location           ]]
+name = "/"
+# path = "/home/hatalhao/"
+index = ["index.html", "images.php", "imagesFile.html"]
+autoindex = "on"
+allow = ["GET", "DELETE", "POST"]
+upload_path = "/home/hatalhao/42-cc"
+# return = ""
+[[cgi    ]]
+extension = ".py"
+handler = "/usr/bin/python3"
+
+[[location]]
+name = "errors"
+# path = "/"
+index = ["home.html", "  home.php", "homeFile.html"]
+autoindex = "on"
+
+[[location]]
+name = "errors"
+path = "/home/hatalhao/snap"
+index = ["trash.html", "trash.php", "trashFile.html"]
+autoindex = "off"
+
+# [[cgi]]
 # extension = ".py"
 # handler = "/usr/bin/python3"
 
-# [[location]]
-# name = "errors"
-# # path = "/"
-# index = ["home.html", "  home.php", "homeFile.html"]
-# autoindex = "on"
-
-# [[location]]
-# name = "errors"
-# path = "/home/hatalhao/snap"
-# index = ["trash.html", "trash.php", "trashFile.html"]
-# autoindex = "off"
-
-# # [[cgi]]
-# # extension = ".py"
-# # handler = "/usr/bin/python3"
-
-[[server]]
-server_name = "hatalhao"
-host = "127.0.0.1"
-listen = '8080'
-root = "/home/hatalhao/webserv/www/html"
-max_body_size = "10MB"
-index = ["welcome.html"]
+# [[server]]
+# server_name = "hatalhao"
+# host = "127.0.0.1"
+# listen = '8080'
+# root = "/home/hatalhao/webserv/www/html"
+# max_body_size = "10MB"
+# index = ["welcome.html"]
 # [[cgi]]
 # extension = ".php"
 # handler = "/usr/bin/php"

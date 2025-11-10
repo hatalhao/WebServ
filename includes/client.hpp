@@ -14,6 +14,7 @@ enum ClientState {
 	READING_BODY,
 	READING_DONE,
 	READING_BAD_REQUEST,
+	PROCESSING_UPLOAD,
 	WAITING_FOR_CGI,
 	GENERATING_RESPONSE,
 	SENDING_RESPONSE
@@ -52,12 +53,15 @@ class Client {
 		unsigned short	httpStatusCode;
 		bool			keepAlive;
 		time_t			lastActivity;
+		int				uploadFd;
+		string			bodyBuffer;
 		void			resetWriteState();
 		void			resetForNextRequest();
 
 	public:
     	size_t	bodySent;
 		size_t	headerSent;
+		size_t	bodyBytesProcessed;
 		char	fileBuffer[100000];
 		size_t	fileBufferUsed; 
 		size_t	fileBufferSent;
@@ -67,6 +71,7 @@ class Client {
 
 		string					getRequestBuf() const { return requestBuf; }
 		string					getResponseBuf() const { return responseBuf; }
+		const string&			getBodyBuffer() const { return bodyBuffer; }
 		ClientState 			getState() const { return state; }
 		Request&				getRequest() { return request; }
 		Response&				getResponse()  { return response; }
@@ -81,6 +86,7 @@ class Client {
 		void					processRequest();
 		void					generateResponse();
 		void					setRequestBuf(const string& buf) { requestBuf = buf; }
+		void					consumeRequestBuf(size_t bytes) { requestBuf.erase(0, bytes); }
 		void					updateState();
 		int						handleReadEvent(int epollFd);
 		int						handleWriteEvent();

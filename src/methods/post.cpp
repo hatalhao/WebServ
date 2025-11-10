@@ -3,99 +3,58 @@
 
 
 const string	generateRandomFileName() {
+	static unsigned int counter = 0;
 	stringstream ss;
-	ss <<  "file_" << time(NULL) << ".upload";
+	ss <<  "file_" << time(NULL) << "_" << getpid() << "_" << (++counter) << ".upload";
 	return ss.str();
 }
 
-static bool extractMultipartFile(const vector<char>& body, const string& boundary, vector<char>& fileContent) {
-	if (body.empty() || boundary.empty())
+bool	Response::preparePostDestination() {
+	if (resourceInfo.type != IS_DIR || rules->uploadPath.empty()) {
+		setHeader("Allow", "GET");
+		client->setStatusCode(405);
 		return false;
+	}
 
-	string fullBoundary = "--" + boundary;
-	string bodyStr(body.begin(), body.end());
-	
-	size_t startPos = bodyStr.find(fullBoundary);
-	if (startPos == string::npos)
-		return false;
-	
-	startPos += fullBoundary.length();
-	
-	if (startPos + 2 <= bodyStr.length() && bodyStr.substr(startPos, 2) == "\r\n")
-		startPos += 2;
-	
-	size_t headerEnd = bodyStr.find("\r\n\r\n", startPos);
-	if (headerEnd == string::npos)
-		headerEnd = bodyStr.find("\n\n", startPos);
-	
-	if (headerEnd == string::npos)
-		return false;
-	
-	size_t contentStart = (bodyStr[headerEnd] == '\r') ? headerEnd + 4 : headerEnd + 2;
+	Request	&request = client->getRequest();
 
-	size_t endPos = bodyStr.find("\r\n" + fullBoundary, contentStart);
-	if (endPos == string::npos)
-		endPos = bodyStr.find("\n" + fullBoundary, contentStart);
+	string filename = rules->uploadPath;
+	string headerlocationPath = request.getPath();
+
+	if (!filename.empty() && filename[filename.length() - 1] != '/')
+		filename += "/";
+	if (!headerlocationPath.empty() && headerlocationPath[headerlocationPath.length() - 1] != '/')
+		headerlocationPath += "/";
 	
-	if (endPos == string::npos)
-		return false;
+	string randomName = generateRandomFileName();
+	filename += randomName;
+	headerlocationPath += randomName;
 	
-	fileContent.assign(body.begin() + contentStart, body.begin() + endPos);
+	this->uploadFilePath = filename;
+	this->uploadLocationPath = headerlocationPath;
+	
+	int fd = open(filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+	if (fd < 0)
+		return (client->setStatusCode(409), false);
+	
+	bodyFd = fd;
 	return true;
 }
 
-static string extractBoundaryFromContentType(const string& contentType) {
-	size_t boundaryPos = contentType.find("boundary=");
-	if (boundaryPos == string::npos)
-		return "";
+void	Response::finalizePost() {
+	if (bodyFd >= 0) {
+		close(bodyFd);
+		bodyFd = -1;
+	}
 	
-	string boundary = contentType.substr(boundaryPos + 9);
-	if (!boundary.empty() && boundary[0] == '"')
-		boundary = boundary.substr(1);
-	if (!boundary.empty() && boundary[boundary.length() - 1] == '"')
-		boundary = boundary.substr(0, boundary.length() - 1);
-	
-	return boundary;
+	setHeader("Location", uploadLocationPath);
+	setHeader("Content-Length", "0");
+	client->setStatusCode(201);
 }
 
 void	Response::Post() {
-
-	if (resourceInfo.type == IS_DIR && !rules->uploadPath.empty()) {
-		Request	&request = client->getRequest();
-
-		string filename = rules->uploadPath;
-		string headerlocationPath = request.getPath();
-
-		if (!filename.empty() && filename[filename.length() - 1] != '/')
-            filename += "/";
-        if (!headerlocationPath.empty() && headerlocationPath[headerlocationPath.length() - 1] != '/')
-            headerlocationPath += "/";
-		
-		string randomName = generateRandomFileName();
-        filename += randomName;
-        headerlocationPath += randomName;
-		string contentType = request.getHeader("content-type");
-		vector<char> dataToWrite = request.getBody();
-		
-		if (contentType.find("multipart/form-data") != string::npos) {
-			string boundary = extractBoundaryFromContentType(contentType);
-			if (!boundary.empty()) {
-				vector<char> fileContent;
-				if (extractMultipartFile(request.getBody(), boundary, fileContent)) {
-					dataToWrite = fileContent;
-				}
-			}
-		}
-		ofstream file(filename.c_str(), ios::binary);
-		if (!file.is_open()) return this->setErrorResponse(409);
-		file.write(dataToWrite.data(), dataToWrite.size());
-		file.close();
-	
-		setHeader("Location", headerlocationPath);
-		setHeader("Content-Length", "0");
-		return this->client->setStatusCode(201);
-	
+	if (!preparePostDestination()) {
+		setErrorResponse(client->getStatusCode());
+		return;
 	}
-	else
-		return (setHeader("Allow", "GET"), this->setErrorResponse(405));
 }

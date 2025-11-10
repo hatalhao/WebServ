@@ -5,9 +5,10 @@ Client::Client(int fd, Worker* _g_config, const pair<string, int>& hostPort) :
 	condidateServersIndices(_g_config->getCondidateServersIndices(hostPort)),
 	serverConfig(&_g_config->getServers()[*condidateServersIndices.begin()]),
 	requestBuf(""), responseBuf(""), contentLen(0), state(READING_REQUEST_LINE),
-	request(this), response(this), cgiHandlerPath(""),
+	request(), response(this), cgiHandlerPath(""),
 	httpStatusCode(0), keepAlive(false), lastActivity(time(NULL)),
-	bodySent(0), headerSent(0),
+	uploadFd(-1),
+	bodySent(0), headerSent(0), bodyBytesProcessed(0),
 	fileBufferUsed(0), fileBufferSent(0), fileReadOffset(0) {}
 
 void    Client::resolveHost() {
@@ -31,9 +32,9 @@ void    Client::updateState() {
 		case REQUESTLINE_READY:
 			this->state = READING_HEADERS; break;
 		case REQUESTHEADERS_READY:
-			this->state = (this->request.getMethod() == "POST") ?
-							READING_BODY : READING_DONE;
 			this->resolveHost();
+			// Headers are complete - mark as done and let handler process body from socket
+			this->state = READING_DONE;
 			break;
 		case PARSINGCOMPLETE:
 			this->state = READING_DONE; break;
@@ -46,7 +47,7 @@ void    Client::updateState() {
 
 void    Client::processRequest() {
 	ClientState previousState = this->state;
-
+	
 	switch (this->state)
 	{
 		case READING_REQUEST_LINE: 
@@ -54,9 +55,6 @@ void    Client::processRequest() {
 			break;
 		case READING_HEADERS:
 			this->httpStatusCode = this->request.processHeaders(this->requestBuf);
-			break;
-		case READING_BODY:
-			this->httpStatusCode = this->request.processBody(this->requestBuf);
 			break;
 		default:
 			break;
@@ -92,10 +90,16 @@ void    Client::resetForNextRequest() {
 	this->contentLen = 0;
 	this->state = READING_REQUEST_LINE;
 	
+	if (this->uploadFd >= 0) {
+		close(this->uploadFd);
+		this->uploadFd = -1;
+	}
+	this->bodyBytesProcessed = 0;
+	
 	this->resetWriteState();
 
 	this->request.~Request();
-	new (&this->request) Request(this);
+	new (&this->request) Request();
 	
 	this->response.~Response();
 	new (&this->response) Response(this);
@@ -143,12 +147,71 @@ void    Client::generateResponse() {
 		return;
 	}
 
-	if (this->response.checkCgiRequest() )
+	if (this->response.checkCgiRequest())
 		return forwardToCgi();
 
-	if (request.getMethod() == "GET") response.Get();
-	else if (request.getMethod() == "POST") response.Post();
-	else if (request.getMethod() == "DELETE") response.Delete();
+	// For POST with body, prepare upload and set state to PROCESSING_UPLOAD
+	if (request.getMethod() == "POST") {
+		if (response.preparePostDestination()) {
+			uploadFd = response.bodyFd;
+			bodyBytesProcessed = 0;
+			
+			// Check if there's body to process
+			string contentLengthHeader = request.getHeader("content-length");
+			string transferEncoding = request.getHeader("transfer-encoding");
+			
+			if (!contentLengthHeader.empty() || transferEncoding == "chunked") {
+				size_t contentLength = contentLengthHeader.empty() ? 0 : atoll(contentLengthHeader.c_str());
+				
+				if (!requestBuf.empty() && uploadFd >= 0) {
+					size_t toWrite = requestBuf.size();
+					if (contentLength > 0 && toWrite > contentLength) {
+						toWrite = contentLength;
+					}
+					
+					if (toWrite > 0) {
+						ssize_t written = write(uploadFd, requestBuf.data(), toWrite);
+						if (written > 0) {
+							bodyBytesProcessed += written;
+							requestBuf.clear();
+						} else {
+							close(uploadFd);
+							uploadFd = -1;
+							httpStatusCode = 500;
+						}
+					}
+				}
+				
+				// Check if upload already complete
+				if (contentLength > 0 && bodyBytesProcessed >= contentLength) {
+					close(uploadFd);
+					uploadFd = -1;
+					response.finalizePost();
+					
+					if (!response.isFileBody) {
+						if (response.findHeader("Content-Length") == false)
+							response.setHeader("Content-Length", to_string(response.bodySize));
+						responseBuf = response.serializeHeadersAndBody();
+					} else
+						responseBuf = response.serializeHeaders();
+
+					resetWriteState();
+					state = SENDING_RESPONSE;
+					return;
+				}
+				
+				state = PROCESSING_UPLOAD;
+				// Remaining body will be read in handleReadEvent
+				return;
+			}
+			// No body, finalize immediately
+			response.finalizePost();
+		}
+	}
+	else if (request.getMethod() == "GET")
+		response.Get();
+	else if (request.getMethod() == "DELETE")
+		response.Delete();
 
 	if (!response.isFileBody) {
 		if (response.findHeader("Content-Length") == false)
@@ -168,9 +231,75 @@ int Client::handleReadEvent(int epollFd) {
 
 	bytesRead = recv(this->_clientFd, buffer, sizeof(buffer), 0);
 	if (bytesRead > 0) {
-		this->requestBuf.append(buffer, bytesRead);
 		this->updateActivity();
-	} else if (bytesRead == 0)
+		
+		if (state == WAITING_FOR_CGI) {
+			if (this->requestBuf.size() < 16384) {
+				size_t toBuffer = bytesRead;
+				if (this->requestBuf.size() + bytesRead > 16384)
+					toBuffer = 16384 - this->requestBuf.size();
+				this->requestBuf.append(buffer, toBuffer);
+			}
+			return CONTINUE;
+		}
+
+		if (state == PROCESSING_UPLOAD) {
+			if (uploadFd >= 0) {
+				string contentLengthHeader = request.getHeader("content-length");
+				size_t contentLength = contentLengthHeader.empty() ? 0 : atoll(contentLengthHeader.c_str());
+				
+				size_t toWrite = bytesRead;
+				if (contentLength > 0 && bodyBytesProcessed + bytesRead > contentLength) {
+					toWrite = contentLength - bodyBytesProcessed;
+				}
+				
+				if (toWrite > 0) {
+					ssize_t written = write(uploadFd, buffer, toWrite);
+					if (written > 0) {
+						bodyBytesProcessed += written;
+					} else {
+						close(uploadFd);
+						uploadFd = -1;
+						httpStatusCode = 500;
+						response.setErrorResponse(httpStatusCode);
+						responseBuf = response.serializeHeadersAndBody();
+						resetWriteState();
+						state = SENDING_RESPONSE;
+						
+						struct epoll_event event = epoll_event();
+						event.data.fd = this->_clientFd;
+						event.events = EPOLLOUT;
+						epoll_ctl(epollFd, EPOLL_CTL_MOD, this->_clientFd, &event);
+						return CONTINUE;
+					}
+				}
+				
+				if (contentLength > 0 && bodyBytesProcessed >= contentLength) {
+					close(uploadFd);
+					uploadFd = -1;
+					response.finalizePost();
+					
+					if (!response.isFileBody) {
+						if (response.findHeader("Content-Length") == false)
+							response.setHeader("Content-Length", to_string(response.bodySize));
+						responseBuf = response.serializeHeadersAndBody();
+					} else
+						responseBuf = response.serializeHeaders();
+
+					resetWriteState();
+					state = SENDING_RESPONSE;
+					
+					struct epoll_event event = epoll_event();
+					event.data.fd = this->_clientFd;
+					event.events = EPOLLOUT;
+					epoll_ctl(epollFd, EPOLL_CTL_MOD, this->_clientFd, &event);
+				}
+			}
+			return CONTINUE;
+		}
+		this->requestBuf.append(buffer, bytesRead);
+	}
+	else if (bytesRead == 0)
 		return DISCONNECTED;
 	else if (bytesRead < 0)
 		return CONTINUE;
@@ -184,10 +313,8 @@ int Client::handleReadEvent(int epollFd) {
 			event.data.fd = this->_clientFd;
 			event.events = EPOLLOUT;
 	
-			if (epoll_ctl(epollFd, EPOLL_CTL_MOD, this->_clientFd, &event) < 0) {
-				perror("epoll_ctl MOD failed");
+			if (epoll_ctl(epollFd, EPOLL_CTL_MOD, this->_clientFd, &event) < 0)
 				return DISCONNECTED;
-			}
 		}
 	}
 
@@ -212,12 +339,11 @@ int Client::streamFileResponse(ssize_t& sent) {
 		int ret = endStreamingFile(remaining);
 		if ( ret != -2) return ret;
 
-		ssize_t bytesRead = pread(response.bodyFd, fileBuffer,
-								(remaining < sizeof(fileBuffer) ?
-								remaining : sizeof(fileBuffer)),
-								fileReadOffset);
+		size_t toRead = (remaining < sizeof(fileBuffer) ? remaining : sizeof(fileBuffer));
+		ssize_t bytesRead = read(response.bodyFd, fileBuffer, toRead);
 
 		if (bytesRead < 0) return DISCONNECTED;
+		if (bytesRead == 0) return DISCONNECTED;
 
 		ret = endStreamingFile(bytesRead);
 		if (ret != -2) return ret;
@@ -345,6 +471,7 @@ void	Client::onCgiDone(string& cgiOutput) {
 	cgiData.crlfPos = cgiOutput.find(CRLF CRLF);
 	cgiData.lfPos = cgiOutput.find("\n\n");
     cgiData.headersFound = false;
+    cgiData.isStatusSet = false;
 
 	if (parseCgiOutput(cgiOutput)) return ;
 
@@ -379,3 +506,4 @@ void    Client::onCgiError(unsigned short code) {
 	event.events = EPOLLOUT;
 	epoll_ctl(this->globalConfig->getEpollFd(), EPOLL_CTL_MOD, this->_clientFd, &event);
 }
+

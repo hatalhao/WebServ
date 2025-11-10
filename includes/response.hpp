@@ -29,6 +29,8 @@ class Response {
 		string				resolvedServerName;
 		map<string, string>	headers;
 		vector<char>		body;
+		string				uploadFilePath;
+		string				uploadLocationPath;
 		const location_b&	findLocationConfig(const string& path);
 		bool				detectRedirectLoop(const string& startPath, int maxDepth, set<string>& visitedPaths);
 		string				resolveRedirect(const string& redirectTarget, const string& locationName);
@@ -47,6 +49,8 @@ class Response {
 		int					prepareResponse();
 		string				serializeHeaders();
 		string				serializeHeadersAndBody();
+		bool				preparePostDestination();
+		void				finalizePost();
 		void				Post();
 		void				Get();
 		void				Delete();
