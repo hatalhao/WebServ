@@ -70,8 +70,3 @@ WebServ is structured around several core components, each implementing foundati
 4. **Run**:
    Launch the server and connect using your web browser or tools like `curl`.
 
----
-
-## License
-
-This project is released under the MIT License.
